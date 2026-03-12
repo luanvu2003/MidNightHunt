@@ -1,21 +1,21 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[RequireComponent(typeof(CharacterController), typeof(Animator))] // Thêm dòng này cho chuẩn
+[RequireComponent(typeof(CharacterController), typeof(Animator))]
 public class HunterController : MonoBehaviour
 {
     [Header("Cai Dat Toc Do")]
     public float walkstraight = 5f; // Đi tới
     public float walkbackward = 2.5f; // Đi lùi
-    public float rotationSpeed = 15f; // ĐÃ THÊM: Tốc độ xoay mặt
+    // ĐÃ XÓA: rotationSpeed (Vì phần xoay người bây giờ do chuột và script FPSCamera đảm nhận)
 
     [Header("Controller")]
     private HunterControllerInput input;
     private CharacterController controller; 
     private Animator animator;
     
-    private float currentSpeed; // ĐÃ SỬA: Lỗi dư chữ 'n'
-    private float velocityY;
+    private float currentSpeed; 
+    private float velocityY; // Vận tốc trục Y (Dùng để tính trọng lực kéo xuống đất)
 
     [Header("Animation")]
     private readonly int animSpeed = Animator.StringToHash("Speed");
@@ -27,37 +27,36 @@ public class HunterController : MonoBehaviour
 
     private void Awake()
     {
-        // ĐÃ SỬA: Lấy đúng component
         controller = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
-        
-        // ĐÃ SỬA: Khởi tạo Input system đúng chuẩn
         input = new HunterControllerInput(); 
     }
 
-    private void OnEnable()
-    {
-        input.Enable();
-    }
-
-    private void OnDisable()
-    {
-        input.Disable();
-    }
+    private void OnEnable() => input.Enable();
+    private void OnDisable() => input.Disable();
 
     private void Update()
     {
-        HandleMovementAndRotation();
-        UpdateAnimator(); // ĐÃ THÊM: Quên gọi hàm này thì Animation không chạy đâu nhé
+        HandleMovement(); // Đã đổi tên hàm vì không còn tự Rotation ở đây nữa
+        UpdateAnimator(); 
     }
 
-    private void HandleMovementAndRotation()
+    private void HandleMovement()
     {
-        // ĐỌC PHÍM
+        // =================================================================
+        // 1. ĐỌC PHÍM VÀ TÍNH HƯỚNG ĐI (CHUẨN FPS)
+        // =================================================================
         Vector2 inputDir = input.HunterControllerS.Move.ReadValue<Vector2>();
-        Vector3 moveDirection = new Vector3(inputDir.x, 0f, inputDir.y).normalized;
 
-        // TỐC ĐỘ MỤC TIÊU
+        // THAY ĐỔI QUAN TRỌNG NHẤT:
+        // transform.forward: Vectơ chỉ thẳng về phía trước mặt nhân vật.
+        // transform.right: Vectơ chỉ sang bên phải nhân vật.
+        // Ta nhân phím W/S (inputDir.y) với hướng trước mặt, và A/D (inputDir.x) với hướng ngang.
+        Vector3 moveDirection = (transform.forward * inputDir.y + transform.right * inputDir.x).normalized;
+
+        // =================================================================
+        // 2. TỐC ĐỘ MỤC TIÊU
+        // =================================================================
         float targetSpeed = 0f;
         if(inputDir.y < 0)
         {
@@ -68,20 +67,25 @@ public class HunterController : MonoBehaviour
             targetSpeed = walkstraight; 
         }
 
-        // XOAY MẶT
-        if(moveDirection.magnitude >= 0.1f)
+        // =================================================================
+        // 3. XỬ LÝ TRỌNG LỰC (GRAVITY) ĐỂ KHÔNG BỊ BAY
+        // =================================================================
+        // isGrounded: Lệnh kiểm tra xem chân nhân vật có đang chạm đất không
+        if (controller.isGrounded && velocityY < 0)
         {
-            if(inputDir.y >= 0)
-            {
-                float targetAngle = Mathf.Atan2(moveDirection.x, moveDirection.z) * Mathf.Rad2Deg;
-                float angle = Mathf.LerpAngle(transform.eulerAngles.y, targetAngle, rotationSpeed * Time.deltaTime);
-                transform.rotation = Quaternion.Euler(0f, angle, 0f);
-            }
+            velocityY = -2f; // Ép 1 lực nhỏ xuống để dính chặt vào sàn
         }
+        // Trọng lực kéo xuống (-9.81 là chuẩn trái đất, có thể tăng lên -20f nếu muốn nặng hơn)
+        velocityY += -9.81f * Time.deltaTime; 
 
-        // THỰC THI DI CHUYỂN
+        // =================================================================
+        // 4. THỰC THI DI CHUYỂN
+        // =================================================================
+        // Lerp: Nội suy làm mượt tốc độ để có cảm giác đà (trớn)
         currentSpeed = Mathf.Lerp(currentSpeed, targetSpeed, Time.deltaTime * 15f);
-        controller.Move(moveDirection * (currentSpeed * Time.deltaTime)); // ĐÃ SỬA: Lỗi gạch đỏ ở đây
+        
+        // Gộp hướng đi ngang (moveDirection) và hướng rơi dọc (velocityY) vào 1 lệnh Move duy nhất
+        controller.Move(moveDirection * (currentSpeed * Time.deltaTime) + new Vector3(0, velocityY, 0) * Time.deltaTime); 
     }
 
     private void UpdateAnimator()
