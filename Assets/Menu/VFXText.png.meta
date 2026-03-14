@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 4892ffee2a0e97247ba69a9af5938c55
+guid: f37c68a27f569c449b7f563580985d6a
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -175,13 +175,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Gemini_Generated_Image_1o6xq01o6xq01o6x-removebg-preview_0
+      name: Gemini_Generated_Image_8h68318h68318h68-removebg-preview_0
       rect:
         serializedVersion: 2
-        x: 65
-        y: 77
-        width: 612
-        height: 220
+        x: 37
+        y: 64
+        width: 614
+        height: 242
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -190,8 +190,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 3b57104fa04ddaf48b3db455d3a94862
-      internalID: 679295856
+      spriteID: 45796a96fa503304bbac09acef9b7974
+      internalID: 1038276410
       vertices: []
       indices: 
       edges: []
@@ -200,7 +200,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: ccc33d830d2acb645affdeafed268f48
+    spriteID: 7d38d7c31684b1b46894113a1374f1ba
     internalID: 0
     vertices: []
     indices: 
@@ -210,14 +210,13 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Gemini_Generated_Image_1o6xq01o6xq01o6x-removebg-preview_0: 679295856
-      Gemini_Generated_Image_1o6xq01o6xq01o6x-removebg-preview_1: 463903161
-      Gemini_Generated_Image_1o6xq01o6xq01o6x-removebg-preview_2: 1335785293
-      Gemini_Generated_Image_1o6xq01o6xq01o6x-removebg-preview_3: 2070143468
-      Gemini_Generated_Image_1o6xq01o6xq01o6x-removebg-preview_4: 935112880
-      Gemini_Generated_Image_1o6xq01o6xq01o6x-removebg-preview_5: 805377913
-      Gemini_Generated_Image_1o6xq01o6xq01o6x-removebg-preview_6: 1671173295
-      Gemini_Generated_Image_1o6xq01o6xq01o6x-removebg-preview_7: -1920058648
+      Gemini_Generated_Image_8h68318h68318h68-removebg-preview_0: 1038276410
+      Gemini_Generated_Image_8h68318h68318h68-removebg-preview_1: 254175059
+      Gemini_Generated_Image_8h68318h68318h68-removebg-preview_2: 1705360686
+      Gemini_Generated_Image_8h68318h68318h68-removebg-preview_3: 204834877
+      Gemini_Generated_Image_8h68318h68318h68-removebg-preview_4: -1056179596
+      Gemini_Generated_Image_8h68318h68318h68-removebg-preview_5: 373973342
+      Gemini_Generated_Image_8h68318h68318h68-removebg-preview_6: 803074776
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

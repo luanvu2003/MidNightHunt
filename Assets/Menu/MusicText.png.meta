@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: ec4a39b5d72b5c74c9d48b5c7f8d1a99
+guid: f84e7b9375d6d0841ba896ecad1eef1e
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -175,13 +175,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: MusicText_0
+      name: Gemini_Generated_Image_9wr47x9wr47x9wr4-removebg-preview_0
       rect:
         serializedVersion: 2
-        x: 64
-        y: 75
-        width: 613
-        height: 223
+        x: 42
+        y: 66
+        width: 606
+        height: 239
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -190,8 +190,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: b6b3ed22446538648b052026107dbf98
-      internalID: 1862518314
+      spriteID: 668d29a28883ec140b270a77b5ac9534
+      internalID: -1472204003
       vertices: []
       indices: 
       edges: []
@@ -200,7 +200,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 5367731f3b51ad245939b02c98a89ff8
+    spriteID: 91a2e7dcd70d8354f8a6405a2f63a9ff
     internalID: 0
     vertices: []
     indices: 
@@ -210,19 +210,15 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      MusicText_0: 1862518314
-      MusicText_1: 888982264
-      MusicText_10: 2019450809
-      MusicText_11: 1645517226
-      MusicText_12: -658070775
-      MusicText_2: 1636167142
-      MusicText_3: 864135659
-      MusicText_4: 209685744
-      MusicText_5: -104003726
-      MusicText_6: 27422048
-      MusicText_7: -1868295705
-      MusicText_8: -1669309687
-      MusicText_9: 855350790
+      Gemini_Generated_Image_9wr47x9wr47x9wr4-removebg-preview_0: -1472204003
+      Gemini_Generated_Image_9wr47x9wr47x9wr4-removebg-preview_1: -262560379
+      Gemini_Generated_Image_9wr47x9wr47x9wr4-removebg-preview_2: 1724641661
+      Gemini_Generated_Image_9wr47x9wr47x9wr4-removebg-preview_3: 864645351
+      Gemini_Generated_Image_9wr47x9wr47x9wr4-removebg-preview_4: -985085281
+      Gemini_Generated_Image_9wr47x9wr47x9wr4-removebg-preview_5: 1070486362
+      Gemini_Generated_Image_9wr47x9wr47x9wr4-removebg-preview_6: 253234720
+      Gemini_Generated_Image_9wr47x9wr47x9wr4-removebg-preview_7: 1777504281
+      Gemini_Generated_Image_9wr47x9wr47x9wr4-removebg-preview_8: 418716941
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
