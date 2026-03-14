@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 7f7ac8d79ac5f494982eb327c74312cd
+guid: 0a3b8be0190b20d4186ad0589d35d4a4
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -175,13 +175,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: TextHost_0
+      name: Gemini_Generated_Image_21mzsb21mzsb21mz-removebg-preview_0
       rect:
         serializedVersion: 2
-        x: 99
-        y: 115
-        width: 507
-        height: 120
+        x: 37
+        y: 61
+        width: 568
+        height: 247
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -190,8 +190,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 6483cadc6d7a99e4a9b833dfbec4b712
-      internalID: -2132812143
+      spriteID: 0bcc2c22f32523444834bd1fbc5665be
+      internalID: -1314144112
       vertices: []
       indices: 
       edges: []
@@ -200,7 +200,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: d0254199e22e0754b8e094399a0244d6
+    spriteID: f534513a6d2a68340a6cad06fa335569
     internalID: 0
     vertices: []
     indices: 
@@ -210,13 +210,11 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      TextHost_0: -2132812143
-      TextHost_1: -88357124
-      TextHost_2: -1214903503
-      TextHost_3: -1091304028
-      TextHost_4: 1322423980
-      TextHost_5: 849625001
-      TextHost_6: -77223157
+      Gemini_Generated_Image_21mzsb21mzsb21mz-removebg-preview_0: -1314144112
+      Gemini_Generated_Image_21mzsb21mzsb21mz-removebg-preview_1: 2017287625
+      Gemini_Generated_Image_21mzsb21mzsb21mz-removebg-preview_2: 73121298
+      Gemini_Generated_Image_21mzsb21mzsb21mz-removebg-preview_3: 22438879
+      Gemini_Generated_Image_21mzsb21mzsb21mz-removebg-preview_4: 1435411299
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

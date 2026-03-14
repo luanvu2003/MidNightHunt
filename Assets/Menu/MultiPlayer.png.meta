@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: d6d9ef14da939ae4ebd2bc371c4041c5
+guid: f17bb2d56ed16df429323450d8df02ac
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -178,10 +178,10 @@ TextureImporter:
       name: MultiPlayer_0
       rect:
         serializedVersion: 2
-        x: 77
-        y: 129
-        width: 522
-        height: 111
+        x: 32
+        y: 115
+        width: 629
+        height: 140
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -190,8 +190,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: ca9190174ea8b94448a78a06879320df
-      internalID: 1829921972
+      spriteID: e6afe1a231ef8af4e9488905e774c94a
+      internalID: 1261187757
       vertices: []
       indices: 
       edges: []
@@ -200,7 +200,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 16a2a0f81beb1d045bd8dbe0083d22fa
+    spriteID: ac022397e2ffefb4f9f526518ebde261
     internalID: 0
     vertices: []
     indices: 
@@ -210,7 +210,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      MultiPlayer_0: 1829921972
+      MultiPlayer_0: 1261187757
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

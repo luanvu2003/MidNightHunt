@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 13d4d6cbc509b85459e0d39e58a59db1
+guid: ead30a3b77d7d714890730d47684e373
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -175,13 +175,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Option_0
+      name: Gemini_Generated_Image_txshvtxshvtxshvt-removebg-preview_0
       rect:
         serializedVersion: 2
-        x: 77
-        y: 129
-        width: 523
-        height: 111
+        x: 29
+        y: 52
+        width: 631
+        height: 272
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -190,8 +190,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 298f4245d6d9c2f4e8bed0250b07c6e5
-      internalID: -986699423
+      spriteID: 11c47a926f19db74eb3403708af41aed
+      internalID: -485067659
       vertices: []
       indices: 
       edges: []
@@ -200,7 +200,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: bd60c36f67d1c9f4a87ca4101e6945d0
+    spriteID: fd0c30adf73622045aad96b59842d8f6
     internalID: 0
     vertices: []
     indices: 
@@ -210,7 +210,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Option_0: -986699423
+      Gemini_Generated_Image_txshvtxshvtxshvt-removebg-preview_0: -485067659
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
