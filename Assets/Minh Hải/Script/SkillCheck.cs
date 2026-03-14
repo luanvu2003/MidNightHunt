@@ -4,6 +4,7 @@ using UnityEngine.UI;
 public class SkillCheck : MonoBehaviour
 {
     public RectTransform needle;
+    public RectTransform successZone;
 
     public float rotateSpeed = 200f;
 
@@ -18,28 +19,26 @@ public class SkillCheck : MonoBehaviour
     {
         angle = 0;
 
+        // xoay vùng success tới vị trí cố định
+        successZone.localRotation = Quaternion.Euler(0, 0, -successMin);
     }
 
     void Update()
     {
         angle += rotateSpeed * Time.deltaTime;
 
-        if (angle >= 360)
-        {
-            angle = 0; // reset vòng quay
-        }
+        if (angle >= 360f)
+            angle -= 360f;
 
-        needle.rotation = Quaternion.Euler(0, 0, -angle);
+        needle.localRotation = Quaternion.Euler(0, 0, -angle);
 
         if (Input.GetKeyDown(KeyCode.Space))
-        {
             Check();
-        }
     }
 
     void Check()
     {
-        float current = angle % 360;
+        float current = angle;
 
         if (current >= successMin && current <= successMax)
         {
@@ -54,7 +53,6 @@ public class SkillCheck : MonoBehaviour
     void Success()
     {
         Debug.Log("Skill Check Success");
-
         gameObject.SetActive(false);
     }
 
@@ -62,7 +60,7 @@ public class SkillCheck : MonoBehaviour
     {
         Debug.Log("Skill Check Fail");
 
-        generator.progress = 0f; // reset thanh sửa
+        generator.progress = 0f;
         generator.progressBar.value = 0f;
 
         gameObject.SetActive(false);
