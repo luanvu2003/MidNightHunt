@@ -6,7 +6,7 @@ public class HunterController : MonoBehaviour
 {
     [Header("Cai Dat Toc Do")]
     public float walkstraight = 5f; // Đi tới
-    public float walkbackward = 2.5f; // Đi lùi
+    public float walkbackward = 5f; // Đi lùi
     // ĐÃ XÓA: rotationSpeed (Vì phần xoay người bây giờ do chuột và script FPSCamera đảm nhận)
 
     [Header("Controller")]
@@ -99,5 +99,15 @@ public class HunterController : MonoBehaviour
         }
         
         animator.SetFloat(animSpeed, animationSpeedPercent);
+    }
+   private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("May"))           /////// bug
+        {
+            if (Input.GetKeyDown(KeyCode.E))
+            {
+                animator.SetTrigger("Dapmay");
+            }
+        }
     }
 }
