@@ -12,6 +12,7 @@ public class HunterController : MonoBehaviour
     // ĐÃ XÓA: rotationSpeed (Vì phần xoay người bây giờ do chuột và script FPSCamera đảm nhận)
     [Header("Trạng thái")]
     public bool isInteracting = false;
+    public float currentSpeedMultiplier = 1f;
     [Header("Tương tác")]
     public Transform fpsCamera;
     public float interactRange = 3f; // 2. Tầm tay của Hunter (Dài 3 mét)
@@ -130,11 +131,11 @@ public class HunterController : MonoBehaviour
         float targetSpeed = 0f;
         if (inputDir.y < 0)
         {
-            targetSpeed = walkbackward;
+            targetSpeed = walkbackward * currentSpeedMultiplier;
         }
         else if (moveDirection.magnitude > 0)
         {
-            targetSpeed = walkstraight;
+            targetSpeed = walkstraight * currentSpeedMultiplier;
         }
 
         // =================================================================
@@ -170,14 +171,12 @@ public class HunterController : MonoBehaviour
 
         animator.SetFloat(animSpeed, animationSpeedPercent);
     }
-    private void OnCollisionEnter(Collision collision)
+    public void ApplySlow(float multiplier)
     {
-        if (collision.gameObject.CompareTag("May"))           /////// bug
-        {
-            if (Input.GetKeyDown(KeyCode.E))
-            {
-                animator.SetTrigger("Dapmay");
-            }
-        }
+        currentSpeedMultiplier = multiplier; // ép tốc độ giảm xuống
+    }
+    public void ResetSlow()
+    {
+        currentSpeedMultiplier = 1f; // trả lại
     }
 }
