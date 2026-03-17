@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 92bed47c73164ce4aa142cd3fdb01c6d
+guid: 2a73b57ed8e8f25489142d4d1e09556b
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -81,32 +81,6 @@ TextureImporter:
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 4
-    buildTarget: WebGL
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: iOS
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
     buildTarget: Standalone
     maxTextureSize: 2048
     resizeAlgorithm: 0
@@ -120,33 +94,7 @@ TextureImporter:
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 4
-    buildTarget: Android
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: VisionOS
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: tvOS
+    buildTarget: WebGL
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
@@ -175,23 +123,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: TextOption_0
+      name: Gemini_Generated_Image_20ct7q20ct7q20ct-removebg-preview_0
       rect:
         serializedVersion: 2
-        x: 64
-        y: 124
-        width: 560
-        height: 121
+        x: 37
+        y: 60
+        width: 588
+        height: 246
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: b5cd3855bba2f8e40891ac795185f963
-      internalID: 489888977
+      spriteID: 7b2140630dfc37242b860df0827d6ac6
+      internalID: -1091926239
       vertices: []
       indices: 
       edges: []
@@ -200,7 +148,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: adc9c1749b9f6e34e9fa7addbe613306
+    spriteID: ac230f7d07bc683489607971a5fd894e
     internalID: 0
     vertices: []
     indices: 
@@ -210,15 +158,11 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      TextOption_0: 489888977
-      TextOption_1: 1743327746
-      TextOption_2: 496087620
-      TextOption_3: 260095331
-      TextOption_4: -32775391
-      TextOption_5: -1116665054
-      TextOption_6: -2092680823
-      TextOption_7: -2054739729
-      TextOption_8: -1452068658
+      Gemini_Generated_Image_20ct7q20ct7q20ct-removebg-preview_0: -1091926239
+      Gemini_Generated_Image_20ct7q20ct7q20ct-removebg-preview_1: 536401162
+      Gemini_Generated_Image_20ct7q20ct7q20ct-removebg-preview_2: -224084697
+      Gemini_Generated_Image_20ct7q20ct7q20ct-removebg-preview_3: -1021897782
+      Gemini_Generated_Image_20ct7q20ct7q20ct-removebg-preview_4: -1524012437
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
