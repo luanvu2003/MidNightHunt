@@ -18,16 +18,30 @@ public class MainMenuManager : MonoBehaviour
 
     private void Start()
     {
-        // Khi mở game: Hiện bảng nhập tên, ẩn các bảng còn lại
-        UsernamePanel.SetActive(true);
-        MainMenuPanel.SetActive(false);
-        HostPanel.SetActive(false);
-        OptionPanel.SetActive(false);
-
-        // Load lại tên cũ nếu đã từng chơi
-        if (PlayerPrefs.HasKey("SavedUsername"))
+        // Kiểm tra xem đã có tên trong PlayerInfo chưa (Trường hợp vừa từ Room thoát ra)
+        if (PlayerInfo.Instance != null && !string.IsNullOrEmpty(PlayerInfo.Instance.PlayerName))
         {
-            usernameInputField.text = PlayerPrefs.GetString("SavedUsername");
+            // Bỏ qua bước nhập tên, vào thẳng Menu
+            UsernamePanel.SetActive(false);
+            MainMenuPanel.SetActive(true);
+            HostPanel.SetActive(false);
+            OptionPanel.SetActive(false);
+
+            usernameInputField.text = PlayerInfo.Instance.PlayerName; // Điền sẵn lại tên vào ô input cho chắc
+        }
+        else
+        {
+            // Trường hợp mới mở game lần đầu
+            UsernamePanel.SetActive(true);
+            MainMenuPanel.SetActive(false);
+            HostPanel.SetActive(false);
+            OptionPanel.SetActive(false);
+
+            // Load lại tên cũ nếu đã từng chơi
+            if (PlayerPrefs.HasKey("SavedUsername"))
+            {
+                usernameInputField.text = PlayerPrefs.GetString("SavedUsername");
+            }
         }
     }
 
@@ -56,45 +70,54 @@ public class MainMenuManager : MonoBehaviour
     public void CloseOptionPanel() => OptionPanel.SetActive(false);
 
     // --- LOGIC KẾT NỐI FUSION ---
-    public async void StartGame(GameMode mode)
+    public async void StartGame(GameMode mode, string sessionID)
     {
-        // 1. Khởi tạo NetworkRunner
         var runner = Instantiate(runnerPrefab);
-        DontDestroyOnLoad(runner); // Rất quan trọng: Giữ kết nối mạng khi chuyển Scene
+        DontDestroyOnLoad(runner);
 
-        // 2. Chuyển Scene (Index 1 là Scene "Room")
-        // Lưu ý: Đảm bảo Scene Room đã được add vào Build Settings ở vị trí số 1
+        // Tạo dữ liệu đính kèm cho phòng (Session Properties)
+        var customProps = new System.Collections.Generic.Dictionary<string, SessionProperty>();
+
+        // Nếu là Host, ta đính kèm thêm tên của mình vào thuộc tính "HostName"
+        if (mode == GameMode.Host || mode == GameMode.Server)
+        {
+            customProps["HostName"] = PlayerInfo.Instance.PlayerName;
+        }
+
         await runner.StartGame(new StartGameArgs()
         {
             GameMode = mode,
-            SessionName = hostIDInput.text,
+            SessionName = sessionID, // Đây là ID (Ví dụ: 12345)
+            SessionProperties = customProps, // Đây là nơi giữ tên "Hoài Bảo"
             Scene = SceneRef.FromIndex(1),
+            PlayerCount = 5,
             SceneManager = runner.gameObject.AddComponent<NetworkSceneManagerDefault>()
         });
+    }
+
+    public void OnClickCreate()
+    {
+        // Tạo mã ID ngẫu nhiên (chỉ là số hoặc mã ngắn)
+        string randomID = Random.Range(100000, 999999).ToString();
+        StartGame(GameMode.Host, randomID);
     }
 
     // Nút Single Player (Chế độ chơi đơn trong Fusion)
     public void SinglePlayer()
     {
-        // Dùng GameMode.Single để vẫn chạy được logic của Fusion mà không cần server
-        StartGame(GameMode.Single);
+        StartGame(GameMode.Single, "SinglePlayer_" + Random.Range(0, 1000));
     }
 
-    // Nút Create Room trên bảng gỗ
-    public void OnClickCreate()
-    {
-        // Nếu HostID trống, tự tạo một ID ngẫu nhiên
-        if (string.IsNullOrEmpty(hostIDInput.text))
-        {
-            string randomID = "ROOM_" + Random.Range(1000, 9999).ToString();
-            hostIDInput.text = randomID; // Hiển thị lên UI cho người chơi thấy để gửi cho bạn
-        }
-
-        StartGame(GameMode.Host);
-    }
 
     // Nút Join Room trên bảng gỗ
-    public void OnClickJoin() => StartGame(GameMode.Client);
+    public void OnClickJoin()
+    {
+        // Khi Join thì lấy tên từ ô Input Host ID mà người chơi nhập vào
+        if (!string.IsNullOrEmpty(hostIDInput.text))
+        {
+            StartGame(GameMode.Client, hostIDInput.text);
+        }
+    }
 
     public void ExitGame()
     {
