@@ -3,3 +3,4 @@
 HIVEMIND filter=lfs diff=lfs merge=lfs -text
 HIVEMIND/** filter=lfs diff=lfs merge=lfs -text
 Assets/HIVEMIND/** filter=lfs diff=lfs merge=lfs -text
+Assets/Artsytack[[:space:]]-[[:space:]]Fantasy[[:space:]]RPG[[:space:]]GUI/** filter=lfs diff=lfs merge=lfs -text
