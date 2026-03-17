@@ -1,5 +1,12 @@
+using System;
+using Microsoft.Unity.VisualStudio.Editor;
+using TMPro;
 using UnityEngine;
+using UnityEngine.Android;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
+using Image = UnityEngine.UI.Image;
+
 
 public class AttackController : MonoBehaviour
 {
@@ -8,6 +15,15 @@ public class AttackController : MonoBehaviour
 
     [Header("Trạng thái")]
     public bool isAttacking = false;
+    [Header("Hệ thống ném búa Ammo và Cooldown")]
+    public int maxAmmo =5; // max búa
+    private int currentAmmo; // búa hiện tại
+    public float reloadTime = 5f; // thời gian hồi
+    private bool isReloading = false; // đang trong thời gian hồi
+    private float reloadTimer = 0f; // bộ đếm thời gian 
+    [Header("UI búa")]
+    public TextMeshProUGUI ammoText;
+    public Image cooldownImage;
 
     [Header("Vũ Khí & Tọa Độ Ném")]
     public GameObject hammerPrefab;    // Viên đạn búa bay
@@ -30,9 +46,22 @@ public class AttackController : MonoBehaviour
         ani = GetComponent<Animator>();
         hunterMovement = GetComponent<HunterController>();
     }
+    private void Start()
+    {
+        // khởi tạo ammo khi play
+        currentAmmo = maxAmmo;
+        UpdateAmmoUI();
+
+        //tắt img lúc mới play
+        if (cooldownImage != null) cooldownImage.fillAmount = 0f;
+    }
+
 
     void Update()
     {
+        // 1. CHẠY HỆ THỐNG HỒI CHIÊU (Chạy liên tục không bị chặn bởi isAttacking)
+        HandleReloadSystem();
+
         if (isAttacking) return;
 
         // CHUỘT TRÁI: Chém búa phải
@@ -45,10 +74,25 @@ public class AttackController : MonoBehaviour
         // CHUỘT PHẢI: Phi búa trái
         if (Mouse.current.rightButton.wasPressedThisFrame)
         {
+            // chỉ phi khi búa còn và không đang trạng thái hồi chiêu
+            if(currentAmmo > 0 && !isReloading)
+            {
+                currentAmmo --;
+                UpdateAmmoUI();
+                PerformAttack(animThrow);
 
-            PerformAttack(animThrow);
+                if(currentAmmo <= 0)
+                {
+                    StartReload();
+                }
+            }
+            else
+            {
+                Debug.Log("đang hồi búaaaa");
+            }
         }
     }
+
 
     // =========================================================
     // HÀM RA LỆNH MÚA & KÍCH HOẠT HẸN GIỜ BẢO VỆ
@@ -85,8 +129,11 @@ public class AttackController : MonoBehaviour
     {
         isAttacking = false;
 
-        // Hiện lại cây búa tay TRÁI (như kiểu móc búa mới ra)
-        if (leftHandHammer != null) leftHandHammer.SetActive(true);
+         // CHÚ Ý: Chỉ hiện lại búa trên tay nếu vẫn còn đạn, hoặc ném cái cuối thì tay không luôn chờ hồi
+        if(currentAmmo > 0 && leftHandHammer != null)
+        {
+            leftHandHammer.SetActive(true);
+        }
     }
 
     // =========================================================
@@ -116,5 +163,40 @@ public class AttackController : MonoBehaviour
             CancelInvoke(nameof(RestoreSpeed)); // xóa lệnh hẹn giờ cũ
             Invoke(nameof(RestoreSpeed), slowDuraction); // hẹn giờ di chuyển bth
         }
+    }
+
+    private void UpdateAmmoUI()
+    {
+        if(ammoText != null)
+        {
+            ammoText.text = currentAmmo.ToString() + "";
+        }
+    }
+    private void HandleReloadSystem()
+    {
+        if (isReloading)
+        {
+            // trừ dần thời gian thật
+            reloadTimer -= Time.deltaTime;
+
+            //chạy fill amout
+            if(cooldownImage != null)
+            {
+                cooldownImage.fillAmount = reloadTimer / reloadTime;
+            }
+            // khi hồi xong
+            if (reloadTimer <= 0)
+            {
+                isReloading = false; // tắt trạng thái hồi
+                currentAmmo = maxAmmo ; // nạp lại búa
+                UpdateAmmoUI();
+                if(cooldownImage != null) cooldownImage.fillAmount = 0f; // tắt sạch IMG
+            }
+        }
+    }
+    private void StartReload()
+    {
+        isReloading = true;
+        reloadTimer = reloadTime; // đếm ngược time reloadtime
     }
 }
