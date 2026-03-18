@@ -1,5 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TMPro;
+using UnityEngine.UI;
+using System;
 
 public class AttackController : MonoBehaviour
 {
@@ -8,6 +11,16 @@ public class AttackController : MonoBehaviour
 
     [Header("Trạng thái")]
     public bool isAttacking = false;
+    [Header("Hệ thống Ném Búa (Ammo & Cooldown)")]
+    public int maxAmmo = 5;               // Số búa tối đa
+    private int currentAmmo;              // Số búa hiện tại
+    public float reloadTime = 5f;         // Thời gian hồi (5 - 10 giây)
+    private bool isReloading = false;     // Đang trong thời gian hồi?
+    private float reloadTimer = 0f;       // Bộ đếm thời gian
+
+    [Header("UI Búa")]
+    public TextMeshProUGUI ammoText;
+    public Image cooldownImage;
 
     [Header("Vũ Khí & Tọa Độ Ném")]
     public GameObject hammerPrefab;    // Viên đạn búa bay
@@ -30,9 +43,21 @@ public class AttackController : MonoBehaviour
         ani = GetComponent<Animator>();
         hunterMovement = GetComponent<HunterController>();
     }
+    void Start()
+    {
+        // khoi 
+        currentAmmo = maxAmmo;
+        UpdateAmmoUI();
+
+        if (cooldownImage != null) cooldownImage.fillAmount = 0f;
+
+    }
 
     void Update()
     {
+        // play time hồi chiêu
+        HandleReloadSystem();
+
         if (isAttacking) return;
 
         // CHUỘT TRÁI: Chém búa phải
@@ -46,7 +71,24 @@ public class AttackController : MonoBehaviour
         if (Mouse.current.rightButton.wasPressedThisFrame)
         {
 
-            PerformAttack(animThrow);
+            // khi búa còn và không trong time hồi chiêu
+            if (currentAmmo > 0 && !isReloading)
+            {
+                currentAmmo--; // sử dụng -1
+                UpdateAmmoUI(); // update text
+                PerformAttack(animThrow);
+
+                //khi hết búa
+                if (currentAmmo <= 0)
+                {
+                    StartReload(); // load fillamout
+                }
+
+            }
+            else
+            {
+                Debug.Log("Hết đạn ");
+            }
         }
     }
 
@@ -85,8 +127,11 @@ public class AttackController : MonoBehaviour
     {
         isAttacking = false;
 
-        // Hiện lại cây búa tay TRÁI (như kiểu móc búa mới ra)
-        if (leftHandHammer != null) leftHandHammer.SetActive(true);
+        // CHÚ Ý: Chỉ hiện lại búa trên tay nếu vẫn còn đạn, hoặc ném cái cuối thì tay không luôn chờ hồi
+        if (leftHandHammer != null && currentAmmo > 0 )
+        {
+            leftHandHammer.SetActive(true);
+        }
     }
 
     // =========================================================
@@ -103,18 +148,53 @@ public class AttackController : MonoBehaviour
     }
     private void RestoreSpeed()
     {
-        if(hunterMovement != null)
+        if (hunterMovement != null)
         {
             hunterMovement.ResetSlow();
         }
     }
     public void StarSlowEffect()
     {
-        if(hunterMovement != null)
+        if (hunterMovement != null)
         {
             hunterMovement.ApplySlow(slowMultiplier); // đi chậm lại
             CancelInvoke(nameof(RestoreSpeed)); // xóa lệnh hẹn giờ cũ
             Invoke(nameof(RestoreSpeed), slowDuraction); // hẹn giờ di chuyển bth
         }
+    }
+
+    private void UpdateAmmoUI()
+    {
+        if (ammoText != null)
+        {
+            ammoText.text = currentAmmo.ToString() + "";
+        }
+    }
+    private void HandleReloadSystem()
+    {
+        if(isReloading)
+        {
+            reloadTimer -= Time.deltaTime;
+            //chạy fill amout
+            if(cooldownImage != null)
+            {
+                // Công thức: Thời gian còn lại / Tổng thời gian -> Ra số từ 1.0 đến 0.0
+                cooldownImage.fillAmount = reloadTimer / reloadTime; 
+            }
+
+            // Khi đếm ngược về 0 (Hồi xong)
+            if (reloadTimer <= 0)
+            {
+                isReloading = false;
+                currentAmmo = maxAmmo;
+                UpdateAmmoUI();
+                if(cooldownImage != null) cooldownImage.fillAmount = 0f;
+            }
+        }
+    }
+    private void StartReload()
+    {
+        isReloading = true;
+        reloadTimer = reloadTime;
     }
 }
