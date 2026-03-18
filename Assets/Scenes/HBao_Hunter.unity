@@ -230,6 +230,63 @@ RectTransform:
   m_AnchoredPosition: {x: -5, y: 0}
   m_SizeDelta: {x: -20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1001 &381268060
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1030994576, guid: abc00000000003949915271201772550, type: 3}
+      propertyPath: m_Name
+      value: SM_Balcon_Wood_Handrail_Corner
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030994577, guid: abc00000000003949915271201772550, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 668.0733
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030994577, guid: abc00000000003949915271201772550, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.066851996
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030994577, guid: abc00000000003949915271201772550, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 568.1669
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030994577, guid: abc00000000003949915271201772550, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030994577, guid: abc00000000003949915271201772550, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030994577, guid: abc00000000003949915271201772550, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030994577, guid: abc00000000003949915271201772550, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030994577, guid: abc00000000003949915271201772550, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030994577, guid: abc00000000003949915271201772550, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030994577, guid: abc00000000003949915271201772550, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: abc00000000003949915271201772550, type: 3}
 --- !u!1 &394383877
 GameObject:
   m_ObjectHideFlags: 0
@@ -3049,3 +3106,4 @@ SceneRoots:
   - {fileID: 1983344725}
   - {fileID: 1000544929}
   - {fileID: 1630030261}
+  - {fileID: 381268060}
