@@ -71,19 +71,10 @@ public class AttackController : MonoBehaviour
         if (Mouse.current.rightButton.wasPressedThisFrame)
         {
 
-            // khi búa còn và không trong time hồi chiêu
+            // điều kiện để phi búa
             if (currentAmmo > 0 && !isReloading)
             {
-                currentAmmo--; // sử dụng -1
-                UpdateAmmoUI(); // update text
                 PerformAttack(animThrow);
-
-                //khi hết búa
-                if (currentAmmo <= 0)
-                {
-                    StartReload(); // load fillamout
-                }
-
             }
             else
             {
@@ -117,6 +108,13 @@ public class AttackController : MonoBehaviour
         if (hammerPrefab != null && throwPoint != null)
         {
             Instantiate(hammerPrefab, throwPoint.position, throwPoint.rotation);
+        }
+
+        currentAmmo --;
+        UpdateAmmoUI();
+        if (currentAmmo <= 0)
+        {
+            StartReload();
         }
     }
 
