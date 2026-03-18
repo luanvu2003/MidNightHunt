@@ -23,7 +23,7 @@ MonoBehaviour:
   m_MinSize: {x: 300, y: 100}
   m_MaxSize: {x: 24288, y: 16192}
   vertical: 1
-  controlID: 2007
+  controlID: 2926
   draggingID: 0
 --- !u!114 &2
 MonoBehaviour:
@@ -94,7 +94,7 @@ MonoBehaviour:
     m_HSlider: 0
     m_VSlider: 0
     m_IgnoreScrollWheelUntilClicked: 0
-    m_EnableMouseInput: 0
+    m_EnableMouseInput: 1
     m_EnableSliderZoomHorizontal: 0
     m_EnableSliderZoomVertical: 0
     m_UniformScale: 1
@@ -151,7 +151,7 @@ MonoBehaviour:
   m_MinSize: {x: 300, y: 100}
   m_MaxSize: {x: 24288, y: 16192}
   vertical: 0
-  controlID: 2008
+  controlID: 2927
   draggingID: 0
 --- !u!114 &4
 MonoBehaviour:
@@ -269,8 +269,8 @@ MonoBehaviour:
     serializedVersion: 2
     x: 0
     y: 79.200005
-    width: 398.2
-    height: 441.2
+    width: 299
+    height: 786.8
   m_SerializedDataModeController:
     m_DataMode: 0
     m_PreferredDataMode: 0
@@ -306,7 +306,7 @@ MonoBehaviour:
   m_MinSize: {x: 100, y: 100}
   m_MaxSize: {x: 8096, y: 16192}
   vertical: 1
-  controlID: 2009
+  controlID: 2928
   draggingID: 0
 --- !u!114 &8
 MonoBehaviour:
@@ -327,8 +327,8 @@ MonoBehaviour:
     y: 0
     width: 761.6
     height: 463.2
-  m_MinSize: {x: 101, y: 126}
-  m_MaxSize: {x: 4001, y: 4026}
+  m_MinSize: {x: 102, y: 126}
+  m_MaxSize: {x: 4002, y: 4026}
   m_ActualView: {fileID: 9}
   m_Panes:
   - {fileID: 9}
@@ -957,9 +957,9 @@ MonoBehaviour:
   m_AudioPlay: 0
   m_DebugDrawModesUseInteractiveLightBakingData: 0
   m_Position:
-    m_Target: {x: 1457.4761, y: -19.314142, z: -646.8349}
+    m_Target: {x: 608.9215, y: 181.09724, z: -241.90355}
     speed: 2
-    m_Value: {x: 1457.4761, y: -19.314142, z: -646.8349}
+    m_Value: {x: 608.9215, y: 181.09724, z: -241.90355}
   m_RenderMode: 0
   m_CameraMode:
     drawMode: 0
@@ -1005,13 +1005,13 @@ MonoBehaviour:
     m_GridAxis: 1
     m_gridOpacity: 0.5
   m_Rotation:
-    m_Target: {x: -0.07104409, y: 0.015270566, z: -0.0010833197, w: -0.9973903}
+    m_Target: {x: -0.0386997, y: 0.010501824, z: -0.0004037124, w: -0.9992372}
     speed: 2
-    m_Value: {x: -0.07104508, y: 0.011679476, z: -0.0008275266, w: -0.99740446}
+    m_Value: {x: -0.038698953, y: 0.008103327, z: -0.00031082056, w: -0.99921805}
   m_Size:
-    m_Target: 540.64856
+    m_Target: 202.59123
     speed: 2
-    m_Value: 566.12415
+    m_Value: 212.13742
   m_Ortho:
     m_Target: 0
     speed: 2
@@ -1401,7 +1401,7 @@ MonoBehaviour:
     m_SkipHidden: 0
     m_SearchArea: 1
     m_Folders:
-    - Assets/HIVEMIND/CyberpunkCity/HDRP(Default)/Art/Prefabs
+    - Assets
     m_Globs: []
     m_ProductIds: 
     m_AnyWithAssetOrigin: 0
@@ -1411,17 +1411,17 @@ MonoBehaviour:
   m_ViewMode: 1
   m_StartGridSize: 69
   m_LastFolders:
-  - Assets/HIVEMIND/CyberpunkCity/HDRP(Default)/Art/Prefabs
+  - Assets
   m_LastFoldersGridSize: 69
   m_LastProjectPath: D:\DuAn1_Nhom5\MidNightHunt
   m_LockTracker:
     m_IsLocked: 0
   m_LastLocalAssetsSearchArea: 1
   m_FolderTreeState:
-    scrollPos: {x: 0, y: 176.40002}
-    m_SelectedIDs: bcbd0000
-    m_LastClickedID: 48572
-    m_ExpandedIDs: 00000000d6ad000084b0000086b0000094bd0000a0bd0000a8bd0000acbd0000b0bd000092be000098be0000ffffff7f
+    scrollPos: {x: 0, y: 31}
+    m_SelectedIDs: d6ad0000
+    m_LastClickedID: 44502
+    m_ExpandedIDs: 00000000d6ad000086b000008eb00000a8bd0000acbd0000b0bd0000b2bd0000b8bd000026c40000122a0100262f0100ec300100bad50100eed5010034d60100fed70100ffffff7f
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
