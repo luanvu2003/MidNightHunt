@@ -23,7 +23,7 @@ MonoBehaviour:
   m_MinSize: {x: 300, y: 100}
   m_MaxSize: {x: 24288, y: 16192}
   vertical: 1
-  controlID: 90950
+  controlID: 94051
   draggingID: 0
 --- !u!114 &2
 MonoBehaviour:
@@ -151,7 +151,7 @@ MonoBehaviour:
   m_MinSize: {x: 300, y: 100}
   m_MaxSize: {x: 24288, y: 16192}
   vertical: 0
-  controlID: 90951
+  controlID: 94052
   draggingID: 0
 --- !u!114 &4
 MonoBehaviour:
@@ -219,9 +219,9 @@ MonoBehaviour:
   m_SceneHierarchy:
     m_TreeViewState:
       scrollPos: {x: 0, y: 0}
-      m_SelectedIDs: 
-      m_LastClickedID: 0
-      m_ExpandedIDs: 8a11f8fff813f8ff7c16f8ffb018f8ffee1af8ff762df8ff9e35f8ff3638f8ff923af8ff863ff8ffda6bf9ff0286f9ff769efaff58abfaffbcaffaff9231ffff8632ffff2eadffff72f9ffff02be00002a510100866c1b001c6d1b00d26d1b0036731b0018511c00c4521c00
+      m_SelectedIDs: 68aff6ff
+      m_LastClickedID: -610456
+      m_ExpandedIDs: dcbcf6ff607ef7ff6493f7ffdab5f7ff6c0af8ff8a11f8fff813f8ff7c16f8ffb018f8ffee1af8ff762df8ff9e35f8ff3638f8ff923af8ff863ff8ffda6bf9ff0286f9ff769efaff58abfaffbcaffaff9231ffff8632ffff2eadffff72f9ffff02be00002a510100866c1b001c6d1b00d26d1b0036731b0018511c00c4521c00ec921c004e931c00
       m_RenameOverlay:
         m_UserAcceptedRename: 0
         m_Name: 
@@ -306,7 +306,7 @@ MonoBehaviour:
   m_MinSize: {x: 100, y: 100}
   m_MaxSize: {x: 8096, y: 16192}
   vertical: 1
-  controlID: 90952
+  controlID: 94053
   draggingID: 0
 --- !u!114 &8
 MonoBehaviour:
@@ -956,9 +956,9 @@ MonoBehaviour:
   m_AudioPlay: 0
   m_DebugDrawModesUseInteractiveLightBakingData: 0
   m_Position:
-    m_Target: {x: 909.98737, y: 397.37967, z: -68.71801}
+    m_Target: {x: 452.71832, y: -33.548626, z: 179.55122}
     speed: 2
-    m_Value: {x: 909.98737, y: 397.37967, z: -68.71801}
+    m_Value: {x: 452.71832, y: -33.548626, z: 179.55122}
   m_RenderMode: 0
   m_CameraMode:
     drawMode: 0
@@ -1004,13 +1004,13 @@ MonoBehaviour:
     m_GridAxis: 1
     m_gridOpacity: 0.5
   m_Rotation:
-    m_Target: {x: 0.08638042, y: 0.005942099, z: 0.006817876, w: 1.0012145}
+    m_Target: {x: 0.42987275, y: 0.056905866, z: -0.019126512, w: 0.90641147}
     speed: 2
-    m_Value: {x: 0.08834362, y: 0.0059292736, z: 0.006769633, w: 0.9960494}
+    m_Value: {x: 0.42557865, y: 0.05667052, z: -0.018893154, w: 0.9029476}
   m_Size:
-    m_Target: 566.45514
+    m_Target: 87.61527
     speed: 2
-    m_Value: 566.45514
+    m_Value: 87.61527
   m_Ortho:
     m_Target: 0
     speed: 2
@@ -1191,7 +1191,7 @@ MonoBehaviour:
     m_SkipHidden: 0
     m_SearchArea: 1
     m_Folders:
-    - Assets
+    - "Assets/Lu\xE2n/ScriptChar"
     m_Globs: []
     m_ProductIds: 
     m_AnyWithAssetOrigin: 0
@@ -1201,17 +1201,17 @@ MonoBehaviour:
   m_ViewMode: 1
   m_StartGridSize: 62
   m_LastFolders:
-  - Assets
+  - "Assets/Lu\xE2n/ScriptChar"
   m_LastFoldersGridSize: 62
   m_LastProjectPath: D:\DuAn1_Nhom5\MidNightHunt
   m_LockTracker:
     m_IsLocked: 0
   m_LastLocalAssetsSearchArea: 1
   m_FolderTreeState:
-    scrollPos: {x: 0, y: 31}
-    m_SelectedIDs: fee20000
-    m_LastClickedID: 58110
-    m_ExpandedIDs: 00000000fee20000f02b0100ffffff7f
+    scrollPos: {x: 0, y: 56.400024}
+    m_SelectedIDs: 765e0100
+    m_LastClickedID: 89718
+    m_ExpandedIDs: 00000000fee20000ec2b0100ffffff7f
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -1266,9 +1266,9 @@ MonoBehaviour:
       m_Icon: {fileID: 0}
       m_ResourceFile: 
   m_ListAreaState:
-    m_SelectedInstanceIDs: 
-    m_LastClickedInstanceID: 0
-    m_HadKeyboardFocusLastEvent: 1
+    m_SelectedInstanceIDs: 68aff6ff
+    m_LastClickedInstanceID: -610456
+    m_HadKeyboardFocusLastEvent: 0
     m_ExpandedInstanceIDs: 
     m_RenameOverlay:
       m_UserAcceptedRename: 0
@@ -1286,7 +1286,7 @@ MonoBehaviour:
       m_OriginalEventType: 11
       m_IsRenamingFilename: 1
       m_TrimLeadingAndTrailingWhitespace: 0
-      m_ClientGUIView: {fileID: 0}
+      m_ClientGUIView: {fileID: 11}
     m_CreateAssetUtility:
       m_EndAction: {fileID: 0}
       m_InstanceID: 0
@@ -1294,7 +1294,7 @@ MonoBehaviour:
       m_Icon: {fileID: 0}
       m_ResourceFile: 
     m_NewAssetIndexInList: -1
-    m_ScrollPosition: {x: 0, y: 100.400024}
+    m_ScrollPosition: {x: 0, y: 0}
     m_GridSize: 62
   m_SkipHiddenPackages: 0
   m_DirectoriesAreaWidth: 115
