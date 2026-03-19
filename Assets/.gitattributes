@@ -1,3 +1,4 @@
 ArtsystackFantasyRPGGUI filter=lfs diff=lfs merge=lfs -text
 ArtsystackFantasyRPGGUI** filter=lfs diff=lfs merge=lfs -text
 ArtsystackFantasyRPGGUI/** filter=lfs diff=lfs merge=lfs -text
+HIVEMIND/** filter=lfs diff=lfs merge=lfs -text
