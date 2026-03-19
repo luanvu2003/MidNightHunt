@@ -12,8 +12,8 @@ EditorBuildSettings:
     path: Assets/Scenes/Room.unity
     guid: ec5fda67b8947a048bfcf2b0fd6dc3bc
   - enabled: 1
-    path: Assets/Scenes/Map.unity
-    guid: cbd3fa792983b074684a5c27826a3e4f
+    path: Assets/Scenes/HBao_Map.unity
+    guid: 1bf6a590684760340b11e662ce053c11
   - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
