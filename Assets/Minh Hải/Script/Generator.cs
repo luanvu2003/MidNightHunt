@@ -14,6 +14,9 @@ public class Generator : MonoBehaviour
 
     public SkillCheck skillCheck;
 
+    public ParticleSystem explosionFX; // Hiệu ứng
+    public AudioSource explosionSound;  // Audio
+
     float skillTimer = 5f;   // thời gian xuất hiện skill check
 
     public Slider progressBar;

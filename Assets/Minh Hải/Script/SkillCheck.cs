@@ -60,6 +60,13 @@ public class SkillCheck : MonoBehaviour
     {
         Debug.Log("Skill Check Fail");
 
+        // gọi hiệu ứng nổ
+        generator.explosionFX.Play();
+
+        // âm thanh
+        generator.explosionSound.Play();
+
+        // reset thanh sửa
         generator.progress = 0f;
         generator.progressBar.value = 0f;
 
