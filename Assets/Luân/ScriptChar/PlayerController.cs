@@ -96,7 +96,7 @@
 //         {
 //             currentMoveSpeed = slowWalkSpeed;
 //             targetAnimSpeed = 0.2f;
-            
+
 //         }
 //         else if (isSprinting)
 //         {
@@ -162,7 +162,7 @@ public class PlayerController : NetworkBehaviour // Đổi thành NetworkBehavio
 {
     [Header("Animator Settings")]
     public Animator animator;
-    
+
     [Header("Movement Settings")]
     public float slowWalkSpeed = 2f;    // Tốc độ đi bộ (Khi giữ Left Ctrl)
     public float mediumRunSpeed = 5f;   // Tốc độ chạy vừa (Mặc định)
@@ -215,12 +215,21 @@ public class PlayerController : NetworkBehaviour // Đổi thành NetworkBehavio
     // Dùng Spawned thay cho Start trong Fusion
     public override void Spawned()
     {
-        // CHỈ chạy logic này nếu đây là nhân vật trên máy của TÔI
+        // 1. QUẢN LÝ VẬT LÝ (Bật cho Chủ nhân VÀ Bật cho Host để tính toán trọng lực)
+        // Nếu là máy của mình (Input) HOẶC nếu mình là Chủ phòng (State) -> Bật CharacterController
+        if (HasStateAuthority || HasInputAuthority)
+        {
+            if (characterController != null) characterController.enabled = true;
+        }
+        else
+        {
+            // Chỉ tắt đối với những người đứng xem (Proxy)
+            if (characterController != null) characterController.enabled = false;
+        }
+
+        // 2. QUẢN LÝ CAMERA (Tuyệt đối CHỈ bắt Camera cho máy của chính mình)
         if (HasInputAuthority)
         {
-            // 1. THÊM DÒNG NÀY VÀO ĐÂY: Bật lại Character Controller sau khi đã rớt đúng vị trí
-            if (characterController != null) characterController.enabled = true;
-            
             if (mainCamera == null && Camera.main != null)
             {
                 mainCamera = Camera.main.transform;
@@ -233,17 +242,7 @@ public class PlayerController : NetworkBehaviour // Đổi thành NetworkBehavio
                 Debug.Log("✅ Đã bắt được Camera vào nhân vật!");
             }
         }
-        else
-        {
-            // Nếu là nhân vật của người khác (Proxy) -> Tắt CharacterController 
-            // Để NetworkTransform tự do kéo nhân vật đi mà không bị kẹt
-            if (characterController != null)
-            {
-                characterController.enabled = false;
-            }
-        }
     }
-
     // Dùng FixedUpdateNetwork để đồng bộ hoàn hảo trên mạng
     public override void FixedUpdateNetwork()
     {
