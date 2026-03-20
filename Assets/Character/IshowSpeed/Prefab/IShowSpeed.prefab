@@ -11,6 +11,9 @@ GameObject:
   - component: {fileID: 7982132448543550829}
   - component: {fileID: 1937889331683738728}
   - component: {fileID: 3622923253383566176}
+  - component: {fileID: -8882642274682993249}
+  - component: {fileID: -6770666937857135721}
+  - component: {fileID: -3509206623878634277}
   m_Layer: 0
   m_Name: IShowSpeed
   m_TagString: Untagged
@@ -50,7 +53,7 @@ CharacterController:
     m_Bits: 0
   m_LayerOverridePriority: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Height: 1.67
   m_Radius: 0.42
@@ -84,6 +87,62 @@ MonoBehaviour:
   sprintInput: {fileID: -8027255260204449370, guid: 4e74303c32ff52d49baaf909e103bc4a, type: 3}
   walkInput: {fileID: 4412108457397334793, guid: 4e74303c32ff52d49baaf909e103bc4a, type: 3}
   mainCamera: {fileID: 0}
+--- !u!114 &-8882642274682993249
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3833354380349390759}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SortKey: 1110263759
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 3622923253383566176}
+  - {fileID: -6770666937857135721}
+  - {fileID: -3509206623878634277}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &-6770666937857135721
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3833354380349390759}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0
+--- !u!114 &-3509206623878634277
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3833354380349390759}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 506319458, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Animator: {fileID: 0}
+  ApplyTiming: 2
+  SyncSettings: 79
+  StateHashes: 
+  TriggerHashes: 
+  TotalWords: 0
 --- !u!1001 &1407187489296562561
 PrefabInstance:
   m_ObjectHideFlags: 0
