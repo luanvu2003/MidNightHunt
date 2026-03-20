@@ -129,3 +129,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   roomPlayerPrefab:
     RawGuidValue: 6c7c39f4b7eb14f48a5e981dcc3f7680
+  playerprf: {fileID: 3833354380349390759, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
