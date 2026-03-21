@@ -6,9 +6,6 @@ public class Generator : MonoBehaviour
     public float repairTime = 10f;
     public float progress = 0f;
 
-    [Header("Generator Settings")]
-    public float decayRate = 0.5f; // Tốc độ tụt tiến độ (điểm/giây) khi thả tay
-
     public float interactRadius = 3f;
 
     [Header("GameObject")]
@@ -16,6 +13,9 @@ public class Generator : MonoBehaviour
 
     private bool playerInRange = false;
     private bool isRepaired = false;
+    
+    // Ghi nhớ trạng thái Minigame đang bị tạm dừng
+    private bool isSkillCheckPaused = false; 
 
     public SkillCheck skillCheck;
 
@@ -39,16 +39,27 @@ public class Generator : MonoBehaviour
     {
         if (isRepaired) return;
 
-        // nếu skill check đang chạy thì tạm dừng sửa
-        if (skillCheck.gameObject.activeSelf) return;
+        // 1. NẾU SKILL CHECK ĐANG BẬT TRÊN MÀN HÌNH
+        if (skillCheck.gameObject.activeSelf) 
+        {
+            // Nếu người chơi thả phím E HOẶC đi ra xa -> Tạm dừng và ẩn nó đi
+            if (!playerInRange || !Input.GetKey(KeyCode.E))
+            {
+                skillCheck.gameObject.SetActive(false); // Ẩn UI minigame
+                isSkillCheckPaused = true;              // Đánh dấu là đang tạm dừng
+            }
+            return; // Khóa toàn bộ logic sửa máy bên dưới
+        }
 
-        // KHI ĐANG GIỮ PHÍM E VÀ Ở TRONG PHẠM VI
+        // 2. KHI ĐANG GIỮ PHÍM E VÀ Ở TRONG PHẠM VI
         if (playerInRange && Input.GetKey(KeyCode.E))
         {
-            // === THÊM 2 DÒNG NÀY VÀO ĐỂ BẮT LỖI ===
-            if (Input.GetKeyDown(KeyCode.E)) 
+            // NẾU CÓ SKILL CHECK ĐANG TẠM DỪNG -> MỞ LẠI
+            if (isSkillCheckPaused)
             {
-                Debug.Log("Vừa ấn E lại! Tổng điểm thực tế đang là: " + progress);
+                skillCheck.gameObject.SetActive(true); // Bật lại UI (kim ở nguyên vị trí cũ)
+                isSkillCheckPaused = false;            // Xóa trạng thái tạm dừng
+                return; 
             }
             
             progressBar.gameObject.SetActive(true);
@@ -56,13 +67,13 @@ public class Generator : MonoBehaviour
             progress += Time.deltaTime; // Sửa máy -> Tăng tiến độ
             progressBar.value = progress / repairTime;
 
-            // đếm thời gian skill check
+            // Đếm thời gian skill check
             skillTimer -= Time.deltaTime;
 
             if (skillTimer <= 0)
             {
-                skillCheck.generator = this; // truyền generator vào skill check
-                skillCheck.gameObject.SetActive(true);
+                // Gọi hàm StartNewSkillCheck (để reset kim về 0)
+                skillCheck.StartNewSkillCheck(this); 
 
                 skillTimer = Random.Range(5f, 10f);
             }
@@ -72,26 +83,14 @@ public class Generator : MonoBehaviour
                 FinishRepair();
             }
         }
-        // KHI THẢ PHÍM E (HOẶC CHẠY RA KHỎI PHẠM VI)
+        // 3. KHI THẢ PHÍM E (HOẶC CHẠY RA KHỎI PHẠM VI)
         else 
         {
-            // Nếu máy đang có tiến độ (lớn hơn 0) thì bắt đầu tụt dần
-            if (progress > 0f)
-            {
-                progress -= decayRate * Time.deltaTime; // Trừ dần theo thời gian
-                
-                // Chặn không cho tiến độ bị âm
-                if (progress < 0f) 
-                {
-                    progress = 0f;
-                }
-
-                // Cập nhật lại thanh UI để người chơi thấy máu đang bị tụt
-                if (progressBar != null && progressBar.gameObject.activeSelf)
-                {
-                    progressBar.value = progress / repairTime;
-                }
-            }
+            // Đã xóa phần code tụt tiến độ (decayRate). 
+            // Bây giờ khi thả E, tiến độ sẽ được giữ nguyên không tăng không giảm.
+            
+            // Tùy chọn: Nếu bạn muốn ẩn luôn thanh UI khi thả tay ra (nhưng vẫn giữ điểm) thì bỏ comment dòng dưới:
+            // progressBar.gameObject.SetActive(false);
         }
     }
 
