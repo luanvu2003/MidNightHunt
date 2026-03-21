@@ -6,7 +6,12 @@ public class Generator : MonoBehaviour
     public float repairTime = 10f;
     public float progress = 0f;
 
+    [Header("Generator Settings")]
+    public float decayRate = 0.5f; // Tốc độ tụt tiến độ (điểm/giây) khi thả tay
+
     public float interactRadius = 3f;
+
+    [Header("GameObject")]
     public Transform player;
 
     private bool playerInRange = false;
@@ -37,11 +42,18 @@ public class Generator : MonoBehaviour
         // nếu skill check đang chạy thì tạm dừng sửa
         if (skillCheck.gameObject.activeSelf) return;
 
+        // KHI ĐANG GIỮ PHÍM E VÀ Ở TRONG PHẠM VI
         if (playerInRange && Input.GetKey(KeyCode.E))
         {
+            // === THÊM 2 DÒNG NÀY VÀO ĐỂ BẮT LỖI ===
+            if (Input.GetKeyDown(KeyCode.E)) 
+            {
+                Debug.Log("Vừa ấn E lại! Tổng điểm thực tế đang là: " + progress);
+            }
+            
             progressBar.gameObject.SetActive(true);
 
-            progress += Time.deltaTime;
+            progress += Time.deltaTime; // Sửa máy -> Tăng tiến độ
             progressBar.value = progress / repairTime;
 
             // đếm thời gian skill check
@@ -58,6 +70,27 @@ public class Generator : MonoBehaviour
             if (progress >= repairTime)
             {
                 FinishRepair();
+            }
+        }
+        // KHI THẢ PHÍM E (HOẶC CHẠY RA KHỎI PHẠM VI)
+        else 
+        {
+            // Nếu máy đang có tiến độ (lớn hơn 0) thì bắt đầu tụt dần
+            if (progress > 0f)
+            {
+                progress -= decayRate * Time.deltaTime; // Trừ dần theo thời gian
+                
+                // Chặn không cho tiến độ bị âm
+                if (progress < 0f) 
+                {
+                    progress = 0f;
+                }
+
+                // Cập nhật lại thanh UI để người chơi thấy máu đang bị tụt
+                if (progressBar != null && progressBar.gameObject.activeSelf)
+                {
+                    progressBar.value = progress / repairTime;
+                }
             }
         }
     }
