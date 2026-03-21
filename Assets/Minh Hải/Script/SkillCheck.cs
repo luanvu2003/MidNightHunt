@@ -46,11 +46,18 @@ public class SkillCheck : MonoBehaviour
         }
     }
 
-    void OnEnable()
+    public void StartNewSkillCheck(Generator gen)
     {
-        currentSuccessCount = 0;
-        currentZoneWidth = startZoneWidth;
-        SetupNextRound();
+        // 1. BẬT OBJECT LÊN TRƯỚC TIÊN! 
+        // Để Unity đánh thức object này dậy và nhận diện được các hình ảnh (Image) bên trong.
+        gameObject.SetActive(true); 
+
+        // 2. SAU ĐÓ MỚI BẮT ĐẦU TÍNH TOÁN VÀ VẼ UI
+        this.generator = gen;
+        currentSuccessCount = 0; // Reset số lần bấm trúng về 0
+        currentZoneWidth = startZoneWidth; // Reset độ rộng vùng xanh
+        
+        SetupNextRound(); // Xoay kim về 0 và random vùng xanh
     }
 
     void SetupNextRound()
@@ -75,16 +82,18 @@ public class SkillCheck : MonoBehaviour
 
         angle += rotateSpeed * Time.deltaTime;
 
-        // Vòng lặp vô hạn: Nếu kim quay hết 1 vòng (360 độ) thì reset lại góc
+        // KIỂM TRA TIMEOUT: NẾU KIM QUAY HẾT 1 VÒNG (360 ĐỘ) -> NỔ MÁY
         if (angle >= 360f)
         {
-            angle -= 360f;
+            Debug.LogWarning("THẤT BẠI: Hết thời gian! Kim đã quay trọn 1 vòng.");
+            Fail();
+            return; // Dừng hàm Update tại đây
         }
 
         // Cập nhật vị trí xoay của kim
         needle.localRotation = Quaternion.Euler(0, 0, -angle);
 
-        // Chỉ kiểm tra Thắng/Thua khi người chơi thực sự bấm phím Space
+        // Nhận Input từ người chơi
         if (Input.GetKeyDown(KeyCode.Space))
         {
             CheckHit();
