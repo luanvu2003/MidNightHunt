@@ -15,7 +15,7 @@ public class ExitGateLogic : MonoBehaviour
 
     void Update() {
         // Nếu người chơi ở trong vùng và giữ phím E
-        if (isPlayerInside && Input.GetKey(KeyCode.E) && GameManager.Instance.CanOpenExitGate()) {
+        if (isPlayerInside && Input.GetKey(KeyCode.T) && GameManager.Instance.CanOpenExitGate()) {
             progressSlider.value += openSpeed * Time.deltaTime;
             
             if (progressSlider.value >= 1f) {
