@@ -93,14 +93,25 @@ public class AttackController : MonoBehaviour
 
         // BÍ KÍP: Hẹn giờ 1.5 giây sau TỰ ĐỘNG mở khóa, 
         // phòng trường hợp Animation Event bị lỗi/bị nuốt mất.
-        Invoke(nameof(ForceResetAttack), 1.5f);
+        Invoke(nameof(ForceResetAttack), 2.5f);
     }
 
     // =========================================================
     // EVENT: Gọi ở giữa lúc vung tay (Chỉ dành cho Phi búa)
     // =========================================================
+    // =========================================================
+    // EVENT: Gọi ở giữa lúc vung tay (Chỉ dành cho Phi búa)
+    // =========================================================
     public void ReleaseHammer()
     {
+        // 🚨 CHỐT CHẶN AN TOÀN TRÁNG MEN: 
+        // Nếu đạn đã hết (<= 0) mà hàm này vẫn bị kích hoạt lén, thì HỦY lệnh ném ngay!
+        if (currentAmmo <= 0)
+        {
+            Debug.LogWarning("Phát hiện lỗi gọi lén Event! Đã chặn kịp thời để đạn không bị âm.");
+            return;
+        }
+
         // 1. Giấu cây búa trên tay TRÁI đi 
         if (leftHandHammer != null) leftHandHammer.SetActive(false);
 
@@ -110,8 +121,11 @@ public class AttackController : MonoBehaviour
             Instantiate(hammerPrefab, throwPoint.position, throwPoint.rotation);
         }
 
-        currentAmmo --;
+        // 3. Trừ đạn và cập nhật UI ngay lúc búa vừa rời tay
+        currentAmmo--;
         UpdateAmmoUI();
+
+        // 4. Nếu phi xong quả này mà về 0 thì bắt đầu xoay vòng Cooldown
         if (currentAmmo <= 0)
         {
             StartReload();
@@ -126,7 +140,7 @@ public class AttackController : MonoBehaviour
         isAttacking = false;
 
         // CHÚ Ý: Chỉ hiện lại búa trên tay nếu vẫn còn đạn, hoặc ném cái cuối thì tay không luôn chờ hồi
-        if (leftHandHammer != null && currentAmmo > 0 )
+        if (leftHandHammer != null && currentAmmo > 0)
         {
             leftHandHammer.SetActive(true);
         }
@@ -170,14 +184,14 @@ public class AttackController : MonoBehaviour
     }
     private void HandleReloadSystem()
     {
-        if(isReloading)
+        if (isReloading)
         {
             reloadTimer -= Time.deltaTime;
             //chạy fill amout
-            if(cooldownImage != null)
+            if (cooldownImage != null)
             {
                 // Công thức: Thời gian còn lại / Tổng thời gian -> Ra số từ 1.0 đến 0.0
-                cooldownImage.fillAmount = reloadTimer / reloadTime; 
+                cooldownImage.fillAmount = reloadTimer / reloadTime;
             }
 
             // Khi đếm ngược về 0 (Hồi xong)
@@ -186,7 +200,7 @@ public class AttackController : MonoBehaviour
                 isReloading = false;
                 currentAmmo = maxAmmo;
                 UpdateAmmoUI();
-                if(cooldownImage != null) cooldownImage.fillAmount = 0f;
+                if (cooldownImage != null) cooldownImage.fillAmount = 0f;
             }
         }
     }
