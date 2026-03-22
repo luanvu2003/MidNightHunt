@@ -1,212 +1,175 @@
-using UnityEngine;
-using UnityEngine.InputSystem;
-using TMPro;
-using UnityEngine.UI;
-using System;
+using UnityEngine; 
+using TMPro; 
+using UnityEngine.UI; 
 
 public class AttackController : MonoBehaviour
 {
-    private HunterController hunterMovement;
-    private Animator ani;
+    private HunterMovement movementScript; // Để điều chỉnh tốc độ chạy khi múa
+    private HunterInteraction interactionScript; // ĐÃ THÊM: Để đọc xem vai Hunter có đang vác xác không
+    private Animator ani; 
+
+    [Header("Âm thanh Chiến đấu")]
+    public AudioSource attackSource; 
+    public AudioClip clipChemBua; 
+    public AudioClip clipPhiBua;  
 
     [Header("Trạng thái")]
-    public bool isAttacking = false;
+    public bool isAttacking = false; 
+
     [Header("Hệ thống Ném Búa (Ammo & Cooldown)")]
-    public int maxAmmo = 5;               // Số búa tối đa
-    private int currentAmmo;              // Số búa hiện tại
-    public float reloadTime = 5f;         // Thời gian hồi (5 - 10 giây)
-    private bool isReloading = false;     // Đang trong thời gian hồi?
-    private float reloadTimer = 0f;       // Bộ đếm thời gian
+    public int maxAmmo = 5;               
+    private int currentAmmo;              
+    public float reloadTime = 5f;         
+    private bool isReloading = false;     
+    private float reloadTimer = 0f;       
 
     [Header("UI Búa")]
-    public TextMeshProUGUI ammoText;
-    public Image cooldownImage;
+    public TextMeshProUGUI ammoText;      
+    public Image cooldownImage;           
 
     [Header("Vũ Khí & Tọa Độ Ném")]
-    public GameObject hammerPrefab;    // Viên đạn búa bay
-    public Transform throwPoint;       // Vị trí đẻ ra búa (Tạo 1 cục rỗng trước Camera)
-    [Header("Slow")]
-    [Range(0f, 1f)]
-    public float slowMultiplier = 0.1f; // tốc độ giảm bnh
-    public float slowDuraction = 1.1f; // chậm trong bao lâu
+    public GameObject hammerPrefab;    
+    public Transform throwPoint;       
 
+    [Header("Hiệu ứng Làm chậm (Slow)")]
+    [Range(0f, 1f)] 
+    public float slowMultiplier = 0.1f; 
+    public float slowDuraction = 1.1f;  
 
-    // Phân biệt rõ 2 tay
-    public GameObject leftHandHammer;  // Búa ném (Nằm ở xương tay trái)
-    public GameObject rightHandHammer; // Búa chém (Nằm ở xương tay phải)
+    [Header("Vũ khí trên tay (Bật/Tắt)")]
+    public GameObject leftHandHammer;  
+    public GameObject rightHandHammer; 
 
     private readonly int animAttack = Animator.StringToHash("Attack");
     private readonly int animThrow = Animator.StringToHash("Phibua");
 
     private void Awake()
     {
-        ani = GetComponent<Animator>();
-        hunterMovement = GetComponent<HunterController>();
+        ani = GetComponent<Animator>(); 
+        movementScript = GetComponent<HunterMovement>(); 
+        
+        // Tìm script Tương tác để lấy biến isCarryingPlayer
+        interactionScript = GetComponent<HunterInteraction>(); 
+        
+        if (attackSource == null) attackSource = GetComponent<AudioSource>();
     }
+
     void Start()
     {
-        // khoi 
-        currentAmmo = maxAmmo;
-        UpdateAmmoUI();
-
+        currentAmmo = maxAmmo; 
+        UpdateAmmoUI(); 
         if (cooldownImage != null) cooldownImage.fillAmount = 0f;
-
     }
 
     void Update()
     {
-        // play time hồi chiêu
-        HandleReloadSystem();
-
-        if (isAttacking) return;
-
-        // CHUỘT TRÁI: Chém búa phải
-        if (Mouse.current.leftButton.wasPressedThisFrame)
-        {
-
-            PerformAttack(animAttack);
-        }
-
-        // CHUỘT PHẢI: Phi búa trái
-        if (Mouse.current.rightButton.wasPressedThisFrame)
-        {
-
-            // điều kiện để phi búa
-            if (currentAmmo > 0 && !isReloading)
-            {
-                PerformAttack(animThrow);
-            }
-            else
-            {
-                Debug.Log("Hết đạn ");
-            }
-        }
+        HandleReloadSystem(); // Xử lý đồng hồ nạp đạn
+    }
+    
+    // Hàm chém búa (Chuột trái)
+    public void PerformAttackLeft()
+    {
+        if (isAttacking) return; // Đang múa dở thì cấm chém đè
+        
+        // ✅ TỰ DO CHÉM: Vác người hay không vác người thì vung búa chém vẫn hoạt động bình thường!
+        if (attackSource != null && clipChemBua != null) attackSource.PlayOneShot(clipChemBua);
+        
+        PerformAttack(animAttack); 
     }
 
-    // =========================================================
-    // HÀM RA LỆNH MÚA & KÍCH HOẠT HẸN GIỜ BẢO VỆ
-    // =========================================================
+    // Hàm phi búa (Chuột phải)
+    public void PerformAttackRight()
+    {
+        // ========================================================
+        // 🚨 CHỐT CHẶN NÉM BÚA (ĐÃ NÂNG CẤP)
+        // ========================================================
+        // Nếu vai ĐANG VÁC NGƯỜI -> Khóa kỹ năng ném búa!
+        if (interactionScript != null && interactionScript.isCarryingPlayer)
+        {
+            Debug.Log("Cấm ném búa: Sát thủ đang bận vác người trên vai!");
+            return; // Thoát hàm ngay lập tức
+        }
+
+        if (isAttacking || currentAmmo <= 0 || isReloading) return; // Chặn do kẹt hoạt ảnh hoặc hết đạn
+
+        if (attackSource != null && clipPhiBua != null) attackSource.PlayOneShot(clipPhiBua);
+        PerformAttack(animThrow); 
+    }
+
     private void PerformAttack(int attackTriggerHash)
     {
-        isAttacking = true;
-        ani.SetTrigger(attackTriggerHash);
-
-        // BÍ KÍP: Hẹn giờ 1.5 giây sau TỰ ĐỘNG mở khóa, 
-        // phòng trường hợp Animation Event bị lỗi/bị nuốt mất.
+        isAttacking = true; 
+        ani.SetTrigger(attackTriggerHash); 
+        StarSlowEffect();
         Invoke(nameof(ForceResetAttack), 2.5f);
     }
 
-    // =========================================================
-    // EVENT: Gọi ở giữa lúc vung tay (Chỉ dành cho Phi búa)
-    // =========================================================
-    // =========================================================
-    // EVENT: Gọi ở giữa lúc vung tay (Chỉ dành cho Phi búa)
-    // =========================================================
+    // Gắn vào frame giữa Anim phi búa
     public void ReleaseHammer()
     {
-        // 🚨 CHỐT CHẶN AN TOÀN TRÁNG MEN: 
-        // Nếu đạn đã hết (<= 0) mà hàm này vẫn bị kích hoạt lén, thì HỦY lệnh ném ngay!
-        if (currentAmmo <= 0)
-        {
-            Debug.LogWarning("Phát hiện lỗi gọi lén Event! Đã chặn kịp thời để đạn không bị âm.");
-            return;
-        }
+        if (currentAmmo <= 0) return; 
 
-        // 1. Giấu cây búa trên tay TRÁI đi 
         if (leftHandHammer != null) leftHandHammer.SetActive(false);
+        if (hammerPrefab != null && throwPoint != null) Instantiate(hammerPrefab, throwPoint.position, throwPoint.rotation);
 
-        // 2. Đẻ ra viên đạn búa bay đi
-        if (hammerPrefab != null && throwPoint != null)
-        {
-            Instantiate(hammerPrefab, throwPoint.position, throwPoint.rotation);
-        }
-
-        // 3. Trừ đạn và cập nhật UI ngay lúc búa vừa rời tay
         currentAmmo--;
-        UpdateAmmoUI();
+        UpdateAmmoUI(); 
 
-        // 4. Nếu phi xong quả này mà về 0 thì bắt đầu xoay vòng Cooldown
-        if (currentAmmo <= 0)
-        {
-            StartReload();
-        }
+        if (currentAmmo <= 0) StartReload();
     }
 
-    // =========================================================
-    // EVENT: Gọi ở cuối lúc múa xong (Dành cho cả Chém và Phi)
-    // =========================================================
+    // Gắn vào frame cuối của Anim Tấn công
     public void ResetAttack()
     {
-        isAttacking = false;
-
-        // CHÚ Ý: Chỉ hiện lại búa trên tay nếu vẫn còn đạn, hoặc ném cái cuối thì tay không luôn chờ hồi
-        if (leftHandHammer != null && currentAmmo > 0)
-        {
-            leftHandHammer.SetActive(true);
-        }
+        isAttacking = false; 
+        if (leftHandHammer != null && currentAmmo > 0) leftHandHammer.SetActive(true);
     }
 
-    // =========================================================
-    // HÀM DỰ PHÒNG (FAILSAFE)
-    // =========================================================
     private void ForceResetAttack()
     {
-        // Nếu qua 1.5s mà sếp (Animation Event) chưa chịu mở khóa, thì thằng lính này tự động đập ổ khóa luôn!
-        if (isAttacking)
-        {
-            Debug.LogWarning("Failsafe kích hoạt: Tự động mở khóa Attack do Animation bị kẹt!");
-            ResetAttack();
-        }
+        if (isAttacking) ResetAttack(); 
     }
-    private void RestoreSpeed()
-    {
-        if (hunterMovement != null)
-        {
-            hunterMovement.ResetSlow();
-        }
-    }
+
     public void StarSlowEffect()
     {
-        if (hunterMovement != null)
+        if (movementScript != null)
         {
-            hunterMovement.ApplySlow(slowMultiplier); // đi chậm lại
-            CancelInvoke(nameof(RestoreSpeed)); // xóa lệnh hẹn giờ cũ
-            Invoke(nameof(RestoreSpeed), slowDuraction); // hẹn giờ di chuyển bth
+            movementScript.ApplySlow(slowMultiplier); 
+            CancelInvoke(nameof(RestoreSpeed)); 
+            Invoke(nameof(RestoreSpeed), slowDuraction); 
         }
+    }
+
+    private void RestoreSpeed() 
+    {
+        if (movementScript != null) movementScript.ResetSlow(); 
     }
 
     private void UpdateAmmoUI()
     {
-        if (ammoText != null)
-        {
-            ammoText.text = currentAmmo.ToString() + "";
-        }
+        if (ammoText != null) ammoText.text = currentAmmo.ToString(); 
     }
-    private void HandleReloadSystem()
-    {
-        if (isReloading)
-        {
-            reloadTimer -= Time.deltaTime;
-            //chạy fill amout
-            if (cooldownImage != null)
-            {
-                // Công thức: Thời gian còn lại / Tổng thời gian -> Ra số từ 1.0 đến 0.0
-                cooldownImage.fillAmount = reloadTimer / reloadTime;
-            }
 
-            // Khi đếm ngược về 0 (Hồi xong)
-            if (reloadTimer <= 0)
-            {
-                isReloading = false;
-                currentAmmo = maxAmmo;
-                UpdateAmmoUI();
-                if (cooldownImage != null) cooldownImage.fillAmount = 0f;
-            }
-        }
-    }
     private void StartReload()
     {
-        isReloading = true;
-        reloadTimer = reloadTime;
+        isReloading = true; 
+        reloadTimer = reloadTime; 
+    }
+
+    private void HandleReloadSystem() 
+    {
+        if (isReloading) 
+        {
+            reloadTimer -= Time.deltaTime; 
+            if (cooldownImage != null) cooldownImage.fillAmount = reloadTimer / reloadTime;
+            if (reloadTimer <= 0)
+            {
+                isReloading = false; 
+                currentAmmo = maxAmmo; 
+                UpdateAmmoUI(); 
+                if (leftHandHammer != null) leftHandHammer.SetActive(true); 
+                if (cooldownImage != null) cooldownImage.fillAmount = 0f; 
+            }
+        }
     }
 }
