@@ -4,17 +4,29 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
     public int totalGenerators = 3; 
-    public int activatedGenerators = 0;
+    private int generatorsFixed = 0;
+    
+    private bool hasPlayedSuccessSound = false; // Biến để khóa âm thanh
 
-    void Awake() { Instance = this; }
+    [Header("Audio")]
+    public AudioSource allFixedSound;
 
-    // Hàm này để các máy phát điện gọi khi sửa xong
+    void Awake() {
+        if (Instance == null) Instance = this;
+    }
+
     public void GeneratorFixed() {
-        activatedGenerators++;
-        Debug.Log("Máy phát điện đã xong: " + activatedGenerators + "/" + totalGenerators);
+        generatorsFixed++;
+        
+        // Kiểm tra nếu đủ máy VÀ âm thanh chưa từng phát
+        if (generatorsFixed >= totalGenerators && !hasPlayedSuccessSound) {
+            if (allFixedSound != null) {
+                allFixedSound.Play();
+                hasPlayedSuccessSound = true; // Khóa lại ngay sau khi phát
+            }
+            Debug.Log("Đã đủ máy! Âm thanh thông báo chỉ phát 1 lần.");
+        }
     }
 
-    public bool CanOpenExitGate() {
-        return activatedGenerators >= totalGenerators;
-    }
+    public bool CanOpenExitGate() => generatorsFixed >= totalGenerators;
 }
