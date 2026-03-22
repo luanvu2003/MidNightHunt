@@ -14,21 +14,24 @@ public class Generator : MonoBehaviour
     private bool playerInRange = false;
     private bool isRepaired = false;
     
-    // Ghi nhớ trạng thái Minigame đang bị tạm dừng
     private bool isSkillCheckPaused = false; 
 
     public SkillCheck skillCheck;
 
-    public ParticleSystem explosionFX; // Hiệu ứng
-    public AudioSource explosionSound;  // Audio
+    public ParticleSystem explosionFX;
+    public AudioSource explosionSound;
 
-    float skillTimer = 5f;   // thời gian xuất hiện skill check
+    float skillTimer = 5f;
 
     public Slider progressBar;
     public GameObject repairText;
 
     [Header("Visual Effects")]
-    public GameObject repairedLight; // Gắn Object Đèn vào đây
+    public GameObject repairedLight;
+
+    // 🔥 THÊM ANIMATION
+    [Header("Animation")]
+    public Animator animator;
 
     void Start()
     {
@@ -36,10 +39,15 @@ public class Generator : MonoBehaviour
         repairText.SetActive(false);
         skillCheck.gameObject.SetActive(false);
 
-        // Thêm dòng này để chắc chắn đèn tắt lúc đầu
         if (repairedLight != null) 
         {
             repairedLight.SetActive(false);
+        }
+
+        // 🔥 TẮT animation lúc đầu
+        if (animator != null)
+        {
+            animator.SetBool("isRunning", false);
         }
     }
 
@@ -47,42 +55,44 @@ public class Generator : MonoBehaviour
     {
         if (isRepaired) return;
 
-        // 1. NẾU SKILL CHECK ĐANG BẬT TRÊN MÀN HÌNH
+        // 🔥 Nếu đang skill check thì dừng animation
         if (skillCheck.gameObject.activeSelf) 
         {
-            // Nếu người chơi thả phím E HOẶC đi ra xa -> Tạm dừng và ẩn nó đi
+            if (animator != null)
+                animator.SetBool("isRunning", false);
+
             if (!playerInRange || !Input.GetKey(KeyCode.E))
             {
-                skillCheck.gameObject.SetActive(false); // Ẩn UI minigame
-                isSkillCheckPaused = true;              // Đánh dấu là đang tạm dừng
+                skillCheck.gameObject.SetActive(false);
+                isSkillCheckPaused = true;
             }
-            return; // Khóa toàn bộ logic sửa máy bên dưới
+            return;
         }
 
-        // 2. KHI ĐANG GIỮ PHÍM E VÀ Ở TRONG PHẠM VI
+        // 🔥 ĐANG SỬA MÁY
         if (playerInRange && Input.GetKey(KeyCode.E))
         {
-            // NẾU CÓ SKILL CHECK ĐANG TẠM DỪNG -> MỞ LẠI
+            // 👉 BẬT animation
+            if (animator != null)
+                animator.SetBool("isRunning", true);
+
             if (isSkillCheckPaused)
             {
-                skillCheck.gameObject.SetActive(true); // Bật lại UI (kim ở nguyên vị trí cũ)
-                isSkillCheckPaused = false;            // Xóa trạng thái tạm dừng
+                skillCheck.gameObject.SetActive(true);
+                isSkillCheckPaused = false;
                 return; 
             }
             
             progressBar.gameObject.SetActive(true);
 
-            progress += Time.deltaTime; // Sửa máy -> Tăng tiến độ
+            progress += Time.deltaTime;
             progressBar.value = progress / repairTime;
 
-            // Đếm thời gian skill check
             skillTimer -= Time.deltaTime;
 
             if (skillTimer <= 0)
             {
-                // Gọi hàm StartNewSkillCheck (để reset kim về 0)
                 skillCheck.StartNewSkillCheck(this); 
-
                 skillTimer = Random.Range(5f, 10f);
             }
 
@@ -91,14 +101,11 @@ public class Generator : MonoBehaviour
                 FinishRepair();
             }
         }
-        // 3. KHI THẢ PHÍM E (HOẶC CHẠY RA KHỎI PHẠM VI)
         else 
         {
-            // Đã xóa phần code tụt tiến độ (decayRate). 
-            // Bây giờ khi thả E, tiến độ sẽ được giữ nguyên không tăng không giảm.
-            
-            // Tùy chọn: Nếu bạn muốn ẩn luôn thanh UI khi thả tay ra (nhưng vẫn giữ điểm) thì bỏ comment dòng dưới:
-            // progressBar.gameObject.SetActive(false);
+            // 👉 TẮT animation khi không sửa
+            if (animator != null)
+                animator.SetBool("isRunning", false);
         }
     }
 
@@ -111,14 +118,15 @@ public class Generator : MonoBehaviour
         progressBar.gameObject.SetActive(false);
         repairText.SetActive(false);
 
-        // ==== ĐOẠN CODE MỚI THÊM VÀO ====
-        // Báo cáo cho GameManager biết để trừ đi 1 máy
+        // 🔥 TẮT animation khi xong
+        if (animator != null)
+            animator.SetBool("isRunning", false);
+
         if (GameManager.instance != null)
         {
             GameManager.instance.GeneratorCompleted();
         }
-        // ================================
-        // ==== BẬT ĐÈN SÁNG LÊN ====
+
         if (repairedLight != null)
         {
             repairedLight.SetActive(true);
@@ -142,6 +150,10 @@ public class Generator : MonoBehaviour
 
             repairText.SetActive(false);
             progressBar.gameObject.SetActive(false);
+
+            // 🔥 TẮT animation khi đi ra
+            if (animator != null)
+                animator.SetBool("isRunning", false);
         }
     }
 }
