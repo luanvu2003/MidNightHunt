@@ -27,12 +27,20 @@ public class Generator : MonoBehaviour
     public Slider progressBar;
     public GameObject repairText;
 
+    [Header("Visual Effects")]
+    public GameObject repairedLight; // Gắn Object Đèn vào đây
+
     void Start()
     {
         progressBar.gameObject.SetActive(false);
         repairText.SetActive(false);
-
         skillCheck.gameObject.SetActive(false);
+
+        // Thêm dòng này để chắc chắn đèn tắt lúc đầu
+        if (repairedLight != null) 
+        {
+            repairedLight.SetActive(false);
+        }
     }
 
     void Update()
@@ -98,10 +106,23 @@ public class Generator : MonoBehaviour
     {
         isRepaired = true;
 
-        Debug.Log("Generator đã sửa xong!");
+        Debug.Log("Generator này đã sửa xong!");
 
         progressBar.gameObject.SetActive(false);
         repairText.SetActive(false);
+
+        // ==== ĐOẠN CODE MỚI THÊM VÀO ====
+        // Báo cáo cho GameManager biết để trừ đi 1 máy
+        if (GameManager.instance != null)
+        {
+            GameManager.instance.GeneratorCompleted();
+        }
+        // ================================
+        // ==== BẬT ĐÈN SÁNG LÊN ====
+        if (repairedLight != null)
+        {
+            repairedLight.SetActive(true);
+        }
     }
 
     void OnTriggerEnter(Collider other)
