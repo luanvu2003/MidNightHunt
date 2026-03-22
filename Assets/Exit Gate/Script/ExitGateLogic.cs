@@ -3,33 +3,84 @@ using UnityEngine.UI;
 
 public class ExitGateLogic : MonoBehaviour
 {
-    public Slider progressSlider; // Kéo Slider vào đây
-    public GameObject gateMesh;   // Kéo cánh cổng vào đây
-    public float openSpeed = 0.2f; // Tốc độ mở (0.2 là khoảng 5 giây)
+    public Slider progressSlider;    
+    public GameObject gateMesh;      
+    public GameObject instructionText; 
+    public SkillCheckExitGate skillCheck; // Thêm dòng này để kéo từ máy phát điện vào
+    public float openSpeed = 0.2f;   
     
     private bool isPlayerInside = false;
+    private bool isOpened = false;
+    float skillTimer = 3f; // Thời gian chờ xuất hiện skill check đầu tiên
 
     void Start() {
-        progressSlider.value = 0; // Lúc đầu thanh tiến trình bằng 0
+        progressSlider.value = 0;
+        progressSlider.gameObject.SetActive(false);
+        instructionText.SetActive(false);
+        if(skillCheck != null) skillCheck.gameObject.SetActive(false);
     }
 
     void Update() {
-        // Nếu người chơi ở trong vùng và giữ phím E
-        if (isPlayerInside && Input.GetKey(KeyCode.T) && GameManager.Instance.CanOpenExitGate()) {
-            progressSlider.value += openSpeed * Time.deltaTime;
-            
-            if (progressSlider.value >= 1f) {
-                gateMesh.SetActive(false); // Mở cổng (ẩn mesh)
+        if (isOpened) return;
+
+        // Nếu Skill Check đang hiện thì dừng tiến trình mở cổng
+        if (skillCheck != null && skillCheck.gameObject.activeSelf) return;
+
+        if (isPlayerInside) {
+            if (GameManager.Instance != null && GameManager.Instance.CanOpenExitGate()) {
+                
+                if (!Input.GetKey(KeyCode.T)) {
+                    instructionText.SetActive(true);
+                    progressSlider.gameObject.SetActive(false);
+                } 
+                else {
+                    instructionText.SetActive(false);
+                    progressSlider.gameObject.SetActive(true);
+                    
+                    progressSlider.value += openSpeed * Time.deltaTime;
+
+                    // Logic xuất hiện Skill Check ngẫu nhiên giống máy phát điện
+                    skillTimer -= Time.deltaTime;
+                    if (skillTimer <= 0) {
+                        TriggerSkillCheck();
+                        skillTimer = Random.Range(4f, 8f); // Khoảng cách giữa các lần skill check
+                    }
+                    
+                    if (progressSlider.value >= 1f) {
+                        OpenGate();
+                    }
+                }
             }
         }
     }
 
-    // Kiểm tra xem Player có đứng trong vùng Trigger không
+    void TriggerSkillCheck() {
+        if (skillCheck != null) {
+            skillCheck.exitGate = this; // Truyền chính nó vào script SkillCheck mới
+            // Lưu ý: Bạn cần kiểm tra xem script SkillCheck có biến "exitGate" không 
+            // Nếu không, bạn có thể truyền tạm vào biến "generator" nếu script SkillCheck cho phép
+            skillCheck.gameObject.SetActive(true);
+        }
+    }
+
+    void OpenGate() {
+        isOpened = true;
+        gateMesh.SetActive(false);
+        progressSlider.gameObject.SetActive(false);
+        instructionText.SetActive(false);
+        if(skillCheck != null) skillCheck.gameObject.SetActive(false);
+    }
+
     private void OnTriggerEnter(Collider other) {
-        if (other.CompareTag("Player")) isPlayerInside = true;
+        if (other.CompareTag("Player") && !isOpened) {
+            isPlayerInside = true;
+        }
     }
 
     private void OnTriggerExit(Collider other) {
-        if (other.CompareTag("Player")) isPlayerInside = false;
+        isPlayerInside = false;
+        instructionText.SetActive(false);
+        progressSlider.gameObject.SetActive(false);
+        if(skillCheck != null) skillCheck.gameObject.SetActive(false);
     }
 }
