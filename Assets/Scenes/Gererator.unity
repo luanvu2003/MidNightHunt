@@ -94,7 +94,7 @@ LightmapSettings:
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
   m_LightingDataAsset: {fileID: 20201, guid: 0000000000000000f000000000000000, type: 0}
-  m_LightingSettings: {fileID: 0}
+  m_LightingSettings: {fileID: 4890085278179872738, guid: d583446761588884e8ee482e81f8c0cf, type: 2}
 --- !u!196 &4
 NavMeshSettings:
   serializedVersion: 2
@@ -689,8 +689,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 302a04e99dcfcf3409f4c035a7e39841, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  exitGates:
-  - {fileID: 316590155}
+  exitGates: []
   generatorsRemaining: 1
   totalSurvivors: 1
 --- !u!4 &743219421
@@ -739,6 +738,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1216032901}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!95 &1026418836 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 4266763654927886849, guid: d744761623f67924bb6ada5b5d532441, type: 3}
+  m_PrefabInstance: {fileID: 2056345707102848635}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1036897131
 GameObject:
   m_ObjectHideFlags: 0
@@ -949,7 +953,7 @@ Light:
   m_Enabled: 1
   serializedVersion: 11
   m_Type: 1
-  m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
+  m_Color: {r: 0.3301887, g: 0.3301887, b: 0.3301887, a: 1}
   m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30
@@ -1114,6 +1118,10 @@ PrefabInstance:
       propertyPath: player
       value: 
       objectReference: {fileID: 1036897136}
+    - target: {fileID: 430780870037208198, guid: d744761623f67924bb6ada5b5d532441, type: 3}
+      propertyPath: animator
+      value: 
+      objectReference: {fileID: 1026418836}
     - target: {fileID: 3559847254724867710, guid: d744761623f67924bb6ada5b5d532441, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
