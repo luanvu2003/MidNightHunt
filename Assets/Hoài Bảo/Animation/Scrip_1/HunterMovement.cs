@@ -48,12 +48,30 @@ public class HunterMovement : MonoBehaviour
         // Làm mượt tốc độ (từ từ tăng/giảm tốc)
         currentSpeed = Mathf.Lerp(currentSpeed, targetSpeed, Time.deltaTime * 15f);
         
-        // Thực thi việc di chuyển ống trụ vật lý
+        // Thực thi việc di chuyển ống trụ vật lý (TỐC ĐỘ CHẬM THỰC TẾ)
         controller.Move(move * (currentSpeed * Time.deltaTime) + new Vector3(0, velocityY, 0) * Time.deltaTime);
 
-        // Gửi thông số vận tốc cho Animator để múa chân
-        float animValue = currentSpeed / walkStraight;
-        if (input.y < 0) animValue = -animValue; // Đi lùi thì gửi số âm
+        // =========================================================
+        // 🚨 TUYỆT CHIÊU: ĐÁNH LỪA ANIMATOR (FAKE SPEED)
+        // =========================================================
+        // Khôi phục lại "tốc độ ảo" để Animator không biết là mình đang bị làm chậm.
+        // Ví dụ: Đang bị Slow còn 0.5 -> currentSpeed = 2.5
+        // Ta lấy 2.5 / 0.5 = 5.0 (Vận tốc gốc). Animator sẽ nhận số 5.0 và múa chân chạy tít thò lò!
+        float fakeSpeedForAnimator = currentSpeed;
+        
+        // Kiểm tra an toàn: Tránh lỗi toán học chia cho 0
+        if (currentSpeedMultiplier > 0f) 
+        {
+            fakeSpeedForAnimator = currentSpeed / currentSpeedMultiplier; 
+        }
+
+        // Tính % tốc độ DỰA TRÊN TỐC ĐỘ ẢO
+        float animValue = fakeSpeedForAnimator / walkStraight;
+        
+        // Nếu người chơi bấm S (đi lùi) thì gửi số âm để Animator kéo ngược Animation
+        if (input.y < 0) animValue = -animValue; 
+        
+        // Gửi con số "ảo" này vào Animator
         animator.SetFloat(animSpeed, animValue);
 
         // Phát âm thanh tiếng bước chân nếu đang ở trên đất và có đi lại
