@@ -765,10 +765,22 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 230709234879574068, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
+      propertyPath: maxGeneratorProgress
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 1228510006672049023, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
+      propertyPath: m_PlayOnAwake
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2101347511902750236, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
       propertyPath: player
       value: 
       objectReference: {fileID: 1036897136}
+    - target: {fileID: 2101347511902750236, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
+      propertyPath: repairTime
+      value: 100
+      objectReference: {fileID: 0}
     - target: {fileID: 2113860345150186153, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -809,9 +821,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2250268956981509241, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
+      propertyPath: m_FillAmount
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3309650600516844648, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
       propertyPath: m_Name
       value: Generator
+      objectReference: {fileID: 0}
+    - target: {fileID: 5205461830631941842, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7724927945034380750, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
