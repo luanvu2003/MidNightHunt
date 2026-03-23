@@ -6,18 +6,17 @@ public class SkillCheckExitGate : MonoBehaviour
     public RectTransform needle;
     public RectTransform successZone;
     public float rotateSpeed = 200f;
-    public float successMin = 60f;
-    public float successMax = 90f;
-
-    float angle = 0;
-
-    // Chỉ nhận ExitGateLogic
+    
     [HideInInspector] public ExitGateLogic exitGate; 
+
+    private float angle = 0;
+    private float successMin;
+    private float successMax;
 
     void OnEnable()
     {
         angle = 0;
-        // Xoay vùng xanh đến vị trí ngẫu nhiên mỗi lần hiện (tăng độ khó)
+        // Ngẫu nhiên vị trí vùng xanh (Success Zone)
         successMin = Random.Range(30f, 150f);
         successMax = successMin + 30f;
         successZone.localRotation = Quaternion.Euler(0, 0, -successMin);
@@ -38,22 +37,39 @@ public class SkillCheckExitGate : MonoBehaviour
     {
         if (angle >= successMin && angle <= successMax)
         {
-            Debug.Log("Cổng: Skill Check Thành Công!");
+            // Kiểm tra xem đang phục vụ cho Cổng hay Máy dựa vào exitGate
+            string target = (exitGate != null) ? "Cổng" : "Máy phát điện";
+            Debug.Log($"{target}: Skill Check Thành Công!");
+            
+            SuccessAction();
             gameObject.SetActive(false);
         }
         else
         {
-            Debug.Log("Cổng: Skill Check Thất Bại!");
-            Fail();
+            string target = (exitGate != null) ? "Cổng" : "Máy phát điện";
+            Debug.Log($"{target}: Skill Check Thất Bại!");
+            FailAction();
         }
     }
 
-    void Fail()
+    void SuccessAction()
+    {
+        // Thưởng thêm tí tiến độ nếu cần (tùy bạn)
+        if (exitGate != null) exitGate.progressSlider.value += 0.02f;
+    }
+
+    void FailAction()
     {
         if (exitGate != null)
         {
-            // Phạt: Trừ 10% tiến độ trên thanh Slider của cổng
+            // Phạt cổng
             exitGate.progressSlider.value = Mathf.Max(0, exitGate.progressSlider.value - 0.1f);
+            // Quan trọng: Gọi hàm Reset để người chơi phải nhấn T lại (tránh lỗi trượt xong thanh slider chạy tiếp)
+            exitGate.StopInteracting(); 
+        }
+        else
+        {
+            // Logic phạt máy phát điện của bạn ở đây (ví dụ: nổ máy)
         }
         gameObject.SetActive(false);
     }
