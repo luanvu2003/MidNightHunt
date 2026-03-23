@@ -140,6 +140,12 @@ public class Generator : MonoBehaviour
 
         Debug.Log("Generator này đã sửa xong!");
 
+        // --- THÊM DÒNG NÀY VÀO ---
+        if (GameManager.Instance != null) {
+            GameManager.Instance.GeneratorFixed(); 
+        }
+        // ------------------------
+
         progressBar.gameObject.SetActive(false);
         repairText.SetActive(false);
 
