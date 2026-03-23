@@ -19,7 +19,6 @@ public class Generator : MonoBehaviour
     public SkillCheck skillCheck;
 
     public ParticleSystem explosionFX;
-    public AudioSource explosionSound;
 
     float skillTimer = 5f;
 
@@ -32,6 +31,10 @@ public class Generator : MonoBehaviour
     // 🔥 THÊM ANIMATION
     [Header("Animation")]
     public Animator animator;
+
+    [Header("Audio Source")]
+    public AudioSource explosionSound;
+    public AudioSource repairSound;
 
     void Start()
     {
@@ -49,6 +52,11 @@ public class Generator : MonoBehaviour
         {
             animator.SetBool("isRunning", false);
         }
+
+        if (repairSound != null)
+        {
+            repairSound.Stop();
+        }
     }
 
     void Update()
@@ -60,6 +68,11 @@ public class Generator : MonoBehaviour
         {
             if (animator != null)
                 animator.SetBool("isRunning", false);
+
+            if (repairSound != null && repairSound.isPlaying)
+            {
+                repairSound.Stop();
+            }
 
             if (!playerInRange || !Input.GetKey(KeyCode.E))
             {
@@ -75,6 +88,12 @@ public class Generator : MonoBehaviour
             // 👉 BẬT animation
             if (animator != null)
                 animator.SetBool("isRunning", true);
+
+            // 🔊 BẬT ÂM THANH
+            if (repairSound != null && !repairSound.isPlaying)
+            {
+                repairSound.Play();
+            }
 
             if (isSkillCheckPaused)
             {
@@ -106,6 +125,12 @@ public class Generator : MonoBehaviour
             // 👉 TẮT animation khi không sửa
             if (animator != null)
                 animator.SetBool("isRunning", false);
+
+            // 🔇 TẮT ÂM THANH
+            if (repairSound != null && repairSound.isPlaying)
+            {
+                repairSound.Stop();
+            }
         }
     }
 
@@ -121,6 +146,11 @@ public class Generator : MonoBehaviour
         // 🔥 TẮT animation khi xong
         if (animator != null)
             animator.SetBool("isRunning", false);
+
+        if (repairSound != null)
+        {
+            repairSound.Stop();
+        }
 
         if (GameManager.instance != null)
         {
@@ -154,6 +184,11 @@ public class Generator : MonoBehaviour
             // 🔥 TẮT animation khi đi ra
             if (animator != null)
                 animator.SetBool("isRunning", false);
+
+            if (repairSound != null)
+            {
+                repairSound.Stop();
+            }
         }
     }
 }
