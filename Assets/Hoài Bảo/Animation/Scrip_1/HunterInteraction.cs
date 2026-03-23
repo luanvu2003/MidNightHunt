@@ -14,7 +14,8 @@ public class HunterInteraction : MonoBehaviour
     public float timeNhatPlayer = 1.5f;
 
     [Header("Hệ Thống Vác")]
-    public Transform shoulderPoint; // Cục bone trên vai
+    public Transform handPoint; // ĐÃ THÊM: Điểm trên bàn tay (Dùng để xách người lên trước)
+    public Transform shoulderPoint; // Cục bone trên vai (Dùng để vắt người lên sau)
     public bool isCarryingPlayer = false; // Biến cờ: Báo hiệu vai đang bận vác người
     private GameObject carriedPlayerObject; // Lưu cái xác
 
@@ -80,10 +81,6 @@ public class HunterInteraction : MonoBehaviour
 
         string tag = currentInteractTarget.tag;
         
-        // ========================================================
-        // 🚨 CHỐT CHẶN LOGIC (ĐÃ NÂNG CẤP)
-        // ========================================================
-        
         // 1. Đang vác người trên vai? -> CHỈ ĐƯỢC phép tương tác với "Moc", CẤM đạp máy, trèo cửa, nhặt thêm người.
         if (isCarryingPlayer && tag != "Moc") 
         {
@@ -133,22 +130,47 @@ public class HunterInteraction : MonoBehaviour
         }
     }
 
-    // Gắn vào frame Anim nhấc người
-    public void AttachPlayerToShoulder() 
+    // ========================================================
+    // BƯỚC 1: ANIMATION EVENT - KHI TAY VỪA CHẠM VÀO XÁC DƯỚI ĐẤT
+    // ========================================================
+    public void AttachPlayerToHand() 
     {
-        if (carriedPlayerObject != null && shoulderPoint != null)
+        // Chắc chắn là có xác và đã set vị trí Bàn Tay ngoài Inspector
+        if (carriedPlayerObject != null && handPoint != null)
         {
+            // Tắt va chạm của cái xác để khỏi vướng chân Hunter
             Collider[] colliders = carriedPlayerObject.GetComponentsInChildren<Collider>();
             foreach(var col in colliders) col.enabled = false;
 
-            carriedPlayerObject.tag = "Untagged"; // Đổi tag để khỏi quét trúng
+            // Đổi tag để vòng quét dưới chân Hunter không thèm nhìn thấy cái xác này nữa
+            carriedPlayerObject.tag = "Untagged"; 
+
+            // HÚT XÁC VÀO BÀN TAY
+            carriedPlayerObject.transform.SetParent(handPoint); 
+            carriedPlayerObject.transform.localPosition = Vector3.zero; 
+            carriedPlayerObject.transform.localRotation = Quaternion.identity;
+            
+            // Xóa UI "Bấm phím" ngay lập tức vì xác đã được nhấc lên
+            currentInteractTarget = null;
+            if (interactUI != null) interactUI.SetActive(false);
+        }
+    }
+
+    // ========================================================
+    // BƯỚC 2: ANIMATION EVENT - KHI TAY VẮT CÁI XÁC LÊN VAI
+    // ========================================================
+    public void AttachPlayerToShoulder() 
+    {
+        // Chắc chắn là có xác và đã set vị trí Cái Vai
+        if (carriedPlayerObject != null && shoulderPoint != null)
+        {
+            // CHUYỂN XÁC TỪ TAY SANG VAI
             carriedPlayerObject.transform.SetParent(shoulderPoint); 
             carriedPlayerObject.transform.localPosition = Vector3.zero; 
             carriedPlayerObject.transform.localRotation = Quaternion.identity;
             
-            isCarryingPlayer = true; // Bật cờ đang vác người
-            currentInteractTarget = null;
-            if (interactUI != null) interactUI.SetActive(false);
+            // Chính thức đánh dấu là vai đang bận vác người
+            isCarryingPlayer = true; 
         }
     }
 
@@ -187,10 +209,8 @@ public class HunterInteraction : MonoBehaviour
     {
         if (other.CompareTag("May") || other.CompareTag("Moc") || other.CompareTag("Player") || other.CompareTag("Cuaso"))
         {
-            // 🚨 ẨN UI THÔNG MINH: Nếu đang vác người mà đứng sát Máy phát điện / Cửa sổ / Nạn nhân khác -> Tắt luôn chữ "Bấm Space" để người chơi biết là cấm dùng.
+            // ẨN UI THÔNG MINH
             if (isCarryingPlayer && !other.CompareTag("Moc")) return;
-
-            // Nếu muốn dùng móc thì cũng phải kiểm tra xem có người không mới hiện chữ
             if (other.CompareTag("Moc") && !isCarryingPlayer) return; 
 
             currentInteractTarget = other; 
