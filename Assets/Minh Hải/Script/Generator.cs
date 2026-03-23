@@ -3,36 +3,24 @@ using UnityEngine.UI;
 
 public class Generator : MonoBehaviour
 {
-    public float repairTime = 10f;
+    public float repairTime = 100f; // Đổi thành 100 để khớp với maxProgress của SkillCheck
     public float progress = 0f;
-
     public float interactRadius = 3f;
 
     [Header("GameObject")]
     public Transform player;
-
     private bool playerInRange = false;
     private bool isRepaired = false;
-    
-    private bool isSkillCheckPaused = false; 
+    private bool isRepairing = false; // Biến kiểm soát trạng thái sửa máy
 
     public SkillCheck skillCheck;
-
-    public ParticleSystem explosionFX;
-
-    float skillTimer = 5f;
-
     public Slider progressBar;
     public GameObject repairText;
+    public ParticleSystem explosionFX;
 
-    [Header("Visual Effects")]
+    [Header("Visual Effects & Audio")]
     public GameObject repairedLight;
-
-    // 🔥 THÊM ANIMATION
-    [Header("Animation")]
     public Animator animator;
-
-    [Header("Audio Source")]
     public AudioSource explosionSound;
     public AudioSource repairSound;
 
@@ -41,124 +29,82 @@ public class Generator : MonoBehaviour
         progressBar.gameObject.SetActive(false);
         repairText.SetActive(false);
         skillCheck.gameObject.SetActive(false);
-
-        if (repairedLight != null) 
-        {
-            repairedLight.SetActive(false);
-        }
-
-        // 🔥 TẮT animation lúc đầu
-        if (animator != null)
-        {
-            animator.SetBool("isRunning", false);
-        }
-
-        if (repairSound != null)
-        {
-            repairSound.Stop();
-        }
+        if (repairedLight != null) repairedLight.SetActive(false);
     }
 
     void Update()
     {
         if (isRepaired) return;
 
-        // 🔥 Nếu đang skill check thì dừng animation
-        if (skillCheck.gameObject.activeSelf) 
+        // 1. NHẤN E ĐỂ BẮT ĐẦU HOẶC DỪNG SỬA
+        if (playerInRange && Input.GetKeyDown(KeyCode.E))
         {
-            if (animator != null)
-                animator.SetBool("isRunning", false);
-
-            if (repairSound != null && repairSound.isPlaying)
+            isRepairing = !isRepairing;
+            
+            if (isRepairing)
             {
-                repairSound.Stop();
+                progressBar.gameObject.SetActive(true);
+                // Bắt đầu mini-game ngay lập tức khi vừa bấm E
+                if (!skillCheck.gameObject.activeSelf)
+                    skillCheck.StartNewSkillCheck(this);
             }
-
-            if (!playerInRange || !Input.GetKey(KeyCode.E))
+            else
             {
-                skillCheck.gameObject.SetActive(false);
-                isSkillCheckPaused = true;
+                StopRepairing();
             }
-            return;
         }
 
-        // 🔥 ĐANG SỬA MÁY
-        if (playerInRange && Input.GetKey(KeyCode.E))
+        // 2. XỬ LÝ LOGIC KHI ĐANG SỬA
+        if (isRepairing && playerInRange)
         {
-            // 👉 BẬT animation
-            if (animator != null)
-                animator.SetBool("isRunning", true);
-
-            // 🔊 BẬT ÂM THANH
-            if (repairSound != null && !repairSound.isPlaying)
-            {
-                repairSound.Play();
-            }
-
-            if (isSkillCheckPaused)
-            {
-                skillCheck.gameObject.SetActive(true);
-                isSkillCheckPaused = false;
-                return; 
-            }
+            UpdateVisuals(true);
             
-            progressBar.gameObject.SetActive(true);
-
-            progress += Time.deltaTime;
+            // Thanh slider bây giờ chỉ phụ thuộc vào giá trị progress (do SkillCheck cộng vào)
             progressBar.value = progress / repairTime;
-
-            skillTimer -= Time.deltaTime;
-
-            if (skillTimer <= 0)
-            {
-                skillCheck.StartNewSkillCheck(this); 
-                skillTimer = Random.Range(5f, 10f);
-            }
 
             if (progress >= repairTime)
             {
                 FinishRepair();
             }
         }
-        else 
+        else if (isRepairing && !playerInRange) 
         {
-            // 👉 TẮT animation khi không sửa
-            if (animator != null)
-                animator.SetBool("isRunning", false);
+            // Tự động dừng nếu người chơi đi quá xa
+            StopRepairing();
+        }
+    }
 
-            // 🔇 TẮT ÂM THANH
-            if (repairSound != null && repairSound.isPlaying)
-            {
-                repairSound.Stop();
-            }
+    void StopRepairing()
+    {
+        isRepairing = false;
+        UpdateVisuals(false);
+        skillCheck.gameObject.SetActive(false); // Tắt mini-game khi rời máy
+        progressBar.gameObject.SetActive(false);
+    }
+
+    void UpdateVisuals(bool running)
+    {
+        if (animator != null) animator.SetBool("isRunning", running);
+        if (repairSound != null)
+        {
+            if (running && !repairSound.isPlaying) repairSound.Play();
+            else if (!running && repairSound.isPlaying) repairSound.Stop();
         }
     }
 
     void FinishRepair()
     {
         isRepaired = true;
-
-        Debug.Log("Generator này đã sửa xong!");
-
+        isRepairing = false;
         progressBar.gameObject.SetActive(false);
         repairText.SetActive(false);
-
-        // 🔥 TẮT animation khi xong
-        if (animator != null)
-            animator.SetBool("isRunning", false);
-
-        if (repairSound != null)
-        {
-            repairSound.Stop();
-        }
-
-
-        if (repairedLight != null)
-        {
-            repairedLight.SetActive(true);
-        }
+        UpdateVisuals(false);
+        if (repairedLight != null) repairedLight.SetActive(true);
+        Debug.Log("Máy đã sửa xong!");
     }
 
+    // Giữ nguyên OnTriggerEnter và OnTriggerExit nhưng xóa logic SetActive(false) của progressBar ở Exit 
+    // vì đã có hàm StopRepairing xử lý.
     void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player") && !isRepaired)
@@ -173,18 +119,7 @@ public class Generator : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             playerInRange = false;
-
             repairText.SetActive(false);
-            progressBar.gameObject.SetActive(false);
-
-            // 🔥 TẮT animation khi đi ra
-            if (animator != null)
-                animator.SetBool("isRunning", false);
-
-            if (repairSound != null)
-            {
-                repairSound.Stop();
-            }
         }
     }
 }

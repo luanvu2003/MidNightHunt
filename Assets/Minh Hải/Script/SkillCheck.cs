@@ -9,9 +9,11 @@ public class SkillCheck : MonoBehaviour
 
     public Generator generator;
 
-    [Header("Skill Check Settings")]
-    public float rotateSpeed = 250f;
-    
+    [Header("Difficulty Scaling (Tăng dần theo tiến độ)")]
+    public float minRotateSpeed = 200f; // Tốc độ khi máy ở 0%
+    public float maxRotateSpeed = 550f; // Tốc độ khi máy ở gần 100% (Rất nhanh)
+    private float currentRotateSpeed;   // Tốc độ thực tế đang sử dụng
+
     [Header("Combo Settings")]
     public int requiredSuccesses = 4;
     public float startZoneWidth = 60f;
@@ -25,75 +27,74 @@ public class SkillCheck : MonoBehaviour
     private bool isChecking = false;
 
     [Header("Reward Settings")]
-    public float baseProgressReward = 5f; // Tiến độ tăng lên ở lần bấm trúng đầu tiên
-    public float bonusPerCombo = 2f;      // Điểm cộng dồn thêm cho các lần bấm sau
-    public float maxGeneratorProgress = 100f; // Giới hạn tối đa của thanh sửa máy
+    public float baseProgressReward = 5f; 
+    public float bonusPerCombo = 2f;      
+    public float maxGeneratorProgress = 100f; 
 
-    // Khoảng du di (sai số) giúp việc bấm ở sát mép dễ ăn hơn
     private float tolerance = 3f; 
 
-    void Awake()
+    void OnEnable()
     {
-        if (successZone != null)
+        if (successZone != null && successZoneImage == null)
         {
             successZoneImage = successZone.GetComponent<Image>();
-            
-            // ÉP BUỘC CÀI ĐẶT UI BẰNG CODE ĐỂ TRÁNH LỖI LỆCH GIAO DIỆN:
-            successZoneImage.type = Image.Type.Filled;
-            successZoneImage.fillMethod = Image.FillMethod.Radial360;
-            successZoneImage.fillOrigin = (int)Image.Origin360.Top; // Luôn bắt đầu từ 12h
-            successZoneImage.fillClockwise = true; // Luôn thuận chiều kim đồng hồ
         }
     }
 
     public void StartNewSkillCheck(Generator gen)
     {
-        // 1. BẬT OBJECT LÊN TRƯỚC TIÊN! 
-        // Để Unity đánh thức object này dậy và nhận diện được các hình ảnh (Image) bên trong.
-        gameObject.SetActive(true); 
-
-        // 2. SAU ĐÓ MỚI BẮT ĐẦU TÍNH TOÁN VÀ VẼ UI
         this.generator = gen;
-        currentSuccessCount = 0; // Reset số lần bấm trúng về 0
-        currentZoneWidth = startZoneWidth; // Reset độ rộng vùng xanh
-        
-        SetupNextRound(); // Xoay kim về 0 và random vùng xanh
+        currentSuccessCount = 0; 
+        currentZoneWidth = startZoneWidth; 
+        gameObject.SetActive(true);
+        SetupNextRound(); 
     }
 
     void SetupNextRound()
     {
-        angle = 0; // Reset kim về 0
+        angle = 0; 
         isChecking = true;
 
-        float maxStartAngle = 360f - currentZoneWidth - 10f; 
-        successMin = Random.Range(45f, maxStartAngle);
-        successMax = successMin + currentZoneWidth;
+        // 🔥 LOGIC TĂNG ĐỘ KHÓ: Tính tốc độ quay dựa trên tiến độ Slider
+        if (generator != null)
+        {
+            // Tính tỷ lệ 0 -> 1
+            float progressPercent = generator.progress / maxGeneratorProgress;
+            // Tốc độ kim nhanh dần theo slider
+            currentRotateSpeed = Mathf.Lerp(minRotateSpeed, maxRotateSpeed, progressPercent);
+            
+            // Tùy chọn: Vùng xanh (Success Zone) cũng hẹp lại một chút khi slider đầy
+            // currentZoneWidth = Mathf.Lerp(startZoneWidth, 25f, progressPercent);
+        }
 
         if (successZoneImage != null)
         {
             successZoneImage.fillAmount = currentZoneWidth / 360f;
         }
+
+        float maxStartAngle = 360f - currentZoneWidth - 20f; 
+        successMin = Random.Range(45f, maxStartAngle);
+        successMax = successMin + currentZoneWidth;
+
         successZone.localRotation = Quaternion.Euler(0, 0, -successMin);
+        needle.localRotation = Quaternion.Euler(0, 0, 0);
     }
 
     void Update()
     {
         if (!isChecking) return;
 
-        angle += rotateSpeed * Time.deltaTime;
+        // Sử dụng currentRotateSpeed thay vì biến tĩnh
+        angle += currentRotateSpeed * Time.deltaTime;
 
-        // KIỂM TRA TIMEOUT: NẾU KIM QUAY HẾT 1 VÒNG (360 ĐỘ) -> NỔ MÁY
         if (angle >= 360f)
         {
-            Debug.LogWarning("THẤT BẠI: Hết thời gian! Kim đã quay trọn 1 vòng.");
             Fail();
-            return; // Dừng hàm Update tại đây
+            return;
         }
 
-        // Cập nhật vị trí xoay của kim
         needle.localRotation = Quaternion.Euler(0, 0, -angle);
 
-        // Nhận Input từ người chơi
         if (Input.GetKeyDown(KeyCode.Space))
         {
             CheckHit();
@@ -102,35 +103,19 @@ public class SkillCheck : MonoBehaviour
 
     void CheckHit()
     {
-        // KIỂM TRA TRÚNG: Áp dụng dung sai (tolerance) cho cả Min và Max
         if (angle >= (successMin - tolerance) && angle <= (successMax + tolerance))
         {
             currentSuccessCount++;
-            Debug.Log("TRÚNG! Lần " + currentSuccessCount + "/" + requiredSuccesses + ".");
-
-            // ================= THÊM LOGIC TĂNG TIẾN ĐỘ Ở ĐÂY =================
+            
             if (generator != null)
             {
-                // Tính điểm thưởng: Lần 1 = 5. Lần 2 = 5 + 2 = 7. Lần 3 = 5 + 4 = 9...
+                // Cộng thêm tiến độ vào slider của generator
                 float reward = baseProgressReward + ((currentSuccessCount - 1) * bonusPerCombo);
-                generator.progress += reward;
+                generator.progress = Mathf.Min(generator.progress + reward, maxGeneratorProgress);
                 
-                // Đảm bảo tiến độ không vượt quá mức tối đa
-                if (generator.progress > maxGeneratorProgress) 
-                {
-                    generator.progress = maxGeneratorProgress;
-                }
-
-                // Cập nhật giao diện thanh Slider của Generator
                 if (generator.progressBar != null) 
-                {
-                    // ĐÃ SỬA: Chia cho maxGeneratorProgress để thanh Slider chạy đúng tỷ lệ 0 -> 1
                     generator.progressBar.value = generator.progress / maxGeneratorProgress; 
-                }
-                
-                Debug.Log("Được thưởng " + reward + " tiến độ! Tổng: " + generator.progress);
             }
-            // =================================================================
 
             if (currentSuccessCount >= requiredSuccesses)
             {
@@ -138,30 +123,36 @@ public class SkillCheck : MonoBehaviour
             }
             else
             {
-                // Qua màn: Thu nhỏ vùng xanh và đi tiếp
-                currentZoneWidth -= shrinkPerRound;
-                if (currentZoneWidth < 10f) currentZoneWidth = 10f; 
+                // Thu nhỏ vùng xanh sau mỗi lần bấm trúng trong 1 combo
+                currentZoneWidth = Mathf.Max(currentZoneWidth - shrinkPerRound, 15f);
                 SetupNextRound();
             }
         }
         else
         {
-            // Bấm trượt
-            if (angle < successMin - tolerance)
-                Debug.LogWarning("THẤT BẠI: Bấm quá SỚM!");
-            else
-                Debug.LogWarning("THẤT BẠI: Bấm quá TRỄ!");
-            
             Fail();
         }
     }
 
     void FullSuccess()
     {
-        Debug.Log("================ HOÀN THÀNH COMBO! ================");
         isChecking = false;
-        gameObject.SetActive(false);
-        // Có thể thêm code cộng thêm tiến độ sửa máy ở đây
+        // Đợi 0.5s hiện mini-game mới. Tốc độ sẽ tự cập nhật ở SetupNextRound
+        Invoke("AutoRestart", 0.5f);
+    }
+
+    void AutoRestart()
+    {
+        if (generator != null && generator.progress < maxGeneratorProgress)
+        {
+            currentSuccessCount = 0;
+            currentZoneWidth = startZoneWidth;
+            SetupNextRound();
+        }
+        else
+        {
+            gameObject.SetActive(false);
+        }
     }
 
     void Fail()
@@ -171,11 +162,12 @@ public class SkillCheck : MonoBehaviour
         {
             if (generator.explosionFX != null) generator.explosionFX.Play();
             if (generator.explosionSound != null) generator.explosionSound.Play();
-
-            // Reset thanh tiến độ
-            generator.progress = 0f;
-            if (generator.progressBar != null) generator.progressBar.value = generator.progress;
+            
+            // Phạt trừ tiến độ khi nổ
+            generator.progress = Mathf.Max(0, generator.progress - 10f);
+            if (generator.progressBar != null) generator.progressBar.value = generator.progress / maxGeneratorProgress;
         }
-        gameObject.SetActive(false);
+        
+        Invoke("AutoRestart", 1.5f);
     }
 }
