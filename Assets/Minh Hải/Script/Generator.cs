@@ -152,10 +152,6 @@ public class Generator : MonoBehaviour
             repairSound.Stop();
         }
 
-        if (GameManager.instance != null)
-        {
-            GameManager.instance.GeneratorCompleted();
-        }
 
         if (repairedLight != null)
         {
