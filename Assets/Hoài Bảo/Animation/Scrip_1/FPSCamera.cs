@@ -7,7 +7,7 @@ public class FPSCamera : MonoBehaviour
     public Transform playerBody;  
     public Transform headBone;    
 
-    [Header("Cai Dat Camera")]
+    [Header("Cài Đặt Camera")]
     public Vector3 eyeOffset = new Vector3(0f, 0.1f, 0.2f); 
     [SerializeField] private float mouseSensitivity = 15f; 
     public float maxLookAngle = 80f; 
@@ -16,26 +16,28 @@ public class FPSCamera : MonoBehaviour
     private float cameraPitch = 0f;
     private float cameraYaw = 0f; 
     private bool isMouseLocked = true; 
-
-    // ĐÃ THÊM: Biến khóa Camera khi đang làm Animation
     public bool isCameraLockedForAnim = false; 
 
     private void Start()
     {
-        cameraYaw = transform.eulerAngles.y;
-        cameraPitch = transform.eulerAngles.x;
         SetMouseState(true);
     }
 
-    public void SetTarget(Transform newBody, Transform newHead)
+    // =========================================================
+    // HÀM MỞ: ĐỂ CÁC CON HUNTER TỰ GỌI VÀO VÀ BÁO CÁO THÔNG SỐ
+    // =========================================================
+    public void SetupCameraForHunter(Transform newBody, Transform newHead, Vector3 specificOffset)
     {
         playerBody = newBody;
         headBone = newHead;
+        eyeOffset = specificOffset; // Cập nhật góc nhìn riêng của từng con Hunter
+        
         cameraYaw = playerBody.eulerAngles.y;
         cameraPitch = 0f;
+        
+        Debug.Log("🎥 Camera đã khóa mục tiêu: " + newBody.name + " với Offset: " + specificOffset);
     }
 
-    // ĐÃ THÊM: Hàm này để đồng bộ lại góc chuột sau khi nhân vật bị ép xoay mặt vào cái máy
     public void SyncCameraAngles(float newYaw)
     {
         cameraYaw = newYaw;
@@ -43,14 +45,16 @@ public class FPSCamera : MonoBehaviour
 
     private void Update()
     {
+        // Nếu chưa có con Hunter nào nhận Camera thì Camera cứ nằm im chờ đợi
+        if (playerBody == null || headBone == null) return;
+
         if (Keyboard.current.leftAltKey.wasPressedThisFrame)
         {
             isMouseLocked = !isMouseLocked; 
             SetMouseState(isMouseLocked);
         }
 
-        // ĐÃ THÊM: Nếu Camera bị khóa vì đang múa Animation -> Cấm xoay chuột!
-        if (!isMouseLocked || playerBody == null || headBone == null || isCameraLockedForAnim) return;
+        if (!isMouseLocked || isCameraLockedForAnim) return;
 
         Vector2 mouseDelta = Mouse.current.delta.ReadValue();
 
@@ -73,20 +77,7 @@ public class FPSCamera : MonoBehaviour
 
     private void SetMouseState(bool lockMouse)
     {
-        if (lockMouse)
-        {
-            Cursor.lockState = CursorLockMode.Locked; 
-            Cursor.visible = false;                   
-        }
-        else
-        {
-            Cursor.lockState = CursorLockMode.None;   
-            Cursor.visible = true;                    
-        }
-    }
-
-    public void SetMouseSensitivity(float newSensitivity)
-    {
-        mouseSensitivity = newSensitivity;
+        Cursor.lockState = lockMouse ? CursorLockMode.Locked : CursorLockMode.None;
+        Cursor.visible = !lockMouse;
     }
 }
