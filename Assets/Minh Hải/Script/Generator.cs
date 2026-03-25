@@ -3,16 +3,28 @@ using UnityEngine.UI;
 
 public class Generator : MonoBehaviour
 {
-    public float repairTime = 100f; // Đổi thành 100 để khớp với maxProgress của SkillCheck
+    public float repairTime = 60f;
     public float progress = 0f;
-    public float interactRadius = 3f;
 
-    [Header("GameObject")]
+    public int currentSkillLevel = 1;
+
+    [Header("Penalty Settings")]
+    public float stunDuration = 10f;
+    private float stunTimer = 0f;
+    public float progressPenalty = 5f;
+
+    [Header("Player Settings")]
     public Transform player;
-    private bool playerInRange = false;
-    private bool isRepaired = false;
-    private bool isRepairing = false; // Biến kiểm soát trạng thái sửa máy
+    // --- BIẾN MỚI ĐỂ KHÓA DI CHUYỂN ---
+    public MonoBehaviour playerMovementScript;
 
+    private bool playerInRange = false;
+    private int zonesOccupied = 0;
+
+    private bool isRepaired = false;
+    public bool isRepairing = false;
+
+    [Header("UI & Minigame")]
     public SkillCheck skillCheck;
     public Slider progressBar;
     public GameObject repairText;
@@ -26,9 +38,9 @@ public class Generator : MonoBehaviour
 
     void Start()
     {
-        progressBar.gameObject.SetActive(false);
-        repairText.SetActive(false);
-        skillCheck.gameObject.SetActive(false);
+        if (progressBar != null) progressBar.gameObject.SetActive(false);
+        if (repairText != null) repairText.SetActive(false);
+        if (skillCheck != null) skillCheck.gameObject.SetActive(false);
         if (repairedLight != null) repairedLight.SetActive(false);
     }
 
@@ -36,21 +48,33 @@ public class Generator : MonoBehaviour
     {
         if (isRepaired) return;
 
-        // 1. NHẤN E ĐỂ BẮT ĐẦU HOẶC DỪNG SỬA
-        if (playerInRange && Input.GetKeyDown(KeyCode.E))
+        if (stunTimer > 0)
         {
-            isRepairing = !isRepairing;
-            
+            stunTimer -= Time.deltaTime;
+            if (stunTimer <= 0 && playerInRange)
+            {
+                if (repairText != null) repairText.SetActive(true);
+            }
+        }
+
+        // 1. NHẤN E ĐỂ BẮT ĐẦU HOẶC DỪNG SỬA
+        if (playerInRange && Input.GetKeyDown(KeyCode.E) && stunTimer <= 0)
+        {
             if (isRepairing)
             {
-                progressBar.gameObject.SetActive(true);
-                // Bắt đầu mini-game ngay lập tức khi vừa bấm E
-                if (!skillCheck.gameObject.activeSelf)
-                    skillCheck.StartNewSkillCheck(this);
+                if (skillCheck.isChecking) ExplodeGenerator();
+                else StopRepairing();
             }
             else
             {
-                StopRepairing();
+                isRepairing = true;
+
+                // --- KHÓA DI CHUYỂN ---
+                if (playerMovementScript != null) playerMovementScript.enabled = false;
+
+                if (progressBar != null) progressBar.gameObject.SetActive(true);
+                if (skillCheck != null && !skillCheck.gameObject.activeSelf)
+                    skillCheck.StartNewSkillCheck(this);
             }
         }
 
@@ -58,28 +82,55 @@ public class Generator : MonoBehaviour
         if (isRepairing && playerInRange)
         {
             UpdateVisuals(true);
-            
-            // Thanh slider bây giờ chỉ phụ thuộc vào giá trị progress (do SkillCheck cộng vào)
-            progressBar.value = progress / repairTime;
+
+            progress += Time.deltaTime;
+            if (progressBar != null) progressBar.value = progress / repairTime;
 
             if (progress >= repairTime)
             {
                 FinishRepair();
             }
         }
-        else if (isRepairing && !playerInRange) 
+        else if (isRepairing && !playerInRange)
         {
-            // Tự động dừng nếu người chơi đi quá xa
-            StopRepairing();
+            if (skillCheck.isChecking) ExplodeGenerator();
+            else StopRepairing();
         }
     }
 
-    void StopRepairing()
+    public void ApplyStun()
+    {
+        currentSkillLevel = 1;
+        if (explosionFX != null) explosionFX.Play();
+        if (explosionSound != null) explosionSound.Play();
+
+        StopRepairing();
+        stunTimer = stunDuration;
+        if (repairText != null) repairText.SetActive(false);
+    }
+
+    public void ExplodeGenerator()
+    {
+        currentSkillLevel = 1;
+        if (explosionFX != null) explosionFX.Play();
+        if (explosionSound != null) explosionSound.Play();
+
+        progress = Mathf.Max(0, progress - progressPenalty);
+        if (progressBar != null) progressBar.value = progress / repairTime;
+
+        StopRepairing();
+    }
+
+    public void StopRepairing()
     {
         isRepairing = false;
+
+        // --- MỞ KHÓA DI CHUYỂN ---
+        if (playerMovementScript != null) playerMovementScript.enabled = true;
+
         UpdateVisuals(false);
-        skillCheck.gameObject.SetActive(false); // Tắt mini-game khi rời máy
-        progressBar.gameObject.SetActive(false);
+        if (skillCheck != null) skillCheck.gameObject.SetActive(false);
+        if (progressBar != null) progressBar.gameObject.SetActive(false);
     }
 
     void UpdateVisuals(bool running)
@@ -96,30 +147,53 @@ public class Generator : MonoBehaviour
     {
         isRepaired = true;
         isRepairing = false;
-        progressBar.gameObject.SetActive(false);
-        repairText.SetActive(false);
-        UpdateVisuals(false);
-        if (repairedLight != null) repairedLight.SetActive(true);
-        Debug.Log("Máy đã sửa xong!");
-    }
 
-    // Giữ nguyên OnTriggerEnter và OnTriggerExit nhưng xóa logic SetActive(false) của progressBar ở Exit 
-    // vì đã có hàm StopRepairing xử lý.
-    void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Player") && !isRepaired)
+        // --- MỞ KHÓA DI CHUYỂN ---
+        if (playerMovementScript != null) playerMovementScript.enabled = true;
+
+        if (progressBar != null)
         {
-            playerInRange = true;
-            repairText.SetActive(true);
+            progressBar.value = 1f;
+            progressBar.gameObject.SetActive(false);
+        }
+
+        if (repairText != null) repairText.SetActive(false);
+        if (skillCheck != null) skillCheck.gameObject.SetActive(false);
+        UpdateVisuals(false);
+
+        if (repairedLight != null) repairedLight.SetActive(true);
+
+        RepairZone[] zones = GetComponentsInChildren<RepairZone>();
+        foreach (RepairZone zone in zones)
+        {
+            Collider col = zone.GetComponent<Collider>();
+            if (col != null) col.enabled = false;
         }
     }
 
-    void OnTriggerExit(Collider other)
+    public void PlayerEnteredZone()
     {
-        if (other.CompareTag("Player"))
+        if (isRepaired) return;
+
+        zonesOccupied++;
+        if (zonesOccupied > 0)
         {
+            playerInRange = true;
+            if (stunTimer <= 0)
+            {
+                if (repairText != null) repairText.SetActive(true);
+            }
+        }
+    }
+
+    public void PlayerExitedZone()
+    {
+        zonesOccupied--;
+        if (zonesOccupied <= 0)
+        {
+            zonesOccupied = 0;
             playerInRange = false;
-            repairText.SetActive(false);
+            if (repairText != null) repairText.SetActive(false);
         }
     }
 }

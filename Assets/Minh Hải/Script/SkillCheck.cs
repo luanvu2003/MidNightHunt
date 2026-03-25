@@ -9,28 +9,20 @@ public class SkillCheck : MonoBehaviour
 
     public Generator generator;
 
-    [Header("Difficulty Scaling (Tăng dần theo tiến độ)")]
-    public float minRotateSpeed = 200f; // Tốc độ khi máy ở 0%
-    public float maxRotateSpeed = 550f; // Tốc độ khi máy ở gần 100% (Rất nhanh)
-    private float currentRotateSpeed;   // Tốc độ thực tế đang sử dụng
+    [Header("Difficulty Settings")]
+    public int currentLevel = 1; 
+    public float baseRotateSpeed = 600f; 
 
-    [Header("Combo Settings")]
-    public int requiredSuccesses = 4;
+    [Header("Zone Settings")]
     public float startZoneWidth = 60f;
-    public float shrinkPerRound = 12f;
-
-    private int currentSuccessCount = 0;
+    public float shrinkPerLevel = 10f;
     private float currentZoneWidth;
     private float successMin;
     private float successMax;
     private float angle = 0;
-    private bool isChecking = false;
-
-    [Header("Reward Settings")]
-    public float baseProgressReward = 5f; 
-    public float bonusPerCombo = 2f;      
-    public float maxGeneratorProgress = 100f; 
-
+    
+    public bool isChecking = false; 
+    
     private float tolerance = 3f; 
 
     void OnEnable()
@@ -44,8 +36,8 @@ public class SkillCheck : MonoBehaviour
     public void StartNewSkillCheck(Generator gen)
     {
         this.generator = gen;
-        currentSuccessCount = 0; 
-        currentZoneWidth = startZoneWidth; 
+        this.currentLevel = gen.currentSkillLevel; 
+        
         gameObject.SetActive(true);
         SetupNextRound(); 
     }
@@ -55,17 +47,7 @@ public class SkillCheck : MonoBehaviour
         angle = 0; 
         isChecking = true;
 
-        // 🔥 LOGIC TĂNG ĐỘ KHÓ: Tính tốc độ quay dựa trên tiến độ Slider
-        if (generator != null)
-        {
-            // Tính tỷ lệ 0 -> 1
-            float progressPercent = generator.progress / maxGeneratorProgress;
-            // Tốc độ kim nhanh dần theo slider
-            currentRotateSpeed = Mathf.Lerp(minRotateSpeed, maxRotateSpeed, progressPercent);
-            
-            // Tùy chọn: Vùng xanh (Success Zone) cũng hẹp lại một chút khi slider đầy
-            // currentZoneWidth = Mathf.Lerp(startZoneWidth, 25f, progressPercent);
-        }
+        currentZoneWidth = Mathf.Max(startZoneWidth - ((currentLevel - 1) * shrinkPerLevel), 15f);
 
         if (successZoneImage != null)
         {
@@ -82,11 +64,14 @@ public class SkillCheck : MonoBehaviour
 
     void Update()
     {
-        if (!isChecking) return;
+        if (!isChecking || generator == null || !generator.isRepairing) return;
 
-        // Sử dụng currentRotateSpeed thay vì biến tĩnh
+        float speedMultiplier = currentLevel * 0.1f;
+        float currentRotateSpeed = baseRotateSpeed * speedMultiplier;
+
         angle += currentRotateSpeed * Time.deltaTime;
 
+        // Nếu để kim chạy lố 360 độ -> TÍNH LÀ THẤT BẠI MINIGAME
         if (angle >= 360f)
         {
             Fail();
@@ -105,69 +90,51 @@ public class SkillCheck : MonoBehaviour
     {
         if (angle >= (successMin - tolerance) && angle <= (successMax + tolerance))
         {
-            currentSuccessCount++;
-            
-            if (generator != null)
-            {
-                // Cộng thêm tiến độ vào slider của generator
-                float reward = baseProgressReward + ((currentSuccessCount - 1) * bonusPerCombo);
-                generator.progress = Mathf.Min(generator.progress + reward, maxGeneratorProgress);
-                
-                if (generator.progressBar != null) 
-                    generator.progressBar.value = generator.progress / maxGeneratorProgress; 
-            }
-
-            if (currentSuccessCount >= requiredSuccesses)
-            {
-                FullSuccess();
-            }
-            else
-            {
-                // Thu nhỏ vùng xanh sau mỗi lần bấm trúng trong 1 combo
-                currentZoneWidth = Mathf.Max(currentZoneWidth - shrinkPerRound, 15f);
-                SetupNextRound();
-            }
+            Success();
         }
         else
         {
+            // Bấm Space nhưng trượt ra ngoài vùng xanh -> TÍNH LÀ THẤT BẠI MINIGAME
             Fail();
         }
     }
 
-    void FullSuccess()
+    void Success()
     {
         isChecking = false;
-        // Đợi 0.5s hiện mini-game mới. Tốc độ sẽ tự cập nhật ở SetupNextRound
+
+        if (currentLevel < 5)
+        {
+            currentLevel++;
+            if (generator != null) generator.currentSkillLevel = currentLevel;
+        }
+
         Invoke("AutoRestart", 0.5f);
+    }
+
+    public void Fail()
+    {
+        isChecking = false;
+
+        if (generator != null)
+        {
+            // GỌI HÀM PHẠT CHOÁNG 10s BÊN MÁY PHÁT ĐIỆN
+            generator.ApplyStun(); 
+        }
+
+        // Tắt minigame
+        gameObject.SetActive(false);
     }
 
     void AutoRestart()
     {
-        if (generator != null && generator.progress < maxGeneratorProgress)
+        if (generator != null && generator.isRepairing && generator.progress < generator.repairTime)
         {
-            currentSuccessCount = 0;
-            currentZoneWidth = startZoneWidth;
             SetupNextRound();
         }
         else
         {
             gameObject.SetActive(false);
         }
-    }
-
-    void Fail()
-    {
-        isChecking = false;
-        if (generator != null)
-        {
-            if (generator.explosionFX != null) generator.explosionFX.Play();
-            if (generator.explosionSound != null) generator.explosionSound.Play();
-            
-            // Phạt trừ tiến độ khi nổ
-            generator.progress = Mathf.Max(0, generator.progress - 10f);
-            if (generator.progressBar != null) generator.progressBar.value = generator.progress / maxGeneratorProgress;
-        }
-        
-        Invoke("AutoRestart", 1.5f);
     }
 }
