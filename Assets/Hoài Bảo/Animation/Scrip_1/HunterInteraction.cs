@@ -1,34 +1,39 @@
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.UI; 
 
 public class HunterInteraction : MonoBehaviour
 {
     [Header("Giao Diện & UI")]
-    public GameObject interactUI; // Chữ "Bấm Space"
-    public Slider interactionSlider; // Thanh chạy tiến trình
+    public Image interactImage; 
+    public Slider interactionSlider; 
     
-    // Thời gian múa thực tế của từng file Animation
-    public float timeDapMay = 2.0f;
-    public float timeTreoCUASO = 1.5f;
-    public float timeTreoMoc = 3.0f;
-    public float timeNhatPlayer = 1.5f;
+    [Header("Tự Động Tìm UI (Nhập đúng tên ngoài Hierarchy)")]
+    // LƯU Ý: Chú ý chữ ThanhTuonngtac của bạn có bị dư chữ 'n' ngoài Inspector không nhé!
+    public string interactImageName = "Imgtt"; 
+    public string sliderUIName = "Slidertt"; 
 
-    [Header("Hệ Thống Vác")]
-    public Transform handPoint; // ĐÃ THÊM: Điểm trên bàn tay (Dùng để xách người lên trước)
-    public Transform shoulderPoint; // Cục bone trên vai (Dùng để vắt người lên sau)
-    public bool isCarryingPlayer = false; // Biến cờ: Báo hiệu vai đang bận vác người
-    private GameObject carriedPlayerObject; // Lưu cái xác
+    [Header("Cài Đặt Thời Gian Animation")]
+    public float timeDapMay = 2.0f;     
+    public float timeTreoCUASO = 1.5f;  
+    public float timeTreoMoc = 3.0f;    
+    public float timeNhatPlayer = 1.5f; 
+
+    [Header("Hệ Thống Vác Người")]
+    public Transform handPoint;      
+    public Transform shoulderPoint;  
+    public bool isCarryingPlayer = false;   
+    private GameObject carriedPlayerObject; 
 
     [Header("Vượt Cửa Sổ")]
-    public float vaultDistance = 2.5f; // Khoảng cách phi thân
+    public float vaultDistance = 2.5f; 
 
-    private Collider currentInteractTarget; // Vật đứng gần
-    private float currentDuration = 1f; // Thời gian sẽ phải chờ
-    private bool isInteracting = false; // Cờ báo bận múa
-    private bool isSliderRunning = false; // Cờ bật thanh Slider
-    private float sliderTimer = 0f; // Đồng hồ tính giờ
-    private bool isVaulting = false; // Cờ báo lướt cửa sổ
-    private Vector3 vStart, vEnd; // Tọa độ bay qua cửa
+    private Collider currentInteractTarget; 
+    private float currentDuration = 1f;     
+    private bool isInteracting = false;     
+    private bool isSliderRunning = false;   
+    private float sliderTimer = 0f;         
+    private bool isVaulting = false;        
+    private Vector3 vStart, vEnd;           
 
     private Animator animator;
     private CharacterController controller;
@@ -39,17 +44,63 @@ public class HunterInteraction : MonoBehaviour
         animator = GetComponent<Animator>();
         controller = GetComponent<CharacterController>();
         if (Camera.main != null) fpsCameraScript = Camera.main.GetComponent<FPSCamera>();
+
+        // Lần tìm kiếm số 1: Ngay khi vừa đẻ ra (Có thể xịt nếu Canvas load chậm)
+        AutoFindUI();
     }
 
-    private void Start()
+    // =========================================================
+    // THUẬT TOÁN TỰ ĐỘNG QUÉT CANVAS SIÊU CẤP (CHỐNG LỖI 100%)
+    // =========================================================
+    private void AutoFindUI()
     {
-        if (interactionSlider != null) interactionSlider.gameObject.SetActive(false);
-        if (interactUI != null) interactUI.SetActive(false);
+        Debug.Log("🔍 Hunter đang đi lùng sục UI có tên chính xác là: [" + interactImageName + "] và [" + sliderUIName + "]");
+        // Nếu ô hình ảnh đang bị None
+        if (interactImage == null)
+        {
+            GameObject foundInteractObj = FindUIObjectByName(interactImageName);
+            if (foundInteractObj != null) 
+            {
+                interactImage = foundInteractObj.GetComponent<Image>();
+                Debug.Log("✅ Đã móc thành công: " + interactImageName);
+            }
+        }
+
+        // Nếu ô Slider đang bị None
+        if (interactionSlider == null)
+        {
+            GameObject foundSliderObj = FindUIObjectByName(sliderUIName);
+            if (foundSliderObj != null) 
+            {
+                interactionSlider = foundSliderObj.GetComponent<Slider>();
+                Debug.Log("✅ Đã móc thành công: " + sliderUIName);
+            }
+        }
+    }
+
+    private GameObject FindUIObjectByName(string objName)
+    {
+        // ĐÃ NÂNG CẤP: Thêm chữ 'true' vào đây để nó tìm cả những Canvas đang bị tắt ngang phè phè
+        Canvas[] canvases = FindObjectsOfType<Canvas>(true); 
+        
+        foreach (Canvas canvas in canvases)
+        {
+            Transform[] children = canvas.GetComponentsInChildren<Transform>(true); 
+            foreach (Transform child in children)
+            {
+                // ĐÃ NÂNG CẤP: Dùng Trim() để gọt sạch các dấu cách (Space) lỡ tay gõ thừa ở đầu/cuối tên
+                if (child.name.Trim() == objName.Trim()) 
+                {
+                    return child.gameObject;
+                }
+            }
+        }
+        
+        return null; 
     }
 
     private void Update()
     {
-        // Hệ thống chạy thanh trượt thời gian
         if (isSliderRunning && interactionSlider != null)
         {
             sliderTimer += Time.deltaTime; 
@@ -58,11 +109,10 @@ public class HunterInteraction : MonoBehaviour
             if (sliderTimer >= currentDuration) 
             {
                 isSliderRunning = false;
-                interactionSlider.gameObject.SetActive(false);
+                interactionSlider.gameObject.SetActive(false); 
             }
         }
 
-        // Lướt người qua cửa sổ theo trục tịnh tiến
         if (isVaulting)
         {
             transform.position = Vector3.Lerp(vStart, vEnd, sliderTimer / currentDuration);
@@ -74,32 +124,31 @@ public class HunterInteraction : MonoBehaviour
         return isInteracting || isVaulting;
     }
 
-    // Hàm gọi khi bấm Space
     public void TryInteract()
     {
         if (isInteracting || currentInteractTarget == null) return;
 
-        string tag = currentInteractTarget.tag;
+        string tag = currentInteractTarget.tag; 
         
-        // 1. Đang vác người trên vai? -> CHỈ ĐƯỢC phép tương tác với "Moc", CẤM đạp máy, trèo cửa, nhặt thêm người.
-        if (isCarryingPlayer && tag != "Moc") 
-        {
-            Debug.Log("Đang vác người, cấm làm hành động khác ngoài treo móc!");
-            return; 
-        }
-
-        // 2. Muốn treo móc? -> Bắt buộc phải có người trên vai mới được treo.
+        if (isCarryingPlayer && tag != "Moc") return; 
         if (tag == "Moc" && !isCarryingPlayer) return; 
 
-        // Đủ điều kiện thì bắt tay vào làm
         StartInteraction(tag);
     }
 
     private void StartInteraction(string tag)
     {
         isInteracting = true; 
-        sliderTimer = 0f; 
+        sliderTimer = 0f;     
         
+        if (interactImage != null) interactImage.gameObject.SetActive(false);
+        
+        if (interactionSlider != null) {
+            interactionSlider.gameObject.SetActive(true);
+            interactionSlider.value = 0f; 
+            isSliderRunning = true;       
+        }
+
         Vector3 lookPos = currentInteractTarget.transform.position;
         lookPos.y = transform.position.y; 
         transform.LookAt(lookPos); 
@@ -122,59 +171,35 @@ public class HunterInteraction : MonoBehaviour
             vStart = transform.position; 
             vEnd = transform.position + transform.forward * vaultDistance; 
         }
-
-        if (interactionSlider != null) {
-            interactionSlider.gameObject.SetActive(true);
-            interactionSlider.value = 0f;
-            isSliderRunning = true;
-        }
     }
 
-    // ========================================================
-    // BƯỚC 1: ANIMATION EVENT - KHI TAY VỪA CHẠM VÀO XÁC DƯỚI ĐẤT
-    // ========================================================
     public void AttachPlayerToHand() 
     {
-        // Chắc chắn là có xác và đã set vị trí Bàn Tay ngoài Inspector
         if (carriedPlayerObject != null && handPoint != null)
         {
-            // Tắt va chạm của cái xác để khỏi vướng chân Hunter
             Collider[] colliders = carriedPlayerObject.GetComponentsInChildren<Collider>();
             foreach(var col in colliders) col.enabled = false;
 
-            // Đổi tag để vòng quét dưới chân Hunter không thèm nhìn thấy cái xác này nữa
             carriedPlayerObject.tag = "Untagged"; 
-
-            // HÚT XÁC VÀO BÀN TAY
             carriedPlayerObject.transform.SetParent(handPoint); 
             carriedPlayerObject.transform.localPosition = Vector3.zero; 
             carriedPlayerObject.transform.localRotation = Quaternion.identity;
             
-            // Xóa UI "Bấm phím" ngay lập tức vì xác đã được nhấc lên
             currentInteractTarget = null;
-            if (interactUI != null) interactUI.SetActive(false);
         }
     }
 
-    // ========================================================
-    // BƯỚC 2: ANIMATION EVENT - KHI TAY VẮT CÁI XÁC LÊN VAI
-    // ========================================================
     public void AttachPlayerToShoulder() 
     {
-        // Chắc chắn là có xác và đã set vị trí Cái Vai
         if (carriedPlayerObject != null && shoulderPoint != null)
         {
-            // CHUYỂN XÁC TỪ TAY SANG VAI
             carriedPlayerObject.transform.SetParent(shoulderPoint); 
             carriedPlayerObject.transform.localPosition = Vector3.zero; 
             carriedPlayerObject.transform.localRotation = Quaternion.identity;
-            
-            // Chính thức đánh dấu là vai đang bận vác người
             isCarryingPlayer = true; 
         }
     }
 
-    // Gắn vào frame Anim treo người
     public void HookPlayerToHook() 
     {
         if (carriedPlayerObject != null && currentInteractTarget != null)
@@ -184,37 +209,41 @@ public class HunterInteraction : MonoBehaviour
             carriedPlayerObject.transform.localPosition = Vector3.zero;
             carriedPlayerObject.transform.localRotation = Quaternion.identity;
             
-            isCarryingPlayer = false; // Vai đã trống
-            currentInteractTarget.tag = "Untagged"; // Đổi tag móc chống treo đè
+            isCarryingPlayer = false; 
+            currentInteractTarget.tag = "Untagged"; 
             carriedPlayerObject = null; 
             currentInteractTarget = null;
-            if (interactUI != null) interactUI.SetActive(false);
         }
     }
 
-    // Gắn vào frame Anim cuối cùng
     public void FinishInteraction() 
     {
         isInteracting = false; 
         if (fpsCameraScript != null) fpsCameraScript.isCameraLockedForAnim = false; 
-        if (isVaulting) { isVaulting = false; controller.enabled = true; }
+        if (isVaulting) { isVaulting = false; controller.enabled = true; } 
+        
         isSliderRunning = false; 
-        if (interactionSlider != null) { interactionSlider.value = 1f; interactionSlider.gameObject.SetActive(false); }
+        if (interactionSlider != null) { interactionSlider.value = 1f; interactionSlider.gameObject.SetActive(false); } 
     }
 
-    // ========================================================
-    // CẢM BIẾN VÙNG CHẠM DƯỚI CHÂN
-    // ========================================================
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("May") || other.CompareTag("Moc") || other.CompareTag("Player") || other.CompareTag("Cuaso"))
         {
-            // ẨN UI THÔNG MINH
             if (isCarryingPlayer && !other.CompareTag("Moc")) return;
             if (other.CompareTag("Moc") && !isCarryingPlayer) return; 
 
+            // 🚨 NÂNG CẤP CHỐNG MÙ UI LẦN 2: Lỡ đẻ ra mà tìm xịt, thì lúc lại gần đồ vật TÌM LẠI LẦN NỮA!
+            if (interactImage == null || interactionSlider == null)
+            {
+                AutoFindUI();
+                if (interactImage == null) Debug.LogError("❌ Vẫn tàng hình! Kiểm tra lại tên: " + interactImageName);
+            }
+
             currentInteractTarget = other; 
-            if (interactUI != null) interactUI.SetActive(true); 
+            
+            if (interactImage != null) interactImage.gameObject.SetActive(true); 
+            if (interactionSlider != null) interactionSlider.gameObject.SetActive(false);
         }
     }
 
@@ -223,7 +252,8 @@ public class HunterInteraction : MonoBehaviour
         if (currentInteractTarget == other) 
         {
             currentInteractTarget = null; 
-            if (interactUI != null) interactUI.SetActive(false); 
+            
+            if (interactImage != null) interactImage.gameObject.SetActive(false); 
         }
     }
 }
