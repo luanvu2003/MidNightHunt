@@ -4,5 +4,6 @@
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="VHierarchy.csproj" />
   <Project Path="Fusion.Unity.csproj" />
+  <Project Path="PalletShowRoom_AD.csproj" />
   <Project Path="Unity.Fusion.CodeGen.csproj" />
 </Solution>
