@@ -7,6 +7,9 @@ public class AttackController : MonoBehaviour
     private HunterMovement movementScript;
     private HunterInteraction interactionScript;
     private Animator ani;
+    // 1. THÊM BIẾN NÀY LÊN PHẦN [Header]:
+    [Header("Hitbox Vũ Khí (Cận Chiến)")]
+    public MeleeHitbox meleeWeapon; // Kéo thả cục Hitbox Búa hoặc Vuốt vào đây
 
     [Header("Âm thanh Chiến đấu")]
     public AudioSource attackSource;
@@ -70,7 +73,7 @@ public class AttackController : MonoBehaviour
     void Update()
     {
         HandleReloadSystem();
-        
+
         // 🚨 LOGIC QUÉT MẶT ĐẤT ĐỂ HIỂN THỊ BẪY MỜ
         if (isTrapMode)
         {
@@ -82,7 +85,7 @@ public class AttackController : MonoBehaviour
     private void UpdateTrapPreview()
     {
         // Nếu hết bẫy hoặc đang múa thì tắt hình chiếu
-        if (currentAmmo <= 0 || isAttacking || isReloading || trapPreview == null) 
+        if (currentAmmo <= 0 || isAttacking || isReloading || trapPreview == null)
         {
             if (trapPreview != null) trapPreview.SetActive(false);
             return;
@@ -90,7 +93,7 @@ public class AttackController : MonoBehaviour
 
         // Bắn tia Raycast từ giữa màn hình Camera hướng tới trước
         Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-        
+
         // Nếu tia này chạm vào mặt đất trong phạm vi placeRange
         if (Physics.Raycast(ray, out RaycastHit hit, placeRange, groundLayer))
         {
@@ -146,9 +149,9 @@ public class AttackController : MonoBehaviour
         if (currentAmmo <= 0) return;
 
         if (leftHandHammer != null) leftHandHammer.SetActive(false);
-        
+
         // Đoạn này đẻ ra Búa (nếu là Hunter 1) hoặc đẻ ra Bẫy (nếu là Hunter 2)
-        if (hammerPrefab != null && throwPoint != null) 
+        if (hammerPrefab != null && throwPoint != null)
             Instantiate(hammerPrefab, throwPoint.position, throwPoint.rotation);
 
         currentAmmo--;
@@ -219,13 +222,30 @@ public class AttackController : MonoBehaviour
         currentAmmo += amount;
         if (currentAmmo > maxAmmo) currentAmmo = maxAmmo; // Không cho lố 5 cái
         UpdateAmmoUI();
-        
+
         // Nếu túi đang rỗng mà được cộng lại đạn, thì cất cái vòng Cooldown đi
-        if (currentAmmo > 0 && isReloading) 
+        if (currentAmmo > 0 && isReloading)
         {
             isReloading = false;
             if (cooldownImage != null) cooldownImage.fillAmount = 0f;
             if (leftHandHammer != null) leftHandHammer.SetActive(true);
+        }
+    }
+    // 2. THÊM HÀM NÀY XUỐNG DƯỚI CÙNG (Để gắn Animation Event bật Hitbox)
+    public void EnableDamageFrames()
+    {
+        if (meleeWeapon != null)
+        {
+            meleeWeapon.TurnOnHitbox();
+        }
+    }
+
+    // 3. THÊM HÀM NÀY XUỐNG DƯỚI CÙNG (Để gắn Animation Event tắt Hitbox)
+    public void DisableDamageFrames()
+    {
+        if (meleeWeapon != null)
+        {
+            meleeWeapon.TurnOffHitbox();
         }
     }
 }
