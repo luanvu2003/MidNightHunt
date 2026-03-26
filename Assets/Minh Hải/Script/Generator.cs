@@ -148,6 +148,12 @@ public class Generator : MonoBehaviour
         isRepaired = true;
         isRepairing = false;
 
+        // --- THÊM DÒNG NÀY VÀO ---
+            if (GameManager.Instance != null) {
+                GameManager.Instance.GeneratorFixed(); 
+        }
+        // ------------------------
+
         // --- MỞ KHÓA DI CHUYỂN ---
         if (playerMovementScript != null) playerMovementScript.enabled = true;
 
