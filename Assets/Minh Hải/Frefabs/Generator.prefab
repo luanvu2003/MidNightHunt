@@ -340,8 +340,8 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 999641380402377208}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 1, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 13.2734375, y: 0}
   m_SizeDelta: {x: 46.5468, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -902,6 +902,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2267108098176995763}
   - component: {fileID: 2750543365676468625}
+  - component: {fileID: 7957576229262353617}
   m_Layer: 0
   m_Name: Zone 3
   m_TagString: Untagged
@@ -945,6 +946,19 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &7957576229262353617
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1122061035966348016}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d388247c9db98449aedbc674e46a6cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  generator: {fileID: 2101347511902750236}
 --- !u!1 &1352194532041113463
 GameObject:
   m_ObjectHideFlags: 0
@@ -1213,6 +1227,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6213398234855427857}
   - component: {fileID: 1825640369593809531}
+  - component: {fileID: 3912274641805420143}
   m_Layer: 0
   m_Name: Zone 4
   m_TagString: Untagged
@@ -1256,6 +1271,19 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 0.6362047}
   m_Center: {x: 0, y: 0, z: -0.034568533}
+--- !u!114 &3912274641805420143
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1637168519593095861}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d388247c9db98449aedbc674e46a6cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  generator: {fileID: 2101347511902750236}
 --- !u!1 &1641934132043713072
 GameObject:
   m_ObjectHideFlags: 0
@@ -6794,7 +6822,7 @@ RectTransform:
   m_Father: {fileID: 7343439580003773109}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: -0.000076293945, y: -0.09271526}
   m_SizeDelta: {x: -0.000061035, y: 6.2274}
   m_Pivot: {x: 0, y: 0.5}
@@ -7293,7 +7321,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &9144688014814670202
 RectTransform:
   m_ObjectHideFlags: 0
@@ -7350,7 +7378,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_UiScaleMode: 0
-  m_ReferencePixelsPerUnit: 100
+  m_ReferencePixelsPerUnit: 1
   m_ScaleFactor: 1
   m_ReferenceResolution: {x: 800, y: 600}
   m_ScreenMatchMode: 0
@@ -7869,6 +7897,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1888436345811658580}
   - component: {fileID: 7176692184996065842}
+  - component: {fileID: 4169682989538603217}
   m_Layer: 0
   m_Name: Zone 2
   m_TagString: Untagged
@@ -7912,6 +7941,19 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.8636665, y: 1, z: 0.6000503}
   m_Center: {x: -0.06816676, y: 0, z: -0.09942204}
+--- !u!114 &4169682989538603217
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3275660803696621717}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d388247c9db98449aedbc674e46a6cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  generator: {fileID: 2101347511902750236}
 --- !u!1 &3309650600516844648
 GameObject:
   m_ObjectHideFlags: 0
@@ -7968,11 +8010,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   repairTime: 150
   progress: 0
-  interactRadius: 3
   currentSkillLevel: 1
   stunDuration: 10
   progressPenalty: 5
   player: {fileID: 0}
+  playerMovementScript: {fileID: 0}
   isRepairing: 0
   skillCheck: {fileID: 230709234879574068}
   progressBar: {fileID: 23103903925779912}
@@ -9049,7 +9091,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_UiScaleMode: 0
-  m_ReferencePixelsPerUnit: 100
+  m_ReferencePixelsPerUnit: 1
   m_ScaleFactor: 1
   m_ReferenceResolution: {x: 800, y: 600}
   m_ScreenMatchMode: 0
@@ -9579,7 +9621,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &589354537982388305
 RectTransform:
   m_ObjectHideFlags: 0
@@ -9637,7 +9679,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_UiScaleMode: 0
-  m_ReferencePixelsPerUnit: 100
+  m_ReferencePixelsPerUnit: 1
   m_ScaleFactor: 1
   m_ReferenceResolution: {x: 800, y: 600}
   m_ScreenMatchMode: 0
@@ -10778,7 +10820,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &3702578031697829706
 RectTransform:
   m_ObjectHideFlags: 0
@@ -10862,6 +10904,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2569708684393324807}
   - component: {fileID: 8053710964945014509}
+  - component: {fileID: 2303320960266573911}
   m_Layer: 0
   m_Name: Zone 1
   m_TagString: Untagged
@@ -10905,6 +10948,19 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &2303320960266573911
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8065866856049825131}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d388247c9db98449aedbc674e46a6cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  generator: {fileID: 2101347511902750236}
 --- !u!1 &8085015196383971071
 GameObject:
   m_ObjectHideFlags: 0
