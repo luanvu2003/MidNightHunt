@@ -8,6 +8,7 @@ TagManager:
   - Moc
   - Hunter
   - Cuaso
+  - AuraEffect
   layers:
   - Default
   - TransparentFX
@@ -17,7 +18,7 @@ TagManager:
   - UI
   - LocalHunter
   - Ground
-  - 
+  - Killer
   - 
   - 
   - 
