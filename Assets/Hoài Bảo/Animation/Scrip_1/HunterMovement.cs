@@ -47,7 +47,7 @@ public class HunterMovement : MonoBehaviour
 
         // Làm mượt tốc độ (từ từ tăng/giảm tốc)
         currentSpeed = Mathf.Lerp(currentSpeed, targetSpeed, Time.deltaTime * 15f);
-        
+
         // Thực thi việc di chuyển ống trụ vật lý (TỐC ĐỘ CHẬM THỰC TẾ)
         controller.Move(move * (currentSpeed * Time.deltaTime) + new Vector3(0, velocityY, 0) * Time.deltaTime);
 
@@ -58,26 +58,33 @@ public class HunterMovement : MonoBehaviour
         // Ví dụ: Đang bị Slow còn 0.5 -> currentSpeed = 2.5
         // Ta lấy 2.5 / 0.5 = 5.0 (Vận tốc gốc). Animator sẽ nhận số 5.0 và múa chân chạy tít thò lò!
         float fakeSpeedForAnimator = currentSpeed;
-        
+
         // Kiểm tra an toàn: Tránh lỗi toán học chia cho 0
-        if (currentSpeedMultiplier > 0f) 
+        if (currentSpeedMultiplier > 0f)
         {
-            fakeSpeedForAnimator = currentSpeed / currentSpeedMultiplier; 
+            fakeSpeedForAnimator = currentSpeed / currentSpeedMultiplier;
         }
 
         // Tính % tốc độ DỰA TRÊN TỐC ĐỘ ẢO
         float animValue = fakeSpeedForAnimator / walkStraight;
-        
+
         // Nếu người chơi bấm S (đi lùi) thì gửi số âm để Animator kéo ngược Animation
-        if (input.y < 0) animValue = -animValue; 
-        
+        if (input.y < 0) animValue = -animValue;
+
         // Gửi con số "ảo" này vào Animator
         animator.SetFloat(animSpeed, animValue);
-
-        // Phát âm thanh tiếng bước chân nếu đang ở trên đất và có đi lại
-        if (controller.isGrounded && currentSpeed > 0.5f && footstepClip != null && !audioSource.isPlaying)
+    }
+    // --- THÊM HÀM NÀY XUỐNG DƯỚI CÙNG SCRIPT ---
+    public void PlayFootstep()
+    {
+        // Chỉ phát tiếng chân khi nhân vật đang ở trên mặt đất và thực sự di chuyển
+        if (controller.isGrounded && currentSpeedMultiplier > 0.1f && footstepClip != null)
         {
-            audioSource.PlayOneShot(footstepClip); // Phát 1 lần file âm thanh
+            if (audioSource != null)
+            {
+                // Phát âm thanh nhẹ hơn một chút (0.6f) để không át tiếng vũ khí
+                audioSource.PlayOneShot(footstepClip, 0.6f);         /// sound
+            }
         }
     }
 
