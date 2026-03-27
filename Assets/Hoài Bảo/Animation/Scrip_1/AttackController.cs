@@ -6,13 +6,18 @@ public class AttackController : MonoBehaviour
 {
     private HunterMovement movementScript;
     private HunterInteraction interactionScript;
+    private FPSCamera fpsCameraScript; // 🚨 THÊM: Quản lý Camera
     private Animator ani;
+
+    // Biến chốt tọa độ bẫy
+    private Vector3 lockedTrapPos;
+    private Quaternion lockedTrapRot;
 
     [Header("Hitbox Vũ Khí (Cận Chiến)")]
     public MeleeHitbox meleeWeapon;
 
     [Header("Âm thanh khi chém TRÚNG")]
-    public AudioClip clipHitSuccess; // on hit player sound
+    public AudioClip clipHitSuccess;
 
     [Header("Âm thanh Chiến đấu")]
     public AudioSource attackSource;
@@ -29,16 +34,13 @@ public class AttackController : MonoBehaviour
     private bool isReloading = false;
     private float reloadTimer = 0f;
 
-    // =========================================================
-    // 🚨 BỘ QUÉT UI NÂNG CẤP (BẬT NGUYÊN CỤC CHA)
-    // =========================================================
     [Header("Tự Động Tìm UI (Nhập đúng tên ngoài Hierarchy)")]
-    public string uiContainerName = "KhungUI_Hunter1"; // Tên của GameObject chứa cả Text và Image
+    public string uiContainerName = "KhungUI_Hunter1";
     public string ammoTextName = "TxtAmmoHunter1";
     public string cooldownImageName = "ImgCooldownHunter1";
 
-    [Header("UI Búa / Bẫy (Tự động điền, không cần kéo)")]
-    public GameObject uiContainer; // Biến lưu trữ cục Cha
+    [Header("UI Búa / Bẫy (Tự động điền)")]
+    public GameObject uiContainer;
     public TextMeshProUGUI ammoText;
     public Image cooldownImage;
 
@@ -51,9 +53,8 @@ public class AttackController : MonoBehaviour
     public float slowMultiplier = 0.1f;
     public float slowDuraction = 1.1f;
 
-    [Header("Vũ khí trên tay (Bật/Tắt)")]
+    [Header("Vũ khí tay trái (Bật/Tắt)")]
     public GameObject leftHandHammer;
-    public GameObject rightHandHammer;
 
     [Header("Cài Đặt Đặt Bẫy (Chỉ bật cho Hunter 2)")]
     public bool isTrapMode = false;
@@ -69,9 +70,9 @@ public class AttackController : MonoBehaviour
         ani = GetComponent<Animator>();
         movementScript = GetComponent<HunterMovement>();
         interactionScript = GetComponent<HunterInteraction>();
+        if (Camera.main != null) fpsCameraScript = Camera.main.GetComponent<FPSCamera>();
         if (attackSource == null) attackSource = GetComponent<AudioSource>();
 
-        // 🚨 GỌI LỆNH TÌM VÀ BẬT UI NGAY KHI VỪA SINH RA
         AutoFindUI();
     }
 
@@ -82,41 +83,26 @@ public class AttackController : MonoBehaviour
         if (cooldownImage != null) cooldownImage.fillAmount = 0f;
     }
 
-    // =========================================================
-    // BỘ MÁY QUÉT CANVAS TÌM UI VÀ BẬT CỤC CHA
-    // =========================================================
+    // --- BỘ QUÉT UI ---
     private void AutoFindUI()
     {
-        // 1. TÌM VÀ BẬT CỤC CHA (CHỨA TOÀN BỘ GIAO DIỆN CỦA HUNTER NÀY)
         if (uiContainer == null)
         {
             uiContainer = FindUIObjectByName(uiContainerName);
             if (uiContainer != null)
             {
-                uiContainer.SetActive(true); // 🟢 BẬT SÁNG NGUYÊN CỤC LÊN
-                Debug.Log("✅ [Attack] Đã BẬT thành công bộ UI: " + uiContainerName);
+                uiContainer.SetActive(true);
             }
         }
-
-        // 2. MÓC CÁI TEXT VÀO
         if (ammoText == null)
         {
             GameObject foundTextObj = FindUIObjectByName(ammoTextName);
-            if (foundTextObj != null)
-            {
-                ammoText = foundTextObj.GetComponent<TextMeshProUGUI>();
-                // Không cần SetActive nữa vì Cục Cha đã bật rồi
-            }
+            if (foundTextObj != null) ammoText = foundTextObj.GetComponent<TextMeshProUGUI>();
         }
-
-        // 3. MÓC CÁI VÒNG COOLDOWN VÀO
         if (cooldownImage == null)
         {
             GameObject foundCDObj = FindUIObjectByName(cooldownImageName);
-            if (foundCDObj != null)
-            {
-                cooldownImage = foundCDObj.GetComponent<Image>();
-            }
+            if (foundCDObj != null) cooldownImage = foundCDObj.GetComponent<Image>();
         }
     }
 
@@ -128,13 +114,9 @@ public class AttackController : MonoBehaviour
             Transform[] children = canvas.GetComponentsInChildren<Transform>(true);
             foreach (Transform child in children)
             {
-                if (child.name.Trim() == objName.Trim())
-                {
-                    return child.gameObject;
-                }
+                if (child.name.Trim() == objName.Trim()) return child.gameObject;
             }
         }
-        Debug.LogWarning("❌ [Attack] Không tìm thấy UI tên là: " + objName);
         return null;
     }
 
@@ -152,7 +134,7 @@ public class AttackController : MonoBehaviour
     {
         if (currentAmmo <= 0 || isAttacking || isReloading || trapPreview == null)
         {
-            if (trapPreview != null) trapPreview.SetActive(false);
+            if (trapPreview != null && trapPreview.activeSelf) trapPreview.SetActive(false);
             return;
         }
 
@@ -160,9 +142,13 @@ public class AttackController : MonoBehaviour
 
         if (Physics.Raycast(ray, out RaycastHit hit, placeRange, groundLayer))
         {
-            trapPreview.SetActive(true);
+            if (!trapPreview.activeSelf) trapPreview.SetActive(true);
             trapPreview.transform.position = hit.point;
             trapPreview.transform.rotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
+
+            // Chốt tọa độ liên tục trước khi tấn công
+            lockedTrapPos = hit.point;
+            lockedTrapRot = trapPreview.transform.rotation;
         }
         else
         {
@@ -170,6 +156,7 @@ public class AttackController : MonoBehaviour
         }
     }
 
+    // --- XỬ LÝ ATTACK / ĐẶT BẪY ---
     public void PerformAttackLeft()
     {
         if (isAttacking) return;
@@ -185,9 +172,12 @@ public class AttackController : MonoBehaviour
         {
             if (trapPreview == null || !trapPreview.activeSelf) return;
 
-            throwPoint.position = trapPreview.transform.position;
-            throwPoint.rotation = trapPreview.transform.rotation;
+            // 🚨 Chốt lần cuối và tắt Preview
+            lockedTrapPos = trapPreview.transform.position;
+            lockedTrapRot = trapPreview.transform.rotation;
+            trapPreview.SetActive(false);
         }
+
         PerformAttack(animThrow);
     }
 
@@ -196,27 +186,26 @@ public class AttackController : MonoBehaviour
         isAttacking = true;
         ani.SetTrigger(attackTriggerHash);
         StarSlowEffect();
+
+        // 🚨 NÂNG CẤP: Khóa Camera khi đặt bẫy (Hunter 2)
+        if (isTrapMode && fpsCameraScript != null)
+        {
+            fpsCameraScript.isCameraLockedForAnim = true;
+        }
+
         Invoke(nameof(ForceResetAttack), 2.5f);
-    }
-
-    public void ReleaseHammer()
-    {
-        if (currentAmmo <= 0) return;
-
-        if (leftHandHammer != null) leftHandHammer.SetActive(false);
-
-        if (hammerPrefab != null && throwPoint != null)
-            Instantiate(hammerPrefab, throwPoint.position, throwPoint.rotation);
-
-        currentAmmo--;
-        UpdateAmmoUI();
-
-        if (currentAmmo <= 0) StartReload();
     }
 
     public void ResetAttack()
     {
         isAttacking = false;
+
+        // 🚨 NÂNG CẤP: Mở khóa Camera sau khi đặt xong
+        if (isTrapMode && fpsCameraScript != null)
+        {
+            fpsCameraScript.isCameraLockedForAnim = false;
+        }
+
         if (leftHandHammer != null && currentAmmo > 0) leftHandHammer.SetActive(true);
     }
 
@@ -225,11 +214,15 @@ public class AttackController : MonoBehaviour
         if (isAttacking) ResetAttack();
     }
 
+    // --- HIỆU ỨNG SLOW / KHÓA DI CHUYỂN ---
     public void StarSlowEffect()
     {
         if (movementScript != null)
         {
-            movementScript.ApplySlow(slowMultiplier);
+            // Nếu là Hunter 2 đặt bẫy -> Khóa cứng di chuyển (Tốc độ = 0)
+            float currentMult = isTrapMode ? 0f : slowMultiplier;
+            movementScript.ApplySlow(currentMult);
+
             CancelInvoke(nameof(RestoreSpeed));
             Invoke(nameof(RestoreSpeed), slowDuraction);
         }
@@ -240,6 +233,7 @@ public class AttackController : MonoBehaviour
         if (movementScript != null) movementScript.ResetSlow();
     }
 
+    // --- HỆ THỐNG ĐẠN ---
     public void UpdateAmmoUI()
     {
         if (ammoText != null) ammoText.text = currentAmmo.ToString();
@@ -282,83 +276,84 @@ public class AttackController : MonoBehaviour
         }
     }
 
-    public void EnableDamageFrames()
+    // --- ANIMATION EVENTS ---
+    public void ReleaseHammer()
     {
-        if (meleeWeapon != null)
-        {
-            meleeWeapon.TurnOnHitbox();
-        }
+        if (isTrapMode) return; // Bảo vệ: Hunter 2 không chạy hàm này
+
+        if (currentAmmo <= 0) return;
+        if (leftHandHammer != null) leftHandHammer.SetActive(false);
+
+        if (hammerPrefab != null && throwPoint != null)
+            Instantiate(hammerPrefab, throwPoint.position, throwPoint.rotation);
+
+        currentAmmo--;
+        UpdateAmmoUI();
+        if (currentAmmo <= 0) StartReload();
     }
 
-    public void DisableDamageFrames()
-    {
-        if (meleeWeapon != null)
-        {
-            meleeWeapon.TurnOffHitbox();
-        }
-    }
-    // --- THÊM CÁC HÀM NÀY XUỐNG CUỐI SCRIPT ---
-
-    // Gắn vào frame bắt đầu vung tay (đối với Hunter 1 chém búa)
-    public void PlaySoundSwing()
-    {
-        if (attackSource != null && clipChemBua != null)
-        {
-            attackSource.PlayOneShot(clipChemBua);
-        }
-    }
-
-    // Gắn vào frame bung tay ném búa hoặc đập tay đặt bẫy (Hunter 1 & 2)
-    public void PlaySoundRelease()
-    {
-        if (attackSource != null && clipPhiBua != null)
-        {
-            attackSource.PlayOneShot(clipPhiBua);
-        }
-    }
-    // 1. HÀM ĐẶT BẪY (Gắn vào Animation Event lúc tay đập xuống đất)
     public void SpawnTrapEvent()
     {
-        // Kiểm tra nếu là Hunter 2 và còn bẫy
-        if (isTrapMode && currentAmmo > 0)
+        if (!isTrapMode) return; // Bảo vệ: Hunter 1 không chạy hàm này
+
+        if (currentAmmo > 0 && hammerPrefab != null)
         {
-            if (hammerPrefab != null && throwPoint != null)
+            // Đẻ cái bẫy ra và lưu nó vào một biến
+            GameObject newTrap = Instantiate(hammerPrefab, lockedTrapPos, lockedTrapRot);
+
+            // 🚨 BƯỚC QUAN TRỌNG: Báo cho cái bẫy biết "Ta là chủ của ngươi"
+            BearTrap trapScript = newTrap.GetComponent<BearTrap>();
+            if (trapScript != null)
             {
-                // Đẻ bẫy thật ra tại vị trí đã chốt
-                Instantiate(hammerPrefab, throwPoint.position, throwPoint.rotation);
-
-                currentAmmo--;
-                UpdateAmmoUI();
-                if (currentAmmo <= 0) StartReload();
-
-                // Phát âm thanh đặt bẫy thành công
-                if (attackSource != null && clipPhiBua != null)
-                    attackSource.PlayOneShot(clipPhiBua);
+                trapScript.ownerHunter = this; // Truyền chính AttackController này sang cho bẫy
             }
+
+            currentAmmo--;
+            UpdateAmmoUI();
+
+            // ĐÃ XÓA dòng StartReload() ở đây. Bẫy sẽ KHÔNG tự hồi nữa!
+
+            if (attackSource != null && clipPhiBua != null)
+                attackSource.PlayOneShot(clipPhiBua);
         }
     }
 
-    // 2. HÀM XỬ LÝ KHI CHÉM TRÚNG (Được gọi từ MeleeHitbox)
-    public void OnHitSuccess(GameObject victim)
+    // --- ÂM THANH & HITBOX ---
+    public void PlaySoundSwing()
     {
-        // Phát âm thanh trúng đòn
-        if (attackSource != null && clipHitSuccess != null)
-        {
-            attackSource.PlayOneShot(clipHitSuccess);
-        }
-
-        // Hiệu ứng rung màn hình hoặc Blood Effect có thể thêm ở đây
-        Debug.Log("Hunter đã chém trúng " + victim.name);
+        if (attackSource != null && clipChemBua != null) attackSource.PlayOneShot(clipChemBua);
     }
-    // Gắn vào Animation Event lúc tay Hunter bắt đầu đập bẫy xuống đất
+
+    public void PlaySoundRelease()
+    {
+        if (attackSource != null && clipPhiBua != null) attackSource.PlayOneShot(clipPhiBua);
+    }
+
     public void PlaySoundDatTrap()
     {
-        // Kiểm tra nếu đúng là Hunter 2 (isTrapMode) và có loa, có file nhạc
         if (isTrapMode && attackSource != null && clipPhiBua != null)
         {
-            // Phát tiếng "Cạch" hoặc tiếng đặt kim loại
             attackSource.PlayOneShot(clipPhiBua);
-            Debug.Log("🔊 Hunter 2: Đã phát âm thanh đặt bẫy!");
+        }
+    }
+
+    public void EnableDamageFrames() { if (meleeWeapon != null) meleeWeapon.TurnOnHitbox(); }
+    public void DisableDamageFrames() { if (meleeWeapon != null) meleeWeapon.TurnOffHitbox(); }
+
+    public void OnHitSuccess(GameObject victim)
+    {
+        if (attackSource != null && clipHitSuccess != null) attackSource.PlayOneShot(clipHitSuccess);
+    }
+    // Hàm này sẽ được cái Bẫy gọi khi có người dẫm vào hoặc phá bẫy
+    public void RecoverTrap()
+    {
+        if (!isTrapMode) return;
+
+        if (currentAmmo < maxAmmo)
+        {
+            currentAmmo++;
+            UpdateAmmoUI();
+            Debug.Log("♻️ Bẫy đã nổ/bị phá! Hunter 2 đã hồi lại 1 bẫy. Hiện có: " + currentAmmo);
         }
     }
 }
