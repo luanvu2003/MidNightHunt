@@ -6,10 +6,9 @@ public class AttackController : MonoBehaviour
 {
     private HunterMovement movementScript;
     private HunterInteraction interactionScript;
-    private FPSCamera fpsCameraScript; // 🚨 THÊM: Quản lý Camera
+    private FPSCamera fpsCameraScript;
     private Animator ani;
 
-    // Biến chốt tọa độ bẫy
     private Vector3 lockedTrapPos;
     private Quaternion lockedTrapRot;
 
@@ -26,6 +25,7 @@ public class AttackController : MonoBehaviour
 
     [Header("Trạng thái")]
     public bool isAttacking = false;
+    private bool isPlacingTrapAction = false; // 🚨 THÊM: Biến đánh dấu đang thực hiện Action đặt bẫy
 
     [Header("Hệ thống Đạn / Bẫy")]
     public int maxAmmo = 5;
@@ -34,12 +34,12 @@ public class AttackController : MonoBehaviour
     private bool isReloading = false;
     private float reloadTimer = 0f;
 
-    [Header("Tự Động Tìm UI (Nhập đúng tên ngoài Hierarchy)")]
+    [Header("Tự Động Tìm UI")]
     public string uiContainerName = "KhungUI_Hunter1";
     public string ammoTextName = "TxtAmmoHunter1";
     public string cooldownImageName = "ImgCooldownHunter1";
 
-    [Header("UI Búa / Bẫy (Tự động điền)")]
+    [Header("UI Búa / Bẫy")]
     public GameObject uiContainer;
     public TextMeshProUGUI ammoText;
     public Image cooldownImage;
@@ -53,14 +53,15 @@ public class AttackController : MonoBehaviour
     public float slowMultiplier = 0.1f;
     public float slowDuraction = 1.1f;
 
-    [Header("Vũ khí tay trái (Bật/Tắt)")]
+    [Header("Vũ khí tay trái")]
     public GameObject leftHandHammer;
 
-    [Header("Cài Đặt Đặt Bẫy (Chỉ bật cho Hunter 2)")]
+    [Header("Cài Đặt Đặt Bẫy (Hunter 2)")]
     public bool isTrapMode = false;
     public GameObject trapPreview;
     public float placeRange = 5f;
     public LayerMask groundLayer;
+    [HideInInspector] public bool isAimingTrap = false;
 
     private readonly int animAttack = Animator.StringToHash("Attack");
     private readonly int animThrow = Animator.StringToHash("Phibua");
@@ -83,16 +84,12 @@ public class AttackController : MonoBehaviour
         if (cooldownImage != null) cooldownImage.fillAmount = 0f;
     }
 
-    // --- BỘ QUÉT UI ---
     private void AutoFindUI()
     {
         if (uiContainer == null)
         {
             uiContainer = FindUIObjectByName(uiContainerName);
-            if (uiContainer != null)
-            {
-                uiContainer.SetActive(true);
-            }
+            if (uiContainer != null) uiContainer.SetActive(true);
         }
         if (ammoText == null)
         {
@@ -123,16 +120,13 @@ public class AttackController : MonoBehaviour
     void Update()
     {
         HandleReloadSystem();
-
-        if (isTrapMode)
-        {
-            UpdateTrapPreview();
-        }
+        if (isTrapMode) UpdateTrapPreview();
     }
 
     private void UpdateTrapPreview()
     {
-        if (currentAmmo <= 0 || isAttacking || isReloading || trapPreview == null)
+        // 🚨 CẬP NHẬT: Thêm điều kiện !isAimingTrap vào đây
+        if (currentAmmo <= 0 || isAttacking || isReloading || trapPreview == null || !isAimingTrap)
         {
             if (trapPreview != null && trapPreview.activeSelf) trapPreview.SetActive(false);
             return;
@@ -146,7 +140,6 @@ public class AttackController : MonoBehaviour
             trapPreview.transform.position = hit.point;
             trapPreview.transform.rotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
 
-            // Chốt tọa độ liên tục trước khi tấn công
             lockedTrapPos = hit.point;
             lockedTrapRot = trapPreview.transform.rotation;
         }
@@ -156,13 +149,16 @@ public class AttackController : MonoBehaviour
         }
     }
 
-    // --- XỬ LÝ ATTACK / ĐẶT BẪY ---
+    // --- XỬ LÝ ATTACK (CHUỘT TRÁI) ---
     public void PerformAttackLeft()
     {
         if (isAttacking) return;
+
+        isPlacingTrapAction = false; // Báo hiệu: Đây là chém thường
         PerformAttack(animAttack);
     }
 
+    // --- XỬ LÝ NÉM/ĐẶT BẪY (CHUỘT PHẢI) ---
     public void PerformAttackRight()
     {
         if (interactionScript != null && interactionScript.isCarryingPlayer) return;
@@ -172,10 +168,15 @@ public class AttackController : MonoBehaviour
         {
             if (trapPreview == null || !trapPreview.activeSelf) return;
 
-            // 🚨 Chốt lần cuối và tắt Preview
             lockedTrapPos = trapPreview.transform.position;
             lockedTrapRot = trapPreview.transform.rotation;
             trapPreview.SetActive(false);
+
+            isPlacingTrapAction = true; // Báo hiệu: Đây là đặt bẫy
+        }
+        else
+        {
+            isPlacingTrapAction = false; // Báo hiệu: Ném búa
         }
 
         PerformAttack(animThrow);
@@ -187,8 +188,8 @@ public class AttackController : MonoBehaviour
         ani.SetTrigger(attackTriggerHash);
         StarSlowEffect();
 
-        // 🚨 NÂNG CẤP: Khóa Camera khi đặt bẫy (Hunter 2)
-        if (isTrapMode && fpsCameraScript != null)
+        // 🚨 CHỈ KHÓA CAMERA KHI LÀ HUNTER 2 VÀ ĐANG THỰC SỰ ĐẶT BẪY
+        if (isTrapMode && isPlacingTrapAction && fpsCameraScript != null)
         {
             fpsCameraScript.isCameraLockedForAnim = true;
         }
@@ -200,13 +201,17 @@ public class AttackController : MonoBehaviour
     {
         isAttacking = false;
 
-        // 🚨 NÂNG CẤP: Mở khóa Camera sau khi đặt xong
+        // 🚨 MỞ KHÓA CAMERA SAU KHI ĐẶT BẪY XONG
         if (isTrapMode && fpsCameraScript != null)
         {
             fpsCameraScript.isCameraLockedForAnim = false;
         }
 
-        if (leftHandHammer != null && currentAmmo > 0) leftHandHammer.SetActive(true);
+        // Tự động bật lại búa tay trái cho Hunter 1
+        if (!isTrapMode && leftHandHammer != null && currentAmmo > 0)
+        {
+            leftHandHammer.SetActive(true);
+        }
     }
 
     private void ForceResetAttack()
@@ -219,8 +224,10 @@ public class AttackController : MonoBehaviour
     {
         if (movementScript != null)
         {
-            // Nếu là Hunter 2 đặt bẫy -> Khóa cứng di chuyển (Tốc độ = 0)
-            float currentMult = isTrapMode ? 0f : slowMultiplier;
+            // 🚨 SỬA LỖI ĐÁNH THƯỜNG BỊ ĐỨNG YÊN
+            // Nếu là ĐẶT BẪY thì khóa cứng = 0. Nếu CHÉM THƯỜNG / NÉM BÚA thì áp dụng slowMultiplier
+            float currentMult = isPlacingTrapAction ? 0f : slowMultiplier;
+
             movementScript.ApplySlow(currentMult);
 
             CancelInvoke(nameof(RestoreSpeed));
@@ -256,23 +263,9 @@ public class AttackController : MonoBehaviour
                 isReloading = false;
                 currentAmmo = maxAmmo;
                 UpdateAmmoUI();
-                if (leftHandHammer != null) leftHandHammer.SetActive(true);
+                if (leftHandHammer != null && !isTrapMode) leftHandHammer.SetActive(true);
                 if (cooldownImage != null) cooldownImage.fillAmount = 0f;
             }
-        }
-    }
-
-    public void AddAmmo(int amount)
-    {
-        currentAmmo += amount;
-        if (currentAmmo > maxAmmo) currentAmmo = maxAmmo;
-        UpdateAmmoUI();
-
-        if (currentAmmo > 0 && isReloading)
-        {
-            isReloading = false;
-            if (cooldownImage != null) cooldownImage.fillAmount = 0f;
-            if (leftHandHammer != null) leftHandHammer.SetActive(true);
         }
     }
 
@@ -289,6 +282,8 @@ public class AttackController : MonoBehaviour
 
         currentAmmo--;
         UpdateAmmoUI();
+
+        // 🚨 PHỤC HỒI CHO HUNTER 1: Chạy StartReload() bình thường
         if (currentAmmo <= 0) StartReload();
     }
 
@@ -298,20 +293,15 @@ public class AttackController : MonoBehaviour
 
         if (currentAmmo > 0 && hammerPrefab != null)
         {
-            // Đẻ cái bẫy ra và lưu nó vào một biến
             GameObject newTrap = Instantiate(hammerPrefab, lockedTrapPos, lockedTrapRot);
 
-            // 🚨 BƯỚC QUAN TRỌNG: Báo cho cái bẫy biết "Ta là chủ của ngươi"
             BearTrap trapScript = newTrap.GetComponent<BearTrap>();
-            if (trapScript != null)
-            {
-                trapScript.ownerHunter = this; // Truyền chính AttackController này sang cho bẫy
-            }
+            if (trapScript != null) trapScript.ownerHunter = this;
 
             currentAmmo--;
             UpdateAmmoUI();
 
-            // ĐÃ XÓA dòng StartReload() ở đây. Bẫy sẽ KHÔNG tự hồi nữa!
+            // ĐÃ XÓA StartReload() - Hunter 2 sẽ không tự hồi bẫy.
 
             if (attackSource != null && clipPhiBua != null)
                 attackSource.PlayOneShot(clipPhiBua);
@@ -319,32 +309,14 @@ public class AttackController : MonoBehaviour
     }
 
     // --- ÂM THANH & HITBOX ---
-    public void PlaySoundSwing()
-    {
-        if (attackSource != null && clipChemBua != null) attackSource.PlayOneShot(clipChemBua);
-    }
-
-    public void PlaySoundRelease()
-    {
-        if (attackSource != null && clipPhiBua != null) attackSource.PlayOneShot(clipPhiBua);
-    }
-
-    public void PlaySoundDatTrap()
-    {
-        if (isTrapMode && attackSource != null && clipPhiBua != null)
-        {
-            attackSource.PlayOneShot(clipPhiBua);
-        }
-    }
-
+    public void PlaySoundSwing() { if (attackSource != null && clipChemBua != null) attackSource.PlayOneShot(clipChemBua); }
+    public void PlaySoundRelease() { if (attackSource != null && clipPhiBua != null) attackSource.PlayOneShot(clipPhiBua); }
+    public void PlaySoundDatTrap() { if (isTrapMode && attackSource != null && clipPhiBua != null) attackSource.PlayOneShot(clipPhiBua); }
     public void EnableDamageFrames() { if (meleeWeapon != null) meleeWeapon.TurnOnHitbox(); }
     public void DisableDamageFrames() { if (meleeWeapon != null) meleeWeapon.TurnOffHitbox(); }
+    public void OnHitSuccess(GameObject victim) { if (attackSource != null && clipHitSuccess != null) attackSource.PlayOneShot(clipHitSuccess); }
 
-    public void OnHitSuccess(GameObject victim)
-    {
-        if (attackSource != null && clipHitSuccess != null) attackSource.PlayOneShot(clipHitSuccess);
-    }
-    // Hàm này sẽ được cái Bẫy gọi khi có người dẫm vào hoặc phá bẫy
+    // --- CƠ CHẾ NHẬN LẠI BẪY ---
     public void RecoverTrap()
     {
         if (!isTrapMode) return;
