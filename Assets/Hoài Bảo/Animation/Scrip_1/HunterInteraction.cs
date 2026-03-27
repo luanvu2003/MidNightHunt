@@ -8,7 +8,6 @@ public class HunterInteraction : MonoBehaviour
     public Slider interactionSlider;
 
     [Header("Tự Động Tìm UI (Nhập đúng tên ngoài Hierarchy)")]
-    // LƯU Ý: Chú ý chữ ThanhTuonngtac của bạn có bị dư chữ 'n' ngoài Inspector không nhé!
     public string interactImageName = "Imgtt";
     public string sliderUIName = "Slidertt";
 
@@ -26,6 +25,15 @@ public class HunterInteraction : MonoBehaviour
 
     [Header("Vượt Cửa Sổ")]
     public float vaultDistance = 2.5f;
+
+    // =========================================================
+    // 🔊 THÊM MỚI: HỆ THỐNG ÂM THANH TƯƠNG TÁC
+    // =========================================================
+    [Header("Âm Thanh Tương Tác")]
+    public AudioSource interactAudioSource; // Cục loa phát âm thanh
+    public AudioClip clipDapMay;            // Tiếng rầm! (đạp máy)
+    public AudioClip clipTreoCuaso;         // Tiếng sột soạt, hự! (trèo cửa sổ)
+    public AudioClip clipTreoMoc;           // Tiếng xoẹt, xích sắt (treo người)
 
     private Collider currentInteractTarget;
     private float currentDuration = 1f;
@@ -45,17 +53,16 @@ public class HunterInteraction : MonoBehaviour
         controller = GetComponent<CharacterController>();
         if (Camera.main != null) fpsCameraScript = Camera.main.GetComponent<FPSCamera>();
 
-        // Lần tìm kiếm số 1: Ngay khi vừa đẻ ra (Có thể xịt nếu Canvas load chậm)
+        // Tự động tìm loa nếu bạn quên kéo thả
+        if (interactAudioSource == null) interactAudioSource = GetComponent<AudioSource>();
+
+        // Lần tìm kiếm số 1
         AutoFindUI();
     }
 
-    // =========================================================
-    // THUẬT TOÁN TỰ ĐỘNG QUÉT CANVAS SIÊU CẤP (CHỐNG LỖI 100%)
-    // =========================================================
     private void AutoFindUI()
     {
         Debug.Log("🔍 Hunter đang đi lùng sục UI có tên chính xác là: [" + interactImageName + "] và [" + sliderUIName + "]");
-        // Nếu ô hình ảnh đang bị None
         if (interactImage == null)
         {
             GameObject foundInteractObj = FindUIObjectByName(interactImageName);
@@ -66,7 +73,6 @@ public class HunterInteraction : MonoBehaviour
             }
         }
 
-        // Nếu ô Slider đang bị None
         if (interactionSlider == null)
         {
             GameObject foundSliderObj = FindUIObjectByName(sliderUIName);
@@ -80,22 +86,15 @@ public class HunterInteraction : MonoBehaviour
 
     private GameObject FindUIObjectByName(string objName)
     {
-        // ĐÃ NÂNG CẤP: Thêm chữ 'true' vào đây để nó tìm cả những Canvas đang bị tắt ngang phè phè
         Canvas[] canvases = FindObjectsOfType<Canvas>(true);
-
         foreach (Canvas canvas in canvases)
         {
             Transform[] children = canvas.GetComponentsInChildren<Transform>(true);
             foreach (Transform child in children)
             {
-                // ĐÃ NÂNG CẤP: Dùng Trim() để gọt sạch các dấu cách (Space) lỡ tay gõ thừa ở đầu/cuối tên
-                if (child.name.Trim() == objName.Trim())
-                {
-                    return child.gameObject;
-                }
+                if (child.name.Trim() == objName.Trim()) return child.gameObject;
             }
         }
-
         return null;
     }
 
@@ -162,10 +161,15 @@ public class HunterInteraction : MonoBehaviour
 
         if (tag == "May") { animator.SetTrigger("Dapmay"); currentDuration = timeDapMay; }
         else if (tag == "Moc") { animator.SetTrigger("Treomoc"); currentDuration = timeTreoMoc; }
-        else if (tag == "Player")
+        else if (tag == "Playerchet")
         {
             animator.SetTrigger("Nhacplayer"); currentDuration = timeNhatPlayer;
-            carriedPlayerObject = currentInteractTarget.gameObject;
+
+            // SỬA Ở ĐÂY: Lấy cục Cha (nguyên cái xác) thay vì cái Trigger vô hình
+            if (currentInteractTarget.transform.parent != null)
+                carriedPlayerObject = currentInteractTarget.transform.parent.gameObject;
+            else
+                carriedPlayerObject = currentInteractTarget.gameObject;
         }
         else if (tag == "Cuaso")
         {
@@ -181,13 +185,12 @@ public class HunterInteraction : MonoBehaviour
     {
         if (carriedPlayerObject != null && handPoint != null)
         {
-            Collider[] colliders = carriedPlayerObject.GetComponentsInChildren<Collider>();
-            foreach (var col in colliders) col.enabled = false;
-
-            carriedPlayerObject.tag = "Untagged";
-            carriedPlayerObject.transform.SetParent(handPoint);
-            carriedPlayerObject.transform.localPosition = Vector3.zero;
-            carriedPlayerObject.transform.localRotation = Quaternion.identity;
+            // Gọi script trên Nạn nhân và bảo nó: "Bay vào TAY tao đi!"
+            PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
+            if (receiver != null)
+            {
+                receiver.GetPickedUpOrHooked(handPoint);
+            }
 
             currentInteractTarget = null;
         }
@@ -197,9 +200,13 @@ public class HunterInteraction : MonoBehaviour
     {
         if (carriedPlayerObject != null && shoulderPoint != null)
         {
-            carriedPlayerObject.transform.SetParent(shoulderPoint);
-            carriedPlayerObject.transform.localPosition = Vector3.zero;
-            carriedPlayerObject.transform.localRotation = Quaternion.identity;
+            // Gọi script trên Nạn nhân và bảo nó: "Trượt từ tay lên VAI tao đi!"
+            PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
+            if (receiver != null)
+            {
+                receiver.GetPickedUpOrHooked(shoulderPoint);
+            }
+
             isCarryingPlayer = true;
         }
     }
@@ -209,12 +216,17 @@ public class HunterInteraction : MonoBehaviour
         if (carriedPlayerObject != null && currentInteractTarget != null)
         {
             Transform hookPoint = currentInteractTarget.transform.Find("HookPoint");
-            carriedPlayerObject.transform.SetParent(hookPoint ? hookPoint : currentInteractTarget.transform);
-            carriedPlayerObject.transform.localPosition = Vector3.zero;
-            carriedPlayerObject.transform.localRotation = Quaternion.identity;
+            Transform finalPoint = hookPoint ? hookPoint : currentInteractTarget.transform;
+
+            // Tìm script chịu trận trên người Player
+            PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
+            if (receiver != null)
+            {
+                receiver.GetPickedUpOrHooked(finalPoint); // Truyền cái Móc vào
+            }
 
             isCarryingPlayer = false;
-            currentInteractTarget.tag = "Untagged";
+            currentInteractTarget.tag = "Untagged"; // Khóa cái móc lại
             carriedPlayerObject = null;
             currentInteractTarget = null;
         }
@@ -237,7 +249,6 @@ public class HunterInteraction : MonoBehaviour
             if (isCarryingPlayer && !other.CompareTag("Moc")) return;
             if (other.CompareTag("Moc") && !isCarryingPlayer) return;
 
-            // 🚨 NÂNG CẤP CHỐNG MÙ UI LẦN 2: Lỡ đẻ ra mà tìm xịt, thì lúc lại gần đồ vật TÌM LẠI LẦN NỮA!
             if (interactImage == null || interactionSlider == null)
             {
                 AutoFindUI();
@@ -256,10 +267,10 @@ public class HunterInteraction : MonoBehaviour
         if (currentInteractTarget == other)
         {
             currentInteractTarget = null;
-
             if (interactImage != null) interactImage.gameObject.SetActive(false);
         }
     }
+
     // =========================================================
     // 🔊 CÁC HÀM GẮN VÀO ANIMATION EVENT (KHOẢNH KHẮC TÁC ĐỘNG)
     // =========================================================
@@ -269,9 +280,13 @@ public class HunterInteraction : MonoBehaviour
     {
         if (currentInteractTarget != null && currentInteractTarget.CompareTag("May"))
         {
-            // Chỗ này sau này bạn gọi hàm trừ tiến độ của Máy hoặc làm máy nổ tung
-            Debug.Log("💥 Đã đạp máy! Máy bị hỏng.");
+            // 🔊 Phát âm thanh Đạp máy
+            if (interactAudioSource != null && clipDapMay != null)
+            {
+                interactAudioSource.PlayOneShot(clipDapMay);
+            }
 
+            Debug.Log("💥 Đã đạp máy! Máy bị hỏng.");
             // Ví dụ: currentInteractTarget.GetComponent<Generator>().Break();
         }
     }
@@ -281,7 +296,12 @@ public class HunterInteraction : MonoBehaviour
     {
         if (isVaulting)
         {
-            // Chỗ này bạn có thể phát tiếng "Hự" hoặc tiếng Hunter nhảy qua cửa
+            // 🔊 Phát âm thanh Trèo cửa sổ
+            if (interactAudioSource != null && clipTreoCuaso != null)
+            {
+                interactAudioSource.PlayOneShot(clipTreoCuaso);
+            }
+
             Debug.Log("🧗 Hunter đang trèo qua cửa sổ!");
         }
     }
@@ -289,9 +309,14 @@ public class HunterInteraction : MonoBehaviour
     // 3. Gắn vào Frame tay móc nạn nhân lên móc (Anim Treomoc)
     public void EventTreoMoc()
     {
-        // Hàm này chính là khoảnh khắc xác nhận Player đã dính vào móc
         if (isCarryingPlayer)
         {
+            // 🔊 Phát âm thanh Treo móc (Tiếng xích sắt, v.v...)
+            if (interactAudioSource != null && clipTreoMoc != null)
+            {
+                interactAudioSource.PlayOneShot(clipTreoMoc);
+            }
+
             HookPlayerToHook(); // Gọi hàm xử lý logic treo đã viết ở trên
             Debug.Log("⛓️ Đã treo nạn nhân lên móc thành công!");
         }
