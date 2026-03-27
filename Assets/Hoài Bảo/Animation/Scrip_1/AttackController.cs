@@ -7,14 +7,14 @@ public class AttackController : MonoBehaviour
     private HunterMovement movementScript;
     private HunterInteraction interactionScript;
     private Animator ani;
-    // 1. THÊM BIẾN NÀY LÊN PHẦN [Header]:
+    
     [Header("Hitbox Vũ Khí (Cận Chiến)")]
-    public MeleeHitbox meleeWeapon; // Kéo thả cục Hitbox Búa hoặc Vuốt vào đây
+    public MeleeHitbox meleeWeapon; 
 
     [Header("Âm thanh Chiến đấu")]
     public AudioSource attackSource;
     public AudioClip clipChemBua;
-    public AudioClip clipPhiBua; // Hoặc tiếng đặt bẫy
+    public AudioClip clipPhiBua; 
 
     [Header("Trạng thái")]
     public bool isAttacking = false;
@@ -26,12 +26,20 @@ public class AttackController : MonoBehaviour
     private bool isReloading = false;
     private float reloadTimer = 0f;
 
-    [Header("UI Búa / Bẫy")]
+    // =========================================================
+    // 🚨 TỰ ĐỘNG TÌM GIAO DIỆN UI ĐẠN/BẪY (CHO 3 HUNTER KHÁC NHAU)
+    // =========================================================
+    [Header("Tự Động Tìm UI (Nhập đúng tên ngoài Hierarchy)")]
+    // Tên của 2 cục UI bạn muốn tìm. Hunter 1 nhập tên khác, Hunter 2 nhập tên khác.
+    public string ammoTextName = "TxtAmmoHunter1"; 
+    public string cooldownImageName = "ImgCooldownHunter1";
+
+    [Header("UI Búa / Bẫy (Tự động điền, không cần kéo)")]
     public TextMeshProUGUI ammoText;
     public Image cooldownImage;
 
     [Header("Vũ Khí & Tọa Độ Ném")]
-    public GameObject hammerPrefab; // Prefab viên búa hoặc Cục bẫy
+    public GameObject hammerPrefab; 
     public Transform throwPoint;
 
     [Header("Hiệu ứng Làm chậm (Slow)")]
@@ -43,17 +51,14 @@ public class AttackController : MonoBehaviour
     public GameObject leftHandHammer;
     public GameObject rightHandHammer;
 
-    // =========================================================
-    // 🚨 TÍNH NĂNG MỚI: CHẾ ĐỘ ĐẶT BẪY (CHO HUNTER 2)
-    // =========================================================
     [Header("Cài Đặt Đặt Bẫy (Chỉ bật cho Hunter 2)")]
-    public bool isTrapMode = false;       // Nút gạt bật/tắt chế độ Hunter 2
-    public GameObject trapPreview;        // Hình chiếu mờ mờ của cái bẫy
-    public float placeRange = 5f;         // Tầm nhìn tối đa để đặt bẫy
-    public LayerMask groundLayer;         // Lớp mặt đất (để bẫy không dính lên tường)
+    public bool isTrapMode = false;       
+    public GameObject trapPreview;        
+    public float placeRange = 5f;         
+    public LayerMask groundLayer;         
 
     private readonly int animAttack = Animator.StringToHash("Attack");
-    private readonly int animThrow = Animator.StringToHash("Phibua"); // Với Hunter 2, anim này là "DatBay"
+    private readonly int animThrow = Animator.StringToHash("Phibua"); 
 
     private void Awake()
     {
@@ -61,6 +66,9 @@ public class AttackController : MonoBehaviour
         movementScript = GetComponent<HunterMovement>();
         interactionScript = GetComponent<HunterInteraction>();
         if (attackSource == null) attackSource = GetComponent<AudioSource>();
+
+        // 🚨 GỌI LỆNH TÌM UI NGAY KHI VỪA SINH RA
+        AutoFindUI();
     }
 
     void Start()
@@ -70,41 +78,84 @@ public class AttackController : MonoBehaviour
         if (cooldownImage != null) cooldownImage.fillAmount = 0f;
     }
 
+    // =========================================================
+    // BỘ MÁY QUÉT CANVAS TÌM UI (KẾ THỪA TỪ HÔM QUA)
+    // =========================================================
+    private void AutoFindUI()
+    {
+        // 1. Tìm Text Số Đạn
+        if (ammoText == null)
+        {
+            GameObject foundTextObj = FindUIObjectByName(ammoTextName);
+            if (foundTextObj != null) 
+            {
+                ammoText = foundTextObj.GetComponent<TextMeshProUGUI>();
+                foundTextObj.SetActive(true); // Tìm thấy là BẬT (TRUE) lên ngay
+                Debug.Log("✅ [Attack] Đã móc thành công Text đạn: " + ammoTextName);
+            }
+        }
+
+        // 2. Tìm Vòng Cooldown
+        if (cooldownImage == null)
+        {
+            GameObject foundCDObj = FindUIObjectByName(cooldownImageName);
+            if (foundCDObj != null) 
+            {
+                cooldownImage = foundCDObj.GetComponent<Image>();
+                foundCDObj.SetActive(true); // Tìm thấy là BẬT (TRUE) lên ngay
+                Debug.Log("✅ [Attack] Đã móc thành công Cooldown: " + cooldownImageName);
+            }
+        }
+    }
+
+    private GameObject FindUIObjectByName(string objName)
+    {
+        // Quét xuyên lục địa, kể cả Canvas đang tắt (true)
+        Canvas[] canvases = FindObjectsOfType<Canvas>(true); 
+        foreach (Canvas canvas in canvases)
+        {
+            Transform[] children = canvas.GetComponentsInChildren<Transform>(true); 
+            foreach (Transform child in children)
+            {
+                // Dùng Trim() để gọt khoảng trắng thừa giống hôm qua
+                if (child.name.Trim() == objName.Trim()) 
+                {
+                    return child.gameObject;
+                }
+            }
+        }
+        Debug.LogWarning("❌ [Attack] Không tìm thấy UI tên là: " + objName);
+        return null; 
+    }
+
     void Update()
     {
         HandleReloadSystem();
 
-        // 🚨 LOGIC QUÉT MẶT ĐẤT ĐỂ HIỂN THỊ BẪY MỜ
         if (isTrapMode)
         {
             UpdateTrapPreview();
         }
     }
 
-    // Quét tia từ Camera xuống đất để vẽ cái bẫy ảo
     private void UpdateTrapPreview()
     {
-        // Nếu hết bẫy hoặc đang múa thì tắt hình chiếu
         if (currentAmmo <= 0 || isAttacking || isReloading || trapPreview == null)
         {
             if (trapPreview != null) trapPreview.SetActive(false);
             return;
         }
 
-        // Bắn tia Raycast từ giữa màn hình Camera hướng tới trước
         Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
 
-        // Nếu tia này chạm vào mặt đất trong phạm vi placeRange
         if (Physics.Raycast(ray, out RaycastHit hit, placeRange, groundLayer))
         {
             trapPreview.SetActive(true);
-            trapPreview.transform.position = hit.point; // Dời bẫy ảo tới điểm chạm đất
-            // Ép cái bẫy xoay theo hướng mặt của Hunter cho đẹp
+            trapPreview.transform.position = hit.point; 
             trapPreview.transform.rotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
         }
         else
         {
-            // Nhìn lên trời hoặc nhìn quá xa thì ẩn bẫy mờ đi
             trapPreview.SetActive(false);
         }
     }
@@ -121,19 +172,18 @@ public class AttackController : MonoBehaviour
         if (interactionScript != null && interactionScript.isCarryingPlayer) return;
         if (isAttacking || currentAmmo <= 0 || isReloading) return;
 
-        // Nếu là Hunter 2: Kiểm tra xem có đang nhìn xuống đất hợp lệ không
         if (isTrapMode)
         {
-            // Nếu hình chiếu mờ đang tắt (do nhìn lên trời), thì KHÔNG CHO ĐẶT
             if (trapPreview == null || !trapPreview.activeSelf) return;
 
-            // BÍ QUYẾT: Dời cái throwPoint (điểm đẻ bẫy) ra đúng chỗ hình chiếu ảo đang đứng!
             throwPoint.position = trapPreview.transform.position;
             throwPoint.rotation = trapPreview.transform.rotation;
         }
 
         if (attackSource != null && clipPhiBua != null) attackSource.PlayOneShot(clipPhiBua);
-        PerformAttack(animThrow);
+        
+        // 🚨 Nếu là bẫy thì chạy trigger DatBay, búa thì Phibua
+        PerformAttack(animThrow); 
     }
 
     private void PerformAttack(int attackTriggerHash)
@@ -150,7 +200,6 @@ public class AttackController : MonoBehaviour
 
         if (leftHandHammer != null) leftHandHammer.SetActive(false);
 
-        // Đoạn này đẻ ra Búa (nếu là Hunter 1) hoặc đẻ ra Bẫy (nếu là Hunter 2)
         if (hammerPrefab != null && throwPoint != null)
             Instantiate(hammerPrefab, throwPoint.position, throwPoint.rotation);
 
@@ -214,16 +263,12 @@ public class AttackController : MonoBehaviour
         }
     }
 
-    // =========================================================
-    // HÀM MỞ: ĐỂ CÁI BẪY GỌI VÀO TRẢ LẠI 1 ĐẠN KHI DÍNH NGƯỜI
-    // =========================================================
     public void AddAmmo(int amount)
     {
         currentAmmo += amount;
-        if (currentAmmo > maxAmmo) currentAmmo = maxAmmo; // Không cho lố 5 cái
+        if (currentAmmo > maxAmmo) currentAmmo = maxAmmo; 
         UpdateAmmoUI();
 
-        // Nếu túi đang rỗng mà được cộng lại đạn, thì cất cái vòng Cooldown đi
         if (currentAmmo > 0 && isReloading)
         {
             isReloading = false;
@@ -231,7 +276,7 @@ public class AttackController : MonoBehaviour
             if (leftHandHammer != null) leftHandHammer.SetActive(true);
         }
     }
-    // 2. THÊM HÀM NÀY XUỐNG DƯỚI CÙNG (Để gắn Animation Event bật Hitbox)
+
     public void EnableDamageFrames()
     {
         if (meleeWeapon != null)
@@ -240,7 +285,6 @@ public class AttackController : MonoBehaviour
         }
     }
 
-    // 3. THÊM HÀM NÀY XUỐNG DƯỚI CÙNG (Để gắn Animation Event tắt Hitbox)
     public void DisableDamageFrames()
     {
         if (meleeWeapon != null)
