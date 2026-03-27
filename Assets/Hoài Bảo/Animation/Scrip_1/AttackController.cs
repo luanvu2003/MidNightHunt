@@ -27,14 +27,15 @@ public class AttackController : MonoBehaviour
     private float reloadTimer = 0f;
 
     // =========================================================
-    // 🚨 TỰ ĐỘNG TÌM GIAO DIỆN UI ĐẠN/BẪY (CHO 3 HUNTER KHÁC NHAU)
+    // 🚨 BỘ QUÉT UI NÂNG CẤP (BẬT NGUYÊN CỤC CHA)
     // =========================================================
     [Header("Tự Động Tìm UI (Nhập đúng tên ngoài Hierarchy)")]
-    // Tên của 2 cục UI bạn muốn tìm. Hunter 1 nhập tên khác, Hunter 2 nhập tên khác.
+    public string uiContainerName = "KhungUI_Hunter1"; // Tên của GameObject chứa cả Text và Image
     public string ammoTextName = "TxtAmmoHunter1"; 
     public string cooldownImageName = "ImgCooldownHunter1";
 
     [Header("UI Búa / Bẫy (Tự động điền, không cần kéo)")]
+    public GameObject uiContainer; // Biến lưu trữ cục Cha
     public TextMeshProUGUI ammoText;
     public Image cooldownImage;
 
@@ -67,7 +68,7 @@ public class AttackController : MonoBehaviour
         interactionScript = GetComponent<HunterInteraction>();
         if (attackSource == null) attackSource = GetComponent<AudioSource>();
 
-        // 🚨 GỌI LỆNH TÌM UI NGAY KHI VỪA SINH RA
+        // 🚨 GỌI LỆNH TÌM VÀ BẬT UI NGAY KHI VỪA SINH RA
         AutoFindUI();
     }
 
@@ -79,45 +80,51 @@ public class AttackController : MonoBehaviour
     }
 
     // =========================================================
-    // BỘ MÁY QUÉT CANVAS TÌM UI (KẾ THỪA TỪ HÔM QUA)
+    // BỘ MÁY QUÉT CANVAS TÌM UI VÀ BẬT CỤC CHA
     // =========================================================
     private void AutoFindUI()
     {
-        // 1. Tìm Text Số Đạn
+        // 1. TÌM VÀ BẬT CỤC CHA (CHỨA TOÀN BỘ GIAO DIỆN CỦA HUNTER NÀY)
+        if (uiContainer == null)
+        {
+            uiContainer = FindUIObjectByName(uiContainerName);
+            if (uiContainer != null)
+            {
+                uiContainer.SetActive(true); // 🟢 BẬT SÁNG NGUYÊN CỤC LÊN
+                Debug.Log("✅ [Attack] Đã BẬT thành công bộ UI: " + uiContainerName);
+            }
+        }
+
+        // 2. MÓC CÁI TEXT VÀO
         if (ammoText == null)
         {
             GameObject foundTextObj = FindUIObjectByName(ammoTextName);
             if (foundTextObj != null) 
             {
                 ammoText = foundTextObj.GetComponent<TextMeshProUGUI>();
-                foundTextObj.SetActive(true); // Tìm thấy là BẬT (TRUE) lên ngay
-                Debug.Log("✅ [Attack] Đã móc thành công Text đạn: " + ammoTextName);
+                // Không cần SetActive nữa vì Cục Cha đã bật rồi
             }
         }
 
-        // 2. Tìm Vòng Cooldown
+        // 3. MÓC CÁI VÒNG COOLDOWN VÀO
         if (cooldownImage == null)
         {
             GameObject foundCDObj = FindUIObjectByName(cooldownImageName);
             if (foundCDObj != null) 
             {
                 cooldownImage = foundCDObj.GetComponent<Image>();
-                foundCDObj.SetActive(true); // Tìm thấy là BẬT (TRUE) lên ngay
-                Debug.Log("✅ [Attack] Đã móc thành công Cooldown: " + cooldownImageName);
             }
         }
     }
 
     private GameObject FindUIObjectByName(string objName)
     {
-        // Quét xuyên lục địa, kể cả Canvas đang tắt (true)
         Canvas[] canvases = FindObjectsOfType<Canvas>(true); 
         foreach (Canvas canvas in canvases)
         {
             Transform[] children = canvas.GetComponentsInChildren<Transform>(true); 
             foreach (Transform child in children)
             {
-                // Dùng Trim() để gọt khoảng trắng thừa giống hôm qua
                 if (child.name.Trim() == objName.Trim()) 
                 {
                     return child.gameObject;
@@ -182,7 +189,6 @@ public class AttackController : MonoBehaviour
 
         if (attackSource != null && clipPhiBua != null) attackSource.PlayOneShot(clipPhiBua);
         
-        // 🚨 Nếu là bẫy thì chạy trigger DatBay, búa thì Phibua
         PerformAttack(animThrow); 
     }
 
