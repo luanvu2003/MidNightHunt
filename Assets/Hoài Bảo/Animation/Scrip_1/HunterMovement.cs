@@ -77,13 +77,13 @@ public class HunterMovement : MonoBehaviour
     // --- THÊM HÀM NÀY XUỐNG DƯỚI CÙNG SCRIPT ---
     public void PlayFootstep()
     {
-        // Chỉ phát tiếng chân khi nhân vật đang ở trên mặt đất và thực sự di chuyển
-        if (controller.isGrounded && currentSpeedMultiplier > 0.1f && footstepClip != null)
+        // SỬA Ở ĐÂY: Dùng currentSpeed (vận tốc thực) thay vì currentSpeedMultiplier
+        // Mathf.Abs giúp đảm bảo dù đi lùi (vận tốc âm) thì nó vẫn kêu
+        if (controller.isGrounded && Mathf.Abs(currentSpeed) > 0.2f && footstepClip != null)
         {
             if (audioSource != null)
             {
-                // Phát âm thanh nhẹ hơn một chút (0.6f) để không át tiếng vũ khí
-                audioSource.PlayOneShot(footstepClip, 0.6f);         /// sound
+                audioSource.PlayOneShot(footstepClip, 0.6f);
             }
         }
     }
