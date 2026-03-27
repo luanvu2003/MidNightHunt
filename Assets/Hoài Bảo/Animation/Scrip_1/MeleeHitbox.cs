@@ -4,49 +4,59 @@ using UnityEngine;
 public class MeleeHitbox : MonoBehaviour
 {
     [Header("Cài đặt Sát thương")]
-    public int damageAmount = 1; // Sát thương 1 nhát chém
+    public int damageAmount = 1; // Số máu trừ mỗi nhát chém
     private Collider hitboxCollider;
 
-    // ĐÂY LÀ BÍ QUYẾT: Cuốn "Sổ đen" ghi nhớ những Player đã ăn đòn trong 1 nhát chém
+    // =========================================================
+    // 📓 CUỐN SỔ ĐEN: Ghi nhớ những ai đã bị chém trong nhát này
+    // =========================================================
     private List<GameObject> alreadyHitPlayers = new List<GameObject>();
 
     private void Awake()
     {
         hitboxCollider = GetComponent<Collider>();
-        hitboxCollider.isTrigger = true; // Bắt buộc phải là Trigger
-        hitboxCollider.enabled = false;  // Tắt hitbox đi khi mới vào game
+        hitboxCollider.isTrigger = true; // Bắt buộc là Trigger
+        hitboxCollider.enabled = false;  // Tắt đi khi mới vào game
     }
 
-    // Hàm này sẽ được AttackController gọi khi Hunter bắt đầu vung tay
+    // Hàm này được AttackController gọi khi bắt đầu vung tay
     public void TurnOnHitbox()
     {
-        alreadyHitPlayers.Clear(); // Xóa sạch sổ đen của nhát chém trước
-        hitboxCollider.enabled = true; // Bật vùng sát thương lên
+        // 🚨 QUAN TRỌNG: Vừa vung nhát mới là phải XÓA SẠCH sổ đen của nhát cũ
+        alreadyHitPlayers.Clear(); 
+        hitboxCollider.enabled = true; 
     }
 
-    // Hàm này sẽ được gọi khi Hunter vung tay xong
+    // Hàm này được AttackController gọi khi vung tay xong
     public void TurnOffHitbox()
     {
-        hitboxCollider.enabled = false; // Tắt vùng sát thương
+        hitboxCollider.enabled = false; 
     }
 
-    // Radar cảm biến va chạm
+    // =========================================================
+    // CẢM BIẾN VA CHẠM: NƠI XỬ LÝ CHỐNG TRỪ MÁU ĐỀ (SPAM DAMAGE)
+    // =========================================================
     private void OnTriggerEnter(Collider other)
     {
-        // 1. Nếu va trúng cái gì đó có Tag là "Player"
+        // 1. Nếu cái chạm vào là Player
         if (other.CompareTag("Player"))
         {
-            // 2. Kiểm tra xem thằng Player này đã bị chém trong nhát này chưa?
+            // 2. Kiểm tra xem tên nó đã có trong Sổ Đen chưa?
+            // Nếu chưa có (nghĩa là nhát này nó chưa bị chém):
             if (!alreadyHitPlayers.Contains(other.gameObject))
             {
-                // 3. Nếu chưa -> Ghi tên nó vào sổ đen ngay lập tức
+                // 3. THÊM NGAY VÀO SỔ ĐEN ĐỂ KHÓA LẠI
                 alreadyHitPlayers.Add(other.gameObject);
 
-                // 4. THỰC HIỆN TRỪ MÁU Ở ĐÂY
-                Debug.Log("💥 Đã chém trúng và trừ máu: " + other.gameObject.name);
+                // 4. THỰC HIỆN TRỪ MÁU
+                Debug.Log("💥 BÙM! Đã chém trúng và trừ 1 máu của: " + other.gameObject.name);
                 
-                // (Sau này bạn có Script máu của Player thì gọi vào đây)
-                // Ví dụ: other.GetComponent<PlayerHealth>().TakeDamage(damageAmount);
+                // --- ĐOẠN GỌI SANG SCRIPT MÁU CỦA PLAYER (Bạn mở comment khi có script Player nhé) ---
+                // Survivor survivorStats = other.GetComponent<Survivor>();
+                // if (survivorStats != null)
+                // {
+                //     survivorStats.TakeDamage(damageAmount);
+                // }
             }
         }
     }
