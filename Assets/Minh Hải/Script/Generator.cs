@@ -104,6 +104,10 @@ public class Generator : MonoBehaviour
         if (explosionFX != null) explosionFX.Play();
         if (explosionSound != null) explosionSound.Play();
 
+        // --- THÊM DÒNG NÀY ---
+        AlertNearbyCrows(); 
+        // ---------------------
+
         StopRepairing();
         stunTimer = stunDuration;
         if (repairText != null) repairText.SetActive(false);
@@ -114,6 +118,10 @@ public class Generator : MonoBehaviour
         currentSkillLevel = 1;
         if (explosionFX != null) explosionFX.Play();
         if (explosionSound != null) explosionSound.Play();
+
+        // --- THÊM DÒNG NÀY ---
+        AlertNearbyCrows(); 
+        // ---------------------
 
         progress = Mathf.Max(0, progress - progressPenalty);
         if (progressBar != null) progressBar.value = progress / repairTime;
@@ -200,6 +208,22 @@ public class Generator : MonoBehaviour
             zonesOccupied = 0;
             playerInRange = false;
             if (repairText != null) repairText.SetActive(false);
+        }
+    }
+
+
+    // Thêm hàm này vào cuối lớp Generator (trước dấu ngoặc nhọn cuối cùng)
+    private void AlertNearbyCrows()
+    {
+        float noiseRadius = 20f; // Khoảng cách tiếng nổ làm quạ sợ
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, noiseRadius);
+        foreach (var hitCollider in hitColliders)
+        {
+            CrowAI crow = hitCollider.GetComponent<CrowAI>();
+            if (crow != null)
+            {
+                crow.OnGeneratorExplosion();
+            }
         }
     }
 }

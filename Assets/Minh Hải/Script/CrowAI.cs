@@ -7,11 +7,8 @@ public class CrowAI : MonoBehaviour
     public float detectionRadius = 5f; 
     
     [Header("Hoán đổi Model")]
-    public GameObject idleModel; // Kéo Model đứng im vào đây
-    public GameObject flyModel;  // Kéo Model bay vào đây
-    public Animator flyAnimator; // Animator của con quạ bay
-
-    [Header("Âm thanh")]
+    public GameObject idleModel; 
+    public GameObject flyModel;  
     public AudioSource cawSound;
 
     [Header("Cài đặt bay")]
@@ -21,7 +18,6 @@ public class CrowAI : MonoBehaviour
 
     void Start()
     {
-        // Đảm bảo lúc đầu chỉ có con đứng im hiện lên
         if (idleModel != null) idleModel.SetActive(true);
         if (flyModel != null) flyModel.SetActive(false);
     }
@@ -30,6 +26,7 @@ public class CrowAI : MonoBehaviour
     {
         if (hasFled) return;
 
+        // Quét tìm Player đang CHẠY (Sprinting)
         Collider[] targets = Physics.OverlapSphere(transform.position, detectionRadius);
         foreach (var t in targets)
         {
@@ -45,68 +42,59 @@ public class CrowAI : MonoBehaviour
         }
     }
 
-    void TriggerFlee()
+    // LOGIC 1: VA CHẠM TRỰC TIẾP (Đi bộ chạm vào)
+    private void OnTriggerEnter(Collider other)
     {
+        if (hasFled) return;
+
+        if (other.CompareTag("Player"))
+        {
+            Debug.Log("Player chạm vào quạ!");
+            TriggerFlee();
+        }
+    }
+
+    // LOGIC 2: TIẾNG NỔ MÁY (Gọi từ Script Generator)
+    public void OnGeneratorExplosion()
+    {
+        if (hasFled) return;
+        Invoke("TriggerFlee", Random.Range(0.1f, 0.5f));
+    }
+
+    public void TriggerFlee()
+    {
+        if (hasFled) return;
         hasFled = true;
 
-        // 1. Hoán đổi Model
-        if (idleModel != null) idleModel.SetActive(false); // Tắt con đứng im
+        if (idleModel != null) idleModel.SetActive(false);
         if (flyModel != null) 
         {
-            flyModel.SetActive(true); // Bật con đang bay
-            if (flyAnimator != null) flyAnimator.Play("Fly"); // Chạy thẳng Anim tên là "Fly"
+            flyModel.SetActive(true);
+            Animator anim = flyModel.GetComponentInChildren<Animator>();
+            if (anim != null) anim.Play("CrowFly"); 
         }
 
-        // 2. Âm thanh
         if (cawSound != null) cawSound.Play();
 
-        // 3. Bay đi
-        StartCoroutine(FlyUpRoutine());
+        // ĐÃ XÓA DÒNG HunterManager TẠI ĐÂY
 
-        // Tắt va chạm của bẫy
-        if(GetComponent<Collider>() != null) GetComponent<Collider>().enabled = false;
+        StartCoroutine(FlyUpRoutine());
     }
 
     IEnumerator FlyUpRoutine()
     {
         float timer = 0f;
-        float duration = 3f;
+        Vector3 randomDir = new Vector3(Random.Range(-1f, 1f), 0, Random.Range(-1f, 1f)).normalized;
+        Vector3 flyDirection = (randomDir * 1.5f + Vector3.up).normalized;
 
-        // --- BƯỚC 1: TẠO HƯỚNG BAY NGẪU NHIÊN CHO TỪNG CON ---
-        // Lấy một điểm ngẫu nhiên trên vòng tròn nằm ngang (XZ)
-        Vector3 randomHorizontal = Random.insideUnitCircle; 
-        Vector3 horizontalDir = new Vector3(randomHorizontal.x, 0, randomHorizontal.y);
-
-        // Kết hợp với hướng đi lên (Vector3.up)
-        // Nhân horizontalDir với 1.5f để quạ bay chéo nhiều hơn là bay thẳng đứng
-        Vector3 flyDirection = (horizontalDir * 1.5f + Vector3.up).normalized;
-
-        // --- BƯỚC 2: DI CHUYỂN ---
-        while (timer < duration)
+        while (timer < 3f)
         {
-            // Tốc độ bay nhanh lúc đầu và chậm lại một chút (Lerp)
-            float currentSpeed = Mathf.Lerp(flyUpSpeed, flyUpSpeed * 0.3f, timer / duration);
-
-            // Di chuyển toàn bộ object (bao gồm cả model đang bay bên trong)
-            transform.Translate(flyDirection * currentSpeed * Time.deltaTime, Space.World);
-            
-            // Xoay đầu quạ nhìn về hướng nó đang bay
+            transform.Translate(flyDirection * flyUpSpeed * Time.deltaTime, Space.World);
             if (flyDirection != Vector3.zero)
-            {
-                Quaternion targetRot = Quaternion.LookRotation(flyDirection);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * 10f);
-            }
-            
+                transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(flyDirection), Time.deltaTime * 10f);
             timer += Time.deltaTime;
             yield return null;
         }
-
         Destroy(gameObject);
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, detectionRadius);
     }
 }
