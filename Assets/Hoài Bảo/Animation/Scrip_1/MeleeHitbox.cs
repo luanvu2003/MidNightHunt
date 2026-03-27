@@ -23,14 +23,14 @@ public class MeleeHitbox : MonoBehaviour
     public void TurnOnHitbox()
     {
         // 🚨 QUAN TRỌNG: Vừa vung nhát mới là phải XÓA SẠCH sổ đen của nhát cũ
-        alreadyHitPlayers.Clear(); 
-        hitboxCollider.enabled = true; 
+        alreadyHitPlayers.Clear();
+        hitboxCollider.enabled = true;
     }
 
     // Hàm này được AttackController gọi khi vung tay xong
     public void TurnOffHitbox()
     {
-        hitboxCollider.enabled = false; 
+        hitboxCollider.enabled = false;
     }
 
     // =========================================================
@@ -38,25 +38,26 @@ public class MeleeHitbox : MonoBehaviour
     // =========================================================
     private void OnTriggerEnter(Collider other)
     {
-        // 1. Nếu cái chạm vào là Player
         if (other.CompareTag("Player"))
         {
-            // 2. Kiểm tra xem tên nó đã có trong Sổ Đen chưa?
-            // Nếu chưa có (nghĩa là nhát này nó chưa bị chém):
             if (!alreadyHitPlayers.Contains(other.gameObject))
             {
-                // 3. THÊM NGAY VÀO SỔ ĐEN ĐỂ KHÓA LẠI
                 alreadyHitPlayers.Add(other.gameObject);
 
-                // 4. THỰC HIỆN TRỪ MÁU
-                Debug.Log("💥 BÙM! Đã chém trúng và trừ 1 máu của: " + other.gameObject.name);
-                
-                // --- ĐOẠN GỌI SANG SCRIPT MÁU CỦA PLAYER (Bạn mở comment khi có script Player nhé) ---
-                // Survivor survivorStats = other.GetComponent<Survivor>();
-                // if (survivorStats != null)
+                // 1. Tìm script Survivor để trừ máu
+                // Survivor survivor = other.GetComponent<Survivor>();
+                // if (survivor != null)
                 // {
-                //     survivorStats.TakeDamage(damageAmount);
+                //     survivor.TakeDamage(damageAmount);
                 // }
+
+                // 2. Báo về AttackController để phát âm thanh trúng đòn
+                // Chúng ta tìm script này trên cha của Hitbox (thường là Hunter)
+                AttackController controller = GetComponentInParent<AttackController>();
+                if (controller != null)
+                {
+                    controller.OnHitSuccess(other.gameObject);
+                }
             }
         }
     }
