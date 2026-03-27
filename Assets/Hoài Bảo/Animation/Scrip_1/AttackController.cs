@@ -350,4 +350,15 @@ public class AttackController : MonoBehaviour
         // Hiệu ứng rung màn hình hoặc Blood Effect có thể thêm ở đây
         Debug.Log("Hunter đã chém trúng " + victim.name);
     }
+    // Gắn vào Animation Event lúc tay Hunter bắt đầu đập bẫy xuống đất
+    public void PlaySoundDatTrap()
+    {
+        // Kiểm tra nếu đúng là Hunter 2 (isTrapMode) và có loa, có file nhạc
+        if (isTrapMode && attackSource != null && clipPhiBua != null)
+        {
+            // Phát tiếng "Cạch" hoặc tiếng đặt kim loại
+            attackSource.PlayOneShot(clipPhiBua);
+            Debug.Log("🔊 Hunter 2: Đã phát âm thanh đặt bẫy!");
+        }
+    }
 }
