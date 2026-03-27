@@ -185,13 +185,21 @@ public class HunterInteraction : MonoBehaviour
     {
         if (carriedPlayerObject != null && handPoint != null)
         {
-            // Gọi script trên Nạn nhân và bảo nó: "Bay vào TAY tao đi!"
+            // 🚨 BƯỚC QUAN TRỌNG: Tìm cái Trigger "Playerchet" trên người nạn nhân và TẮT nó đi
+            // Việc này giúp Hunter không bị hiện UI "Space" khi đang vác xác trên vai
+            Transform interactionTrigger = carriedPlayerObject.transform.Find("Playerchet");
+            if (interactionTrigger == null) interactionTrigger = FindChildWithTag(carriedPlayerObject, "Playerchet");
+
+            if (interactionTrigger != null) interactionTrigger.gameObject.SetActive(false);
+
             PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
             if (receiver != null)
             {
                 receiver.GetPickedUpOrHooked(handPoint);
             }
 
+            // Tắt UI ngay khi nhặt lên tay
+            if (interactImage != null) interactImage.gameObject.SetActive(false);
             currentInteractTarget = null;
         }
     }
@@ -218,18 +226,35 @@ public class HunterInteraction : MonoBehaviour
             Transform hookPoint = currentInteractTarget.transform.Find("HookPoint");
             Transform finalPoint = hookPoint ? hookPoint : currentInteractTarget.transform;
 
-            // Tìm script chịu trận trên người Player
             PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
             if (receiver != null)
             {
-                receiver.GetPickedUpOrHooked(finalPoint); // Truyền cái Móc vào
+                receiver.GetPickedUpOrHooked(finalPoint);
             }
 
+            // 1. Khóa cái Móc lại (Đổi tag để Hunter không tương tác với móc này nữa)
+            currentInteractTarget.tag = "Untagged";
+
+            // 2. Ép UI biến mất ngay lập tức
+            if (interactImage != null) interactImage.gameObject.SetActive(false);
+
+            // 3. Giải phóng các biến để Hunter trở về trạng thái tự do
             isCarryingPlayer = false;
-            currentInteractTarget.tag = "Untagged"; // Khóa cái móc lại
             carriedPlayerObject = null;
             currentInteractTarget = null;
+
+            Debug.Log("⛓️ Đã treo và KHÓA tương tác với nạn nhân này.");
         }
+    }
+
+    // Hàm hỗ trợ tìm con bằng Tag (phòng trường hợp bạn để cấu trúc cha con phức tạp)
+    private Transform FindChildWithTag(GameObject parent, string tag)
+    {
+        foreach (Transform child in parent.GetComponentsInChildren<Transform>(true))
+        {
+            if (child.CompareTag(tag)) return child;
+        }
+        return null;
     }
 
     public void FinishInteraction()
