@@ -1,5 +1,12 @@
 fileFormatVersion: 2
 guid: 610d93a464d08e34f9fb9f63944552ab
+AssetOrigin:
+  serializedVersion: 1
+  productId: 19077
+  packageName: Weapon Sword Vol.01
+  packageVersion: 2.2
+  assetPath: Assets/MS_WeaponVol01/Models/WeaponSword006.fbx
+  uploadId: 49981
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable:
@@ -90,7 +97,7 @@ ModelImporter:
     isReadable: 1
   meshes:
     lODScreenPercentages: []
-    globalScale: 1
+    globalScale: 0.02
     meshCompression: 0
     addColliders: 0
     useSRGBMaterialColor: 1
@@ -145,7 +152,7 @@ ModelImporter:
     armStretch: 0.05
     legStretch: 0.05
     feetSpacing: 0
-    globalScale: 1
+    globalScale: 0.02
     rootMotionBoneName: 
     hasTranslationDoF: 0
     hasExtraRoot: 0
@@ -162,10 +169,3 @@ ModelImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 19077
-  packageName: Weapon Sword Vol.01
-  packageVersion: 2.2
-  assetPath: Assets/MS_WeaponVol01/Models/WeaponSword006.fbx
-  uploadId: 49981
