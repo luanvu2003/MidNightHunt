@@ -102,7 +102,7 @@ public partial class @HunterControllerInput: IInputActionCollection2, IDisposabl
                     ""initialStateCheck"": true
                 },
                 {
-                    ""name"": ""Nhac"",
+                    ""name"": ""Interact"",
                     ""type"": ""Button"",
                     ""id"": ""fad2c6cb-54d9-4506-9090-d56248aa447e"",
                     ""expectedControlType"": """",
@@ -138,9 +138,9 @@ public partial class @HunterControllerInput: IInputActionCollection2, IDisposabl
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""Dapmay"",
+                    ""name"": ""AimTrap"",
                     ""type"": ""Button"",
-                    ""id"": ""365cecd7-d721-4d36-9ae2-7893f555f043"",
+                    ""id"": ""11544441-41b1-4519-80c9-cef416693c4a"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -206,11 +206,11 @@ public partial class @HunterControllerInput: IInputActionCollection2, IDisposabl
                 {
                     ""name"": """",
                     ""id"": ""b3099250-5bc3-4213-8784-a5cf0c93b755"",
-                    ""path"": ""<Keyboard>/e"",
+                    ""path"": ""<Keyboard>/space"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""Nhac"",
+                    ""action"": ""Interact"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -249,12 +249,12 @@ public partial class @HunterControllerInput: IInputActionCollection2, IDisposabl
                 },
                 {
                     ""name"": """",
-                    ""id"": ""209b72bf-fc4d-4c59-912a-1bfe23f65948"",
-                    ""path"": ""<Keyboard>/e"",
+                    ""id"": ""6e88382b-c71f-448a-82e8-0091d0df7b0a"",
+                    ""path"": ""<Keyboard>/leftCtrl"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""Dapmay"",
+                    ""action"": ""AimTrap"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -266,11 +266,11 @@ public partial class @HunterControllerInput: IInputActionCollection2, IDisposabl
         // HunterControllerS
         m_HunterControllerS = asset.FindActionMap("HunterControllerS", throwIfNotFound: true);
         m_HunterControllerS_Move = m_HunterControllerS.FindAction("Move", throwIfNotFound: true);
-        m_HunterControllerS_Nhac = m_HunterControllerS.FindAction("Nhac", throwIfNotFound: true);
+        m_HunterControllerS_Interact = m_HunterControllerS.FindAction("Interact", throwIfNotFound: true);
         m_HunterControllerS_Treo = m_HunterControllerS.FindAction("Treo", throwIfNotFound: true);
         m_HunterControllerS_Attack = m_HunterControllerS.FindAction("Attack", throwIfNotFound: true);
         m_HunterControllerS_Phibua = m_HunterControllerS.FindAction("Phibua", throwIfNotFound: true);
-        m_HunterControllerS_Dapmay = m_HunterControllerS.FindAction("Dapmay", throwIfNotFound: true);
+        m_HunterControllerS_AimTrap = m_HunterControllerS.FindAction("AimTrap", throwIfNotFound: true);
     }
 
     ~@HunterControllerInput()
@@ -352,11 +352,11 @@ public partial class @HunterControllerInput: IInputActionCollection2, IDisposabl
     private readonly InputActionMap m_HunterControllerS;
     private List<IHunterControllerSActions> m_HunterControllerSActionsCallbackInterfaces = new List<IHunterControllerSActions>();
     private readonly InputAction m_HunterControllerS_Move;
-    private readonly InputAction m_HunterControllerS_Nhac;
+    private readonly InputAction m_HunterControllerS_Interact;
     private readonly InputAction m_HunterControllerS_Treo;
     private readonly InputAction m_HunterControllerS_Attack;
     private readonly InputAction m_HunterControllerS_Phibua;
-    private readonly InputAction m_HunterControllerS_Dapmay;
+    private readonly InputAction m_HunterControllerS_AimTrap;
     /// <summary>
     /// Provides access to input actions defined in input action map "HunterControllerS".
     /// </summary>
@@ -373,9 +373,9 @@ public partial class @HunterControllerInput: IInputActionCollection2, IDisposabl
         /// </summary>
         public InputAction @Move => m_Wrapper.m_HunterControllerS_Move;
         /// <summary>
-        /// Provides access to the underlying input action "HunterControllerS/Nhac".
+        /// Provides access to the underlying input action "HunterControllerS/Interact".
         /// </summary>
-        public InputAction @Nhac => m_Wrapper.m_HunterControllerS_Nhac;
+        public InputAction @Interact => m_Wrapper.m_HunterControllerS_Interact;
         /// <summary>
         /// Provides access to the underlying input action "HunterControllerS/Treo".
         /// </summary>
@@ -389,9 +389,9 @@ public partial class @HunterControllerInput: IInputActionCollection2, IDisposabl
         /// </summary>
         public InputAction @Phibua => m_Wrapper.m_HunterControllerS_Phibua;
         /// <summary>
-        /// Provides access to the underlying input action "HunterControllerS/Dapmay".
+        /// Provides access to the underlying input action "HunterControllerS/AimTrap".
         /// </summary>
-        public InputAction @Dapmay => m_Wrapper.m_HunterControllerS_Dapmay;
+        public InputAction @AimTrap => m_Wrapper.m_HunterControllerS_AimTrap;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -421,9 +421,9 @@ public partial class @HunterControllerInput: IInputActionCollection2, IDisposabl
             @Move.started += instance.OnMove;
             @Move.performed += instance.OnMove;
             @Move.canceled += instance.OnMove;
-            @Nhac.started += instance.OnNhac;
-            @Nhac.performed += instance.OnNhac;
-            @Nhac.canceled += instance.OnNhac;
+            @Interact.started += instance.OnInteract;
+            @Interact.performed += instance.OnInteract;
+            @Interact.canceled += instance.OnInteract;
             @Treo.started += instance.OnTreo;
             @Treo.performed += instance.OnTreo;
             @Treo.canceled += instance.OnTreo;
@@ -433,9 +433,9 @@ public partial class @HunterControllerInput: IInputActionCollection2, IDisposabl
             @Phibua.started += instance.OnPhibua;
             @Phibua.performed += instance.OnPhibua;
             @Phibua.canceled += instance.OnPhibua;
-            @Dapmay.started += instance.OnDapmay;
-            @Dapmay.performed += instance.OnDapmay;
-            @Dapmay.canceled += instance.OnDapmay;
+            @AimTrap.started += instance.OnAimTrap;
+            @AimTrap.performed += instance.OnAimTrap;
+            @AimTrap.canceled += instance.OnAimTrap;
         }
 
         /// <summary>
@@ -450,9 +450,9 @@ public partial class @HunterControllerInput: IInputActionCollection2, IDisposabl
             @Move.started -= instance.OnMove;
             @Move.performed -= instance.OnMove;
             @Move.canceled -= instance.OnMove;
-            @Nhac.started -= instance.OnNhac;
-            @Nhac.performed -= instance.OnNhac;
-            @Nhac.canceled -= instance.OnNhac;
+            @Interact.started -= instance.OnInteract;
+            @Interact.performed -= instance.OnInteract;
+            @Interact.canceled -= instance.OnInteract;
             @Treo.started -= instance.OnTreo;
             @Treo.performed -= instance.OnTreo;
             @Treo.canceled -= instance.OnTreo;
@@ -462,9 +462,9 @@ public partial class @HunterControllerInput: IInputActionCollection2, IDisposabl
             @Phibua.started -= instance.OnPhibua;
             @Phibua.performed -= instance.OnPhibua;
             @Phibua.canceled -= instance.OnPhibua;
-            @Dapmay.started -= instance.OnDapmay;
-            @Dapmay.performed -= instance.OnDapmay;
-            @Dapmay.canceled -= instance.OnDapmay;
+            @AimTrap.started -= instance.OnAimTrap;
+            @AimTrap.performed -= instance.OnAimTrap;
+            @AimTrap.canceled -= instance.OnAimTrap;
         }
 
         /// <summary>
@@ -513,12 +513,12 @@ public partial class @HunterControllerInput: IInputActionCollection2, IDisposabl
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnMove(InputAction.CallbackContext context);
         /// <summary>
-        /// Method invoked when associated input action "Nhac" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// Method invoked when associated input action "Interact" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
         /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-        void OnNhac(InputAction.CallbackContext context);
+        void OnInteract(InputAction.CallbackContext context);
         /// <summary>
         /// Method invoked when associated input action "Treo" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
@@ -541,11 +541,11 @@ public partial class @HunterControllerInput: IInputActionCollection2, IDisposabl
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnPhibua(InputAction.CallbackContext context);
         /// <summary>
-        /// Method invoked when associated input action "Dapmay" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// Method invoked when associated input action "AimTrap" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
         /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-        void OnDapmay(InputAction.CallbackContext context);
+        void OnAimTrap(InputAction.CallbackContext context);
     }
 }
