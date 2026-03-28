@@ -16,7 +16,7 @@
                     "initialStateCheck": true
                 },
                 {
-                    "name": "Nhac",
+                    "name": "Interact",
                     "type": "Button",
                     "id": "fad2c6cb-54d9-4506-9090-d56248aa447e",
                     "expectedControlType": "",
@@ -52,9 +52,9 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Dapmay",
+                    "name": "AimTrap",
                     "type": "Button",
-                    "id": "365cecd7-d721-4d36-9ae2-7893f555f043",
+                    "id": "11544441-41b1-4519-80c9-cef416693c4a",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -120,11 +120,11 @@
                 {
                     "name": "",
                     "id": "b3099250-5bc3-4213-8784-a5cf0c93b755",
-                    "path": "<Keyboard>/e",
+                    "path": "<Keyboard>/space",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Nhac",
+                    "action": "Interact",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -163,12 +163,12 @@
                 },
                 {
                     "name": "",
-                    "id": "209b72bf-fc4d-4c59-912a-1bfe23f65948",
-                    "path": "<Keyboard>/e",
+                    "id": "6e88382b-c71f-448a-82e8-0091d0df7b0a",
+                    "path": "<Keyboard>/leftCtrl",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Dapmay",
+                    "action": "AimTrap",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

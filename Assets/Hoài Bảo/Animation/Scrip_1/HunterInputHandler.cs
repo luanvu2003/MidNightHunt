@@ -1,5 +1,5 @@
-using UnityEngine; // Khai báo thư viện Unity
-using UnityEngine.InputSystem; // Sử dụng hệ thống Input System mới
+using UnityEngine;
+using UnityEngine.InputSystem; 
 
 public class HunterInputHandler : MonoBehaviour
 {
@@ -34,20 +34,29 @@ public class HunterInputHandler : MonoBehaviour
             moveScript.HandleMove(moveInput);
         }
 
-        // 3. TƯƠNG TÁC
-        if (Keyboard.current.spaceKey.wasPressedThisFrame) 
+        // 3. TƯƠNG TÁC (Đã gộp chung thành nút Interact)
+        if (actions.HunterControllerS.Interact.WasPressedThisFrame()) 
         {
             interactScript.TryInteract(); 
         }
         
-        // 4. TẤN CÔNG & NHẮM BẪY
+        // 4. TẤN CÔNG & SKILL CỤ THỂ
         if (attackScript != null)
         {
-            // 🚨 NÂNG CẤP: Truyền trạng thái ĐÈ phím Ctrl (Giữ thì true, Nhả ra thì false)
-            attackScript.isAimingTrap = Keyboard.current.leftCtrlKey.isPressed;
+            // Đọc Action "AimTrap" (Đè Ctrl)
+            attackScript.isAimingTrap = actions.HunterControllerS.AimTrap.IsPressed();
 
-            if (Mouse.current.leftButton.wasPressedThisFrame) attackScript.PerformAttackLeft(); 
-            if (Mouse.current.rightButton.wasPressedThisFrame) attackScript.PerformAttackRight(); 
+            // Đọc Action "Attack" (Chuột trái)
+            if (actions.HunterControllerS.Attack.WasPressedThisFrame()) 
+            {
+                attackScript.PerformAttackLeft(); 
+            }
+            
+            // Đọc Action "Phibua" (Chuột phải - Xài chung cho Đặt bẫy)
+            if (actions.HunterControllerS.Phibua.WasPressedThisFrame()) 
+            {
+                attackScript.PerformAttackRight(); 
+            }
         }
     }
 }
