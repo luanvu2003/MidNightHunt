@@ -273,8 +273,8 @@ MonoBehaviour:
     y: 0
     width: 901
     height: 317
-  m_MinSize: {x: 100, y: 100}
-  m_MaxSize: {x: 4000, y: 4000}
+  m_MinSize: {x: 102, y: 126}
+  m_MaxSize: {x: 4002, y: 4026}
   m_ActualView: {fileID: 20}
   m_Panes:
   - {fileID: 20}
@@ -326,8 +326,8 @@ MonoBehaviour:
     y: 701
     width: 901
     height: 232
-  m_MinSize: {x: 100, y: 100}
-  m_MaxSize: {x: 4000, y: 4000}
+  m_MinSize: {x: 102, y: 126}
+  m_MaxSize: {x: 4002, y: 4026}
   m_ActualView: {fileID: 22}
   m_Panes:
   - {fileID: 22}
@@ -353,8 +353,8 @@ MonoBehaviour:
     y: 0
     width: 389
     height: 933
-  m_MinSize: {x: 275, y: 100}
-  m_MaxSize: {x: 4000, y: 4000}
+  m_MinSize: {x: 276, y: 126}
+  m_MaxSize: {x: 4001, y: 4026}
   m_ActualView: {fileID: 24}
   m_Panes:
   - {fileID: 24}
@@ -383,8 +383,8 @@ MonoBehaviour:
     m_TextWithWhitespace: "Game\u200B"
   m_Pos:
     serializedVersion: 2
-    x: 630
-    y: 396
+    x: 1
+    y: 341
     width: 899
     height: 358
   m_SerializedDataModeController:
@@ -485,7 +485,7 @@ MonoBehaviour:
   m_Pos:
     serializedVersion: 2
     x: 0
-    y: 79
+    y: 24
     width: 629
     height: 510
   m_SerializedDataModeController:
@@ -502,8 +502,8 @@ MonoBehaviour:
   m_SceneHierarchy:
     m_TreeViewState:
       scrollPos: {x: 0, y: 0}
-      m_SelectedIDs: 6ebb0000
-      m_LastClickedID: 47982
+      m_SelectedIDs: 
+      m_LastClickedID: 0
       m_ExpandedIDs: fcb0ffffaaf6ffff
       m_RenameOverlay:
         m_UserAcceptedRename: 0
@@ -587,7 +587,7 @@ MonoBehaviour:
   m_Pos:
     serializedVersion: 2
     x: 0
-    y: 615
+    y: 560
     width: 629
     height: 371
   m_SerializedDataModeController:
@@ -632,7 +632,7 @@ MonoBehaviour:
     scrollPos: {x: 0, y: 199}
     m_SelectedIDs: b6150100
     m_LastClickedID: 71094
-    m_ExpandedIDs: 000000007ecc000080cc000082cc000084cc000086cc000088cc00008acc00008ccc00008ecc000090cc000092cc000094cc000096cc000098cc00009acc00009ccc00009ecc0000a0cc000000ca9a3b
+    m_ExpandedIDs: 0000000006c80000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -661,7 +661,7 @@ MonoBehaviour:
     scrollPos: {x: 0, y: 0}
     m_SelectedIDs: 5c690000
     m_LastClickedID: 26972
-    m_ExpandedIDs: 000000007ecc000080cc000082cc000084cc000086cc000088cc00008acc00008ccc00008ecc000090cc000092cc000094cc000096cc000098cc00009acc00009ccc00009ecc0000a0cc0000
+    m_ExpandedIDs: 0000000006c80000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -925,8 +925,8 @@ MonoBehaviour:
     m_TextWithWhitespace: "Scene\u200B"
   m_Pos:
     serializedVersion: 2
-    x: 630
-    y: 79
+    x: 1
+    y: 24
     width: 899
     height: 291
   m_SerializedDataModeController:
@@ -1525,7 +1525,7 @@ MonoBehaviour:
   m_AudioPlay: 0
   m_DebugDrawModesUseInteractiveLightBakingData: 0
   m_Position:
-    m_Target: {x: 1.5005615, y: 1.3306729, z: 1.5621102}
+    m_Target: {x: 864.3355, y: 566.9261, z: -2.4252753}
     speed: 2
     m_Value: {x: 1.5005615, y: 1.3306729, z: 1.5621102}
   m_RenderMode: 0
@@ -1573,13 +1573,13 @@ MonoBehaviour:
     m_GridAxis: 1
     m_gridOpacity: 0.5
   m_Rotation:
-    m_Target: {x: -0.16856484, y: 0.33605966, z: -0.061231107, w: -0.9246424}
+    m_Target: {x: -0.025842512, y: -0.012441307, z: -0.0011975467, w: -1.000318}
     speed: 2
-    m_Value: {x: -0.16855954, y: 0.33604908, z: -0.06122918, w: -0.9246133}
+    m_Value: {x: -0.16856484, y: 0.33605966, z: -0.06123111, w: -0.92464244}
   m_Size:
-    m_Target: 1.5703824
+    m_Target: 610.7744
     speed: 2
-    m_Value: 1.6443794
+    m_Value: 1.5703824
   m_Ortho:
     m_Target: 0
     speed: 2
@@ -1676,8 +1676,8 @@ MonoBehaviour:
     m_TextWithWhitespace: "Animator\u200B"
   m_Pos:
     serializedVersion: 2
-    x: 630
-    y: 780
+    x: 1
+    y: 725
     width: 899
     height: 206
   m_SerializedDataModeController:
@@ -1838,8 +1838,8 @@ MonoBehaviour:
     m_TextWithWhitespace: "Inspector\u200B"
   m_Pos:
     serializedVersion: 2
-    x: 1531
-    y: 79
+    x: 1532
+    y: 24
     width: 388
     height: 907
   m_SerializedDataModeController:
