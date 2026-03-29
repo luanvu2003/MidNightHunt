@@ -43199,7 +43199,7 @@ AnimationClip:
     floatParameter: 0
     intParameter: 0
     messageOptions: 0
-  - time: 1.3333334
+  - time: 1.2666667
     functionName: FinishInteraction
     data: 
     objectReferenceParameter: {fileID: 0}
