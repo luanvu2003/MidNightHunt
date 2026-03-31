@@ -7968,7 +7968,7 @@ GameObject:
   - component: {fileID: 1228510006672049023}
   m_Layer: 0
   m_Name: Generator
-  m_TagString: Untagged
+  m_TagString: May
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -8013,6 +8013,8 @@ MonoBehaviour:
   currentSkillLevel: 1
   stunDuration: 10
   progressPenalty: 5
+  hunterDamageAmount: 15
+  isDamagedByHunter: 0
   player: {fileID: 0}
   playerMovementScript: {fileID: 0}
   isRepairing: 0
@@ -9251,7 +9253,7 @@ Transform:
   m_GameObject: {fileID: 5368367259026930027}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.24, y: 5.84, z: 0}
+  m_LocalPosition: {x: 0.8, y: 5.89, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9267,9 +9269,9 @@ Light:
   m_Enabled: 1
   serializedVersion: 11
   m_Type: 2
-  m_Color: {r: 0.2511125, g: 0.89726526, b: 0.9339623, a: 1}
+  m_Color: {r: 0.7533375, g: 0.9246197, b: 0.9339623, a: 1}
   m_Intensity: 500
-  m_Range: 3.3175125
+  m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize: 10
