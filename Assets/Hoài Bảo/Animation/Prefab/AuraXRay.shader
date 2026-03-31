@@ -1,91 +1,68 @@
 Shader "Custom/AuraXRay" {
     Properties {
-        _Color ("Aura Color", Color) = (1, 0, 0, 0.6)
+        _Color ("Aura Color", Color) = (1, 0, 0, 0.6) 
+        
+        // 🚨 THÊM TÍNH NĂNG MỚI: TÙY CHỈNH KHOẢNG CÁCH
+        _HideDistance ("Tàng hình khi đứng gần (Mét)", Float) = 5
+        _ShowDistance ("Hiện rõ khi đứng xa (Mét)", Float) = 7
     }
     SubShader {
-        // 🚨 THÊM KHAI BÁO: Báo cho Unity biết Shader này hỗ trợ URP
         Tags { 
             "RenderType"="Transparent" 
             "Queue"="Transparent+1" 
-            "RenderPipeline"="UniversalPipeline" 
+            "LightMode"="UniversalForward" 
         }
-
-        // ========================================================
-        // LƯỢT 1: Vẽ mặt nạ tàng hình
-        // ========================================================
+        
         Pass {
-            Name "Mask"
-            // 🚨 BÙA CHỐNG URP LƯỜI BIẾNG: Ép nó phải đọc Pass này đầu tiên
-            Tags { "LightMode"="UniversalForward" } 
+            ZTest Greater // Vẫn giữ nguyên: CHỈ vẽ khi bị tường che
+            ZWrite Off   
             
-            ZTest LEqual
-            ZWrite Off
-            ColorMask 0
-            Cull Back
+            // Đã trả lại Cull Back vì giờ đứng gần đã tàng hình, 
+            // đứng xa vẽ Cull Back nhìn Aura sẽ đầy đặn và đẹp hơn!
+            Cull Back 
             
-            // 🚨 BÙA CHỐNG Z-FIGHTING: Đẩy mặt nạ lồi lên phía trước Camera một chút xíu (chỉ vài mm)
-            // Để chắc chắn 100% nó đè lên được lớp vỏ của cái máy phát điện!
-            Offset -1, -1 
-            
-            Stencil {
-                Ref 1
-                Comp Always
-                Pass Replace
-            }
-
-            CGPROGRAM
-            #pragma vertex vert
-            #pragma fragment frag
-            #include "UnityCG.cginc"
-
-            struct appdata { float4 vertex : POSITION; };
-            struct v2f { float4 vertex : SV_POSITION; };
-
-            v2f vert (appdata v) {
-                v2f o;
-                o.vertex = UnityObjectToClipPos(v.vertex);
-                return o;
-            }
-            fixed4 frag (v2f i) : SV_Target {
-                return fixed4(0,0,0,0);
-            }
-            ENDCG
-        }
-
-        // ========================================================
-        // LƯỢT 2: Vẽ màu Aura Xuyên Tường
-        // ========================================================
-        Pass {
-            Name "Aura"
-            // 🚨 BÙA CHỐNG URP LƯỜI BIẾNG 2: Ép nó đọc tiếp Pass này như một layer bổ sung
-            Tags { "LightMode"="SRPDefaultUnlit" } 
-            
-            ZTest Greater
-            ZWrite Off
-            Cull Back
             Blend SrcAlpha OneMinusSrcAlpha 
-            
-            Stencil {
-                Ref 1
-                Comp NotEqual // CHỈ VẼ nếu điểm đó CHƯA bị dính mặt nạ ở Lượt 1
-            }
 
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
             #include "UnityCG.cginc"
 
-            struct appdata { float4 vertex : POSITION; };
-            struct v2f { float4 vertex : SV_POSITION; };
+            struct appdata { 
+                float4 vertex : POSITION; 
+            };
+            
+            struct v2f { 
+                float4 vertex : SV_POSITION; 
+                float dist : TEXCOORD0; // 🚨 Biến lưu trữ khoảng cách
+            };
+            
             float4 _Color;
+            float _HideDistance;
+            float _ShowDistance;
 
             v2f vert (appdata v) {
                 v2f o;
                 o.vertex = UnityObjectToClipPos(v.vertex);
+                
+                // 🚨 TÍNH TOÁN KHOẢNG CÁCH TỪ MẮT NHÂN VẬT ĐẾN CÁI MÁY
+                float3 worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
+                o.dist = distance(_WorldSpaceCameraPos, worldPos);
+                
                 return o;
             }
+            
             fixed4 frag (v2f i) : SV_Target {
-                return _Color; 
+                // 🚨 PHÉP MÀU NẰM Ở ĐÂY: Hàm smoothstep
+                // Nếu khoảng cách < 4 mét -> fade = 0 (Tàng hình 100%)
+                // Nếu khoảng cách > 8 mét -> fade = 1 (Rõ 100%)
+                // Nằm giữa 4 và 8 mét -> Mờ dần dần cực kỳ đẹp mắt
+                float fade = smoothstep(_HideDistance, _ShowDistance, i.dist);
+                
+                fixed4 finalColor = _Color;
+                finalColor.a *= fade; // Trộn độ mờ tàng hình vào màu Aura
+                
+                return finalColor; 
             }
             ENDCG
         }
