@@ -8,6 +8,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 864518921092533800, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 864518921092533800, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2113860345150186153, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
       propertyPath: m_LocalPosition.x
       value: -4.808629
@@ -52,6 +60,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: Generator Variant
       objectReference: {fileID: 0}
+    - target: {fileID: 5426405842867956285, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5426405842867956285, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5426405842867956285, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -82,7 +102,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7758198910911321431}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 274a60c78f28d6743b5ccf00b3b945d8, type: 3}
   m_Name: 
@@ -90,6 +110,4 @@ MonoBehaviour:
   needle: {fileID: 1442856008986738790}
   successZone: {fileID: 867788048696443874}
   rotateSpeed: 200
-  successMin: 60
-  successMax: 90
   exitGate: {fileID: 0}
