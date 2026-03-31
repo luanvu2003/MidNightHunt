@@ -12,10 +12,13 @@ public class Generator : MonoBehaviour
     public float stunDuration = 10f;
     private float stunTimer = 0f;
     public float progressPenalty = 5f;
+    
+    // 🚨 BIẾN MỚI CHO HUNTER ĐẠP MÁY
+    public float hunterDamageAmount = 15f; 
+    public bool isDamagedByHunter = false; // Cờ đánh dấu máy đã bị đạp chưa
 
     [Header("Player Settings")]
     public Transform player;
-    // --- BIẾN MỚI ĐỂ KHÓA DI CHUYỂN ---
     public MonoBehaviour playerMovementScript;
 
     private bool playerInRange = false;
@@ -68,8 +71,10 @@ public class Generator : MonoBehaviour
             else
             {
                 isRepairing = true;
+                
+                // 🚨 KHI SURVIVOR QUAY LẠI SỬA: XÓA CỜ "BỊ ĐẠP"
+                isDamagedByHunter = false;
 
-                // --- KHÓA DI CHUYỂN ---
                 if (playerMovementScript != null) playerMovementScript.enabled = false;
 
                 if (progressBar != null) progressBar.gameObject.SetActive(true);
@@ -104,9 +109,7 @@ public class Generator : MonoBehaviour
         if (explosionFX != null) explosionFX.Play();
         if (explosionSound != null) explosionSound.Play();
 
-        // --- THÊM DÒNG NÀY ---
         AlertNearbyCrows(); 
-        // ---------------------
 
         StopRepairing();
         stunTimer = stunDuration;
@@ -119,23 +122,56 @@ public class Generator : MonoBehaviour
         if (explosionFX != null) explosionFX.Play();
         if (explosionSound != null) explosionSound.Play();
 
-        // --- THÊM DÒNG NÀY ---
         AlertNearbyCrows(); 
-        // ---------------------
 
         progress = Mathf.Max(0, progress - progressPenalty);
         if (progressBar != null) progressBar.value = progress / repairTime;
 
         StopRepairing();
     }
+    
+    // =========================================================
+    // 🚨 HÀM MỚI: ĐƯỢC GỌI BỞI HUNTER KHI ĐẠP MÁY
+    // =========================================================
+    public void DamageByHunter()
+    {
+        // 1. Trừ 15 giây tiến trình
+        progress = Mathf.Max(0, progress - hunterDamageAmount);
+        
+        // 2. Bật cờ đánh dấu đã đạp (để Hunter không đạp được nữa)
+        isDamagedByHunter = true;
+
+        // 3. Hiệu ứng xẹt lửa, âm thanh nổ
+        if (explosionFX != null) explosionFX.Play();
+        if (explosionSound != null) explosionSound.Play();
+        
+        AlertNearbyCrows();
+        
+        // (Tùy chọn) Bắt Survivor văng ra nếu đang ngồi sửa
+        if (isRepairing) 
+        {
+            StopRepairing();
+            // Nếu muốn ác hơn thì gọi ApplyStun() ở đây luôn
+        }
+    }
+
+    // =========================================================
+    // 🚨 HÀM KIỂM TRA ĐIỀU KIỆN ĐẠP (CHO HUNTER)
+    // =========================================================
+    public bool CanBeDamagedByHunter()
+    {
+        // Hunter CHỈ ĐƯỢC đạp khi:
+        // 1. Máy chưa sửa xong
+        // 2. Tiến trình lớn hơn 0 (Đã có đứa động vào)
+        // 3. Máy chưa bị đạp (hoặc Survivor đã quay lại sửa để xóa cờ)
+        return !isRepaired && progress > 0f && !isDamagedByHunter;
+    }
+
 
     public void StopRepairing()
     {
         isRepairing = false;
-
-        // --- MỞ KHÓA DI CHUYỂN ---
         if (playerMovementScript != null) playerMovementScript.enabled = true;
-
         UpdateVisuals(false);
         if (skillCheck != null) skillCheck.gameObject.SetActive(false);
         if (progressBar != null) progressBar.gameObject.SetActive(false);
@@ -156,13 +192,10 @@ public class Generator : MonoBehaviour
         isRepaired = true;
         isRepairing = false;
 
-        // --- THÊM DÒNG NÀY VÀO ---
-            if (GameManager.Instance != null) {
-                GameManager.Instance.GeneratorFixed(); 
+        if (GameManager.Instance != null) {
+            GameManager.Instance.GeneratorFixed(); 
         }
-        // ------------------------
 
-        // --- MỞ KHÓA DI CHUYỂN ---
         if (playerMovementScript != null) playerMovementScript.enabled = true;
 
         if (progressBar != null)
@@ -188,7 +221,6 @@ public class Generator : MonoBehaviour
     public void PlayerEnteredZone()
     {
         if (isRepaired) return;
-
         zonesOccupied++;
         if (zonesOccupied > 0)
         {
@@ -211,11 +243,9 @@ public class Generator : MonoBehaviour
         }
     }
 
-
-    // Thêm hàm này vào cuối lớp Generator (trước dấu ngoặc nhọn cuối cùng)
     private void AlertNearbyCrows()
     {
-        float noiseRadius = 20f; // Khoảng cách tiếng nổ làm quạ sợ
+        float noiseRadius = 20f; 
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, noiseRadius);
         foreach (var hitCollider in hitColliders)
         {
