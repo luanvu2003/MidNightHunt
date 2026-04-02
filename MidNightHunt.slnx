@@ -4,6 +4,12 @@
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="VHierarchy.csproj" />
   <Project Path="Fusion.Unity.csproj" />
+  <Project Path="ToonyColorsPro.Demo.Editor.csproj" />
+  <Project Path="CFXRDemo.csproj" />
+  <Project Path="CFXR.WelcomeScreen.csproj" />
+  <Project Path="KinoBloom.Runtime.csproj" />
+  <Project Path="CFXRRuntime.csproj" />
+  <Project Path="CFXREditor.csproj" />
   <Project Path="PalletShowRoom_AD.csproj" />
   <Project Path="Unity.Fusion.CodeGen.csproj" />
 </Solution>
