@@ -43,15 +43,16 @@ public class PalletController : MonoBehaviour
         }
     }
 
-    IEnumerator DropRoutine()
+        IEnumerator DropRoutine()
     {
         isDropped = true;
-        
-        // Ẩn Image khi bắt đầu đổ ván
         if (instructionImage != null) instructionImage.SetActive(false);
-        
         if (dropSound != null) dropSound.Play();
 
+        // 1. KIỂM TRA HUNTER TRƯỚC KHI ĐỔ (Để đẩy lùi)
+        PushHunterBack();
+
+        // 2. XOAY VÁN MƯỢT MÀ
         Quaternion startRotation = transform.localRotation;
         Quaternion targetRotation = Quaternion.Euler(90, transform.localEulerAngles.y, transform.localEulerAngles.z);
         
@@ -66,8 +67,68 @@ public class PalletController : MonoBehaviour
 
         if (navObstacle != null) navObstacle.carving = true;
 
+        // 3. GÂY CHOÁNG (Stun)
         CheckForStun();
     }
+
+    void PushHunterBack()
+    {
+        // 1. Tính toán vùng quét dựa trên StunZone (Khung xanh)
+        Vector3 center = stunZoneCollider.transform.position;
+        // Scale vùng quét to hơn một chút để Hunter không kịp chạm vào ván
+        Vector3 halfExtents = Vector3.Scale(stunZoneCollider.size / 1.8f, stunZoneCollider.transform.lossyScale);
+        
+        // 2. Chỉ quét những gì thuộc Layer Killer
+        Collider[] hitKillers = Physics.OverlapBox(center, halfExtents, stunZoneCollider.transform.rotation, killerLayer);
+
+        foreach (Collider killer in hitKillers)
+        {
+            // Tính hướng từ Pivot ván đến Hunter
+            Vector3 pushDir = (killer.transform.position - transform.position).normalized;
+            pushDir.y = 0; // Chỉ đẩy ngang
+
+            // 3. XỬ LÝ ĐẨY LÙI QUYẾT LIỆT
+            // Nếu Hunter có Rigidbody, chúng ta phải "dịch" nó đi thông qua MovePosition hoặc ép Position trực tiếp
+            Rigidbody rb = killer.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                // Dịch chuyển tức thời ra xa 1.8 đơn vị
+                Vector3 targetPos = killer.transform.position + pushDir * 1.8f;
+                rb.position = targetPos; // Ép vị trí vật lý
+            }
+            else
+            {
+                killer.transform.position += pushDir * 1.8f;
+            }
+
+            Debug.Log("<color=orange>DBD Logic:</color> Đã ép Hunter lùi lại!");
+        }
+    }
+    // IEnumerator DropRoutine()
+    // {
+    //     isDropped = true;
+        
+    //     // Ẩn Image khi bắt đầu đổ ván
+    //     if (instructionImage != null) instructionImage.SetActive(false);
+        
+    //     if (dropSound != null) dropSound.Play();
+
+    //     Quaternion startRotation = transform.localRotation;
+    //     Quaternion targetRotation = Quaternion.Euler(90, transform.localEulerAngles.y, transform.localEulerAngles.z);
+        
+    //     float elapsed = 0;
+    //     while (elapsed < dropSpeed)
+    //     {
+    //         transform.localRotation = Quaternion.Slerp(startRotation, targetRotation, elapsed / dropSpeed);
+    //         elapsed += Time.deltaTime;
+    //         yield return null;
+    //     }
+    //     transform.localRotation = targetRotation;
+
+    //     if (navObstacle != null) navObstacle.carving = true;
+
+    //     CheckForStun();
+    // }
 
     void CheckForStun()
     {
@@ -82,18 +143,17 @@ public class PalletController : MonoBehaviour
 
         Collider[] hitKillers = Physics.OverlapBox(center, halfExtents, stunZoneCollider.transform.rotation, killerLayer);
 
-        // Phần foreach tạm thời để comment như cũ của bạn
-        /*
+        
         foreach (Collider killer in hitKillers)
         {
-            var killerScript = killer.GetComponent<KillerAI>(); 
+            var killerScript = killer.GetComponent<HunterTest>(); 
             if (killerScript != null)
             {
                 killerScript.GetStunned(stunDuration);
                 Debug.Log("<color=yellow>Pallet:</color> Killer bị dính ván và Choáng!");
             }
         }
-        */
+        
     }
 
     private void OnTriggerEnter(Collider other)
