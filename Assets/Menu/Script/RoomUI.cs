@@ -1,21 +1,29 @@
 using Fusion;
 using UnityEngine;
 using TMPro;
-using UnityEngine.UI;
+using UnityEngine.UI; 
 using System.Collections;
+using System.Linq; // Thêm thư viện này để đếm số người
 
 public class RoomUI : MonoBehaviour
 {
     public static RoomUI Instance;
+
+    [Header("Cài Đặt Game")]
+    [Tooltip("Số người cần thiết để bắt đầu. Đang test thì để 2, Build thật thì để 4")]
+    public int requiredPlayers = 2; // 🚨 Sửa số này thành 2 để bạn test nhé!
 
     [Header("UI Elements")]
     public TextMeshProUGUI roomNameText;
     public TextMeshProUGUI roomIDText;
     public GameObject startGameButton;
 
+    // 🚨 THÊM MỚI: Text cảnh báo thiếu người
+    [Header("UI Cảnh Báo")]
+    public TextMeshProUGUI warningText; 
+
     [Header("Player List")]
     public Transform playerListContainer;
-
     public GameObject playerItemPrefab;
 
     private NetworkRunner _runner;
@@ -31,11 +39,12 @@ public class RoomUI : MonoBehaviour
 
         if (_runner != null)
         {
-            // Chạy Coroutine an toàn hơn
             StartCoroutine(UpdateRoomDetailsRoutine());
 
             if (startGameButton != null)
                 startGameButton.SetActive(_runner.IsServer);
+
+            if (warningText != null) warningText.gameObject.SetActive(false);
         }
     }
 
@@ -43,10 +52,9 @@ public class RoomUI : MonoBehaviour
     {
         while (_runner == null || _runner.SessionInfo == null || !_runner.SessionInfo.IsValid)
         {
-            yield return null;
+            yield return null; 
         }
 
-        // 🚨 THÊM BẢO VỆ Ở ĐÂY: Nếu có Khung chứa thì mới dọn rác
         if (playerListContainer != null)
         {
             foreach (Transform child in playerListContainer)
@@ -56,8 +64,8 @@ public class RoomUI : MonoBehaviour
         }
 
         string idPhong = _runner.SessionInfo.Name;
-
-        if (roomIDText != null)
+        
+        if (roomIDText != null) 
         {
             roomIDText.text = "ID: " + idPhong;
         }
@@ -75,13 +83,20 @@ public class RoomUI : MonoBehaviour
         }
     }
 
+    public void CopyRoomID()
+    {
+        if (_runner != null && _runner.SessionInfo != null && _runner.SessionInfo.IsValid)
+        {
+            GUIUtility.systemCopyBuffer = _runner.SessionInfo.Name;
+            Debug.Log("Đã copy ID: " + _runner.SessionInfo.Name);
+        }
+    }
+
     public void AddPlayer(string playerName, int charID = -1)
     {
-        // 🚨 THÊM BẢO VỆ Ở ĐÂY: Tránh lỗi khi đang chuyển Scene mà vẫn ráng đẻ tên
         if (playerListContainer == null) return;
 
         Transform existingPlayer = playerListContainer.Find(playerName);
-
         if (existingPlayer != null) return;
 
         GameObject newPlayerItem = Instantiate(playerItemPrefab, playerListContainer);
@@ -95,17 +110,9 @@ public class RoomUI : MonoBehaviour
         newPlayerItem.name = playerName;
     }
 
-    public void CopyRoomID()
-    {
-        if (_runner != null && _runner.SessionInfo != null && _runner.SessionInfo.IsValid)
-        {
-            GUIUtility.systemCopyBuffer = _runner.SessionInfo.Name;
-            Debug.Log("Đã copy ID: " + _runner.SessionInfo.Name);
-        }
-    }
-
     public void RemovePlayer(string playerName)
     {
+        if (playerListContainer == null) return;
         Transform playerItem = playerListContainer.Find(playerName);
 
         if (playerItem != null)
@@ -114,13 +121,38 @@ public class RoomUI : MonoBehaviour
         }
     }
 
+    // 🚨 CẬP NHẬT: KHI BẤM NÚT START GAME Ở LOBBY
     public void OnClickStartGame()
     {
         if (_runner.IsServer)
         {
-            // Chuyển sang Scene 2 (Quay xổ số)
-            _runner.LoadScene(SceneRef.FromIndex(2));
+            // Kiểm tra số lượng người đang có trong phòng
+            int currentPlayerCount = _runner.SessionInfo.PlayerCount;
+
+            if (currentPlayerCount >= requiredPlayers)
+            {
+                // Đủ người -> Chuyển sang Scene 2 (Quay xổ số)
+                _runner.LoadScene(SceneRef.FromIndex(2));
+            }
+            else
+            {
+                // Chưa đủ người -> Bật cảnh báo
+                if (warningText != null)
+                {
+                    warningText.text = $"Chưa đủ người! Cần {requiredPlayers} người để bắt đầu (Hiện tại: {currentPlayerCount}).";
+                    warningText.gameObject.SetActive(true);
+                    
+                    StopAllCoroutines();
+                    StartCoroutine(HideWarningRoutine());
+                }
+            }
         }
+    }
+
+    IEnumerator HideWarningRoutine()
+    {
+        yield return new WaitForSeconds(3f);
+        if (warningText != null) warningText.gameObject.SetActive(false);
     }
 
     public void OnClickLeave()
