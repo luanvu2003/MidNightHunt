@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 49bd32890f5844b49a3ec6b90e85fd02
+guid: 87fb8467cc85a8d4ba1816679bd65fe7
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -110,13 +110,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: IMG_Player1_0
+      name: "M\xE1y ph\xE1t \u0111i\u1EC7n_0"
       rect:
         serializedVersion: 2
-        x: 197
-        y: 1
-        width: 183
-        height: 426
+        x: 114
+        y: 41
+        width: 303
+        height: 406
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -125,8 +125,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: d52e4e899b21ee546a1ca2c1731d9030
-      internalID: 1040989401
+      spriteID: d4e559e2ecd9d4c4aabdc8868c8f6b74
+      internalID: 538925653
       vertices: []
       indices: 
       edges: []
@@ -135,7 +135,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: e451d97702c355f459cfbfe66d33c3a8
+    spriteID: 21bf15bad0c6c5c4982abf1522dce9c1
     internalID: 0
     vertices: []
     indices: 
@@ -145,7 +145,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      IMG_Player1_0: 1040989401
+      "M\xE1y ph\xE1t \u0111i\u1EC7n_0": 538925653
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
