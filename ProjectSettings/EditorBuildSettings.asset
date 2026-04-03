@@ -12,11 +12,14 @@ EditorBuildSettings:
     path: Assets/Scenes/Room.unity
     guid: ec5fda67b8947a048bfcf2b0fd6dc3bc
   - enabled: 1
+    path: Assets/Scenes/RandomRoleScene.unity
+    guid: 4a4d5eaf041d13d479a4ee205eba34f3
+  - enabled: 1
+    path: Assets/Scenes/SelectionScene.unity
+    guid: c1721aeeb291fc348bd6be70f225eeaf
+  - enabled: 1
     path: Assets/Scenes/HBao_Map.unity
     guid: 1bf6a590684760340b11e662ce053c11
-  - enabled: 1
-    path: Assets/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: a0a1c1d1b9ae13c4c8855fc28f1ad77d, type: 3}
   m_UseUCBPForAssetBundles: 0
