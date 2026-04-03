@@ -1,7 +1,7 @@
 using Fusion;
 using UnityEngine;
 using TMPro;
-using UnityEngine.UI; // Thêm thư viện này nếu cần xử lý Image
+using UnityEngine.UI;
 using System.Collections;
 
 public class RoomUI : MonoBehaviour
@@ -16,7 +16,6 @@ public class RoomUI : MonoBehaviour
     [Header("Player List")]
     public Transform playerListContainer;
 
-    // THAY ĐỔI Ở ĐÂY: Đổi sang GameObject để chứa cả khung lẫn text
     public GameObject playerItemPrefab;
 
     private NetworkRunner _runner;
@@ -32,7 +31,7 @@ public class RoomUI : MonoBehaviour
 
         if (_runner != null)
         {
-            // Chạy một Coroutine để đợi dữ liệu phòng sẵn sàng
+            // Chạy Coroutine an toàn hơn
             StartCoroutine(UpdateRoomDetailsRoutine());
 
             if (startGameButton != null)
@@ -42,16 +41,30 @@ public class RoomUI : MonoBehaviour
 
     IEnumerator UpdateRoomDetailsRoutine()
     {
-        yield return new WaitForSeconds(0.5f); // Đợi Fusion đồng bộ properties
-
-        if (_runner != null && _runner.SessionInfo.IsValid)
+        while (_runner == null || _runner.SessionInfo == null || !_runner.SessionInfo.IsValid)
         {
-            // 1. Hiển thị ID (Mã số dùng để Join)
-            string idPhong = _runner.SessionInfo.Name;
-            roomIDText.text = "ID: " + idPhong;
+            yield return null;
+        }
 
-            // 2. Hiển thị Tên chủ phòng (Lấy từ Properties)
-            if (_runner.SessionInfo.Properties.TryGetValue("HostName", out var hostName))
+        // 🚨 THÊM BẢO VỆ Ở ĐÂY: Nếu có Khung chứa thì mới dọn rác
+        if (playerListContainer != null)
+        {
+            foreach (Transform child in playerListContainer)
+            {
+                Destroy(child.gameObject);
+            }
+        }
+
+        string idPhong = _runner.SessionInfo.Name;
+
+        if (roomIDText != null)
+        {
+            roomIDText.text = "ID: " + idPhong;
+        }
+
+        if (roomNameText != null)
+        {
+            if (_runner.SessionInfo.Properties != null && _runner.SessionInfo.Properties.TryGetValue("HostName", out var hostName))
             {
                 roomNameText.text = "Phòng của: " + hostName;
             }
@@ -59,46 +72,42 @@ public class RoomUI : MonoBehaviour
             {
                 roomNameText.text = "Phòng: Đang tải...";
             }
-
-            Debug.Log($"ID: {idPhong} | Chủ phòng: {hostName}");
         }
+    }
+
+    public void AddPlayer(string playerName, int charID = -1)
+    {
+        // 🚨 THÊM BẢO VỆ Ở ĐÂY: Tránh lỗi khi đang chuyển Scene mà vẫn ráng đẻ tên
+        if (playerListContainer == null) return;
+
+        Transform existingPlayer = playerListContainer.Find(playerName);
+
+        if (existingPlayer != null) return;
+
+        GameObject newPlayerItem = Instantiate(playerItemPrefab, playerListContainer);
+        TextMeshProUGUI nameText = newPlayerItem.GetComponentInChildren<TextMeshProUGUI>();
+
+        if (nameText != null)
+        {
+            nameText.text = playerName;
+        }
+
+        newPlayerItem.name = playerName;
     }
 
     public void CopyRoomID()
     {
-        if (_runner != null)
+        if (_runner != null && _runner.SessionInfo != null && _runner.SessionInfo.IsValid)
         {
             GUIUtility.systemCopyBuffer = _runner.SessionInfo.Name;
             Debug.Log("Đã copy ID: " + _runner.SessionInfo.Name);
         }
     }
 
-    // --- CẬP NHẬT HÀM THÊM NGƯỜI CHƠI ---
-    public void AddPlayer(string playerName)
-    {
-        // 1. Sinh ra toàn bộ cái object khung gỗ
-        GameObject newPlayerItem = Instantiate(playerItemPrefab, playerListContainer);
-
-        // 2. Tìm thành phần TextMeshProUGUI nằm con bên trong cái khung đó
-        TextMeshProUGUI nameText = newPlayerItem.GetComponentInChildren<TextMeshProUGUI>();
-
-        if (nameText != null)
-        {
-            // 3. Đổi chữ thành tên người chơi
-            nameText.text = playerName;
-        }
-
-        // 4. Đặt tên cho object ngoài cùng để sau này tìm và xóa dễ dàng
-        newPlayerItem.name = playerName;
-    }
-
-    // --- CẬP NHẬT HÀM XÓA NGƯỜI CHƠI ---
     public void RemovePlayer(string playerName)
     {
-        // Tìm object (cái khung) mang tên người chơi vừa thoát
         Transform playerItem = playerListContainer.Find(playerName);
 
-        // Nếu tìm thấy thì xóa nguyên cái khung đó đi
         if (playerItem != null)
         {
             Destroy(playerItem.gameObject);
@@ -109,7 +118,7 @@ public class RoomUI : MonoBehaviour
     {
         if (_runner.IsServer)
         {
-            // Sử dụng LoadScene thay cho SetActiveScene
+            // Chuyển sang Scene 2 (Quay xổ số)
             _runner.LoadScene(SceneRef.FromIndex(2));
         }
     }
