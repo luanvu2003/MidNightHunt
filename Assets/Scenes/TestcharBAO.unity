@@ -734,7 +734,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -898.99994, y: 55.999996}
+  m_AnchoredPosition: {x: -898.99994, y: 56}
   m_SizeDelta: {x: -1820, y: -980}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &570970573
@@ -1164,7 +1164,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -899, y: 190}
+  m_AnchoredPosition: {x: -898.99994, y: 190}
   m_SizeDelta: {x: -1820, y: -980}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1079535661
@@ -1217,7 +1217,7 @@ GameObject:
   - component: {fileID: 1130388260}
   - component: {fileID: 1130388259}
   m_Layer: 5
-  m_Name: MrBeast (1)
+  m_Name: "\xCDhowspess"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1241,7 +1241,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -898.99994, y: -89.00001}
+  m_AnchoredPosition: {x: -898.99994, y: -89}
   m_SizeDelta: {x: -1820, y: -980}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1130388259
@@ -1264,7 +1264,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 577237034, guid: 36039772558cb134d915f12220b20833, type: 3}
+  m_Sprite: {fileID: -1748521241, guid: 0f6bfd49eb556804cb05c264c0c8002c, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
