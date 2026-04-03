@@ -4,7 +4,7 @@ using Fusion;
 using Unity.Mathematics;
 
 [RequireComponent(typeof(CharacterController))]
-public class PlayerController : MonoBehaviour
+public class MrBeastController : MonoBehaviour
 {
     [Header("Animator Settings")]
     public Animator animator;
