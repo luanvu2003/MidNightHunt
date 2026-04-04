@@ -1,22 +1,29 @@
 using Fusion;
 using UnityEngine;
 using TMPro;
-using UnityEngine.UI; // Thêm thư viện này nếu cần xử lý Image
+using UnityEngine.UI; 
 using System.Collections;
+using System.Linq; // Thêm thư viện này để đếm số người
 
 public class RoomUI : MonoBehaviour
 {
     public static RoomUI Instance;
+
+    [Header("Cài Đặt Game")]
+    [Tooltip("Số người cần thiết để bắt đầu. Đang test thì để 2, Build thật thì để 4")]
+    public int requiredPlayers = 2; // 🚨 Sửa số này thành 2 để bạn test nhé!
 
     [Header("UI Elements")]
     public TextMeshProUGUI roomNameText;
     public TextMeshProUGUI roomIDText;
     public GameObject startGameButton;
 
+    // 🚨 THÊM MỚI: Text cảnh báo thiếu người
+    [Header("UI Cảnh Báo")]
+    public TextMeshProUGUI warningText; 
+
     [Header("Player List")]
     public Transform playerListContainer;
-
-    // THAY ĐỔI Ở ĐÂY: Đổi sang GameObject để chứa cả khung lẫn text
     public GameObject playerItemPrefab;
 
     private NetworkRunner _runner;
@@ -32,86 +39,120 @@ public class RoomUI : MonoBehaviour
 
         if (_runner != null)
         {
-            // Chạy một Coroutine để đợi dữ liệu phòng sẵn sàng
             StartCoroutine(UpdateRoomDetailsRoutine());
 
             if (startGameButton != null)
                 startGameButton.SetActive(_runner.IsServer);
+
+            if (warningText != null) warningText.gameObject.SetActive(false);
         }
     }
 
     IEnumerator UpdateRoomDetailsRoutine()
     {
-        yield return new WaitForSeconds(0.5f); // Đợi Fusion đồng bộ properties
-
-        if (_runner != null && _runner.SessionInfo.IsValid)
+        while (_runner == null || _runner.SessionInfo == null || !_runner.SessionInfo.IsValid)
         {
-            // 1. Hiển thị ID (Mã số dùng để Join)
-            string idPhong = _runner.SessionInfo.Name;
-            roomIDText.text = "ID: " + idPhong;
+            yield return null; 
+        }
 
-            // 2. Hiển thị Tên chủ phòng (Lấy từ Properties)
-            if (_runner.SessionInfo.Properties.TryGetValue("HostName", out var hostName))
+        if (playerListContainer != null)
+        {
+            foreach (Transform child in playerListContainer)
             {
-                roomNameText.text = "Phòng của: " + hostName;
+                Destroy(child.gameObject);
+            }
+        }
+
+        string idPhong = _runner.SessionInfo.Name;
+        
+        if (roomIDText != null) 
+        {
+            roomIDText.text = "" + idPhong;
+        }
+
+        if (roomNameText != null)
+        {
+            if (_runner.SessionInfo.Properties != null && _runner.SessionInfo.Properties.TryGetValue("HostName", out var hostName))
+            {
+                roomNameText.text = "" + hostName;
             }
             else
             {
                 roomNameText.text = "Phòng: Đang tải...";
             }
-
-            Debug.Log($"ID: {idPhong} | Chủ phòng: {hostName}");
         }
     }
 
     public void CopyRoomID()
     {
-        if (_runner != null)
+        if (_runner != null && _runner.SessionInfo != null && _runner.SessionInfo.IsValid)
         {
             GUIUtility.systemCopyBuffer = _runner.SessionInfo.Name;
             Debug.Log("Đã copy ID: " + _runner.SessionInfo.Name);
         }
     }
 
-    // --- CẬP NHẬT HÀM THÊM NGƯỜI CHƠI ---
-    public void AddPlayer(string playerName)
+    public void AddPlayer(string playerName, int charID = -1)
     {
-        // 1. Sinh ra toàn bộ cái object khung gỗ
-        GameObject newPlayerItem = Instantiate(playerItemPrefab, playerListContainer);
+        if (playerListContainer == null) return;
 
-        // 2. Tìm thành phần TextMeshProUGUI nằm con bên trong cái khung đó
+        Transform existingPlayer = playerListContainer.Find(playerName);
+        if (existingPlayer != null) return;
+
+        GameObject newPlayerItem = Instantiate(playerItemPrefab, playerListContainer);
         TextMeshProUGUI nameText = newPlayerItem.GetComponentInChildren<TextMeshProUGUI>();
 
         if (nameText != null)
         {
-            // 3. Đổi chữ thành tên người chơi
             nameText.text = playerName;
         }
 
-        // 4. Đặt tên cho object ngoài cùng để sau này tìm và xóa dễ dàng
         newPlayerItem.name = playerName;
     }
 
-    // --- CẬP NHẬT HÀM XÓA NGƯỜI CHƠI ---
     public void RemovePlayer(string playerName)
     {
-        // Tìm object (cái khung) mang tên người chơi vừa thoát
+        if (playerListContainer == null) return;
         Transform playerItem = playerListContainer.Find(playerName);
 
-        // Nếu tìm thấy thì xóa nguyên cái khung đó đi
         if (playerItem != null)
         {
             Destroy(playerItem.gameObject);
         }
     }
 
+    // 🚨 CẬP NHẬT: KHI BẤM NÚT START GAME Ở LOBBY
     public void OnClickStartGame()
     {
         if (_runner.IsServer)
         {
-            // Sử dụng LoadScene thay cho SetActiveScene
-            _runner.LoadScene(SceneRef.FromIndex(2));
+            // Kiểm tra số lượng người đang có trong phòng
+            int currentPlayerCount = _runner.SessionInfo.PlayerCount;
+
+            if (currentPlayerCount >= requiredPlayers)
+            {
+                // Đủ người -> Chuyển sang Scene 2 (Quay xổ số)
+                _runner.LoadScene(SceneRef.FromIndex(2));
+            }
+            else
+            {
+                // Chưa đủ người -> Bật cảnh báo
+                if (warningText != null)
+                {
+                    warningText.text = $"Chưa đủ người! Cần {requiredPlayers} người để bắt đầu (Hiện tại: {currentPlayerCount}).";
+                    warningText.gameObject.SetActive(true);
+                    
+                    StopAllCoroutines();
+                    StartCoroutine(HideWarningRoutine());
+                }
+            }
         }
+    }
+
+    IEnumerator HideWarningRoutine()
+    {
+        yield return new WaitForSeconds(3f);
+        if (warningText != null) warningText.gameObject.SetActive(false);
     }
 
     public void OnClickLeave()

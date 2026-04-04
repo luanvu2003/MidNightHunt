@@ -1,0 +1,35 @@
+{
+    "version": 1,
+    "name": "MrBean",
+    "maps": [
+        {
+            "name": "MrBean",
+            "id": "8a00a94d-39f3-4f07-94d5-2f15e31789fa",
+            "actions": [
+                {
+                    "name": "New action",
+                    "type": "Button",
+                    "id": "67ae46e5-a32a-4f8b-842a-15e5cb2e9415",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "93bfb71c-12b5-4df7-bf85-9a56b2cfd98d",
+                    "path": "",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "New action",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

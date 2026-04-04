@@ -40,10 +40,21 @@ public class AttackController : MonoBehaviour
     public string uiContainerName = "KhungUI_Hunter";
     public string ammoTextName = "TxtAmmo"; 
     public string cooldownImageName = "ImgCooldown"; 
+    
+    // 🚨 THÊM MỚI: Tên của 3 Image đại diện cho 3 Hunter
+    [Header("Tên UI Image Từng Hunter")]
+    public string imgHunter1Name = "ImgHunter1";
+    public string imgHunter2Name = "ImgHunter2";
+    public string imgHunter3Name = "ImgHunter3";
 
     [HideInInspector] public GameObject uiContainer;
     [HideInInspector] public TextMeshProUGUI ammoText;
     [HideInInspector] public Image cooldownImage;
+    
+    // 🚨 THÊM MỚI: Biến lưu trữ 3 cục Object Image
+    [HideInInspector] public GameObject imgHunter1;
+    [HideInInspector] public GameObject imgHunter2;
+    [HideInInspector] public GameObject imgHunter3;
 
     [Header("== SETTING HUNTER 1 (Ném Búa) ==")]
     public int maxAmmo = 5;
@@ -142,18 +153,26 @@ public class AttackController : MonoBehaviour
 
     void Start()
     {
+        // 🚨 TẮT HẾT CẢ 3 ẢNH TRƯỚC KHI BẬT ẢNH ĐÚNG
+        if (imgHunter1 != null) imgHunter1.SetActive(false);
+        if (imgHunter2 != null) imgHunter2.SetActive(false);
+        if (imgHunter3 != null) imgHunter3.SetActive(false);
+
         switch (typeOfHunter)
         {
             case HunterType.Hunter1_NemBua:
                 currentAmmo = maxAmmo;
                 if (cooldownImage != null) cooldownImage.fillAmount = 0f;
+                if (imgHunter1 != null) imgHunter1.SetActive(true); // Bật ảnh Hunter 1
                 break;
             case HunterType.Hunter2_DatTrap:
                 currentTrap = maxTrap;
+                if (imgHunter2 != null) imgHunter2.SetActive(true); // Bật ảnh Hunter 2
                 break;
             case HunterType.Hunter3_OiDoc:
                 currentSkillEnergy = 0f; 
                 UpdateSkillUI();
+                if (imgHunter3 != null) imgHunter3.SetActive(true); // Bật ảnh Hunter 3
                 break;
         }
         UpdateAmmoUI();
@@ -191,6 +210,11 @@ public class AttackController : MonoBehaviour
             GameObject cdObj = FindUIObjectByName(cooldownImageName);
             if (cdObj != null) cooldownImage = cdObj.GetComponent<Image>();
         }
+
+        // 🚨 TỰ ĐỘNG QUÉT TÌM 3 ẢNH ĐẠI DIỆN CỦA HUNTER
+        if (imgHunter1 == null && !string.IsNullOrEmpty(imgHunter1Name)) imgHunter1 = FindUIObjectByName(imgHunter1Name);
+        if (imgHunter2 == null && !string.IsNullOrEmpty(imgHunter2Name)) imgHunter2 = FindUIObjectByName(imgHunter2Name);
+        if (imgHunter3 == null && !string.IsNullOrEmpty(imgHunter3Name)) imgHunter3 = FindUIObjectByName(imgHunter3Name);
     }
 
     private GameObject FindUIObjectByName(string objName)
