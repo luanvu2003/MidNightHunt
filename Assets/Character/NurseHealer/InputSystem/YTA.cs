@@ -175,7 +175,7 @@ public partial class @YTA: IInputActionCollection2, IDisposable
                 {
                     ""name"": ""left"",
                     ""id"": ""a23d3e1d-bc63-4a6f-8fb5-33f0187bd770"",
-                    ""path"": ""<NimbusGamepadHid>/buttonSouth"",
+                    ""path"": ""<Keyboard>/a"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
