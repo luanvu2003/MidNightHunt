@@ -43,7 +43,7 @@ public class ReadyGameManager : NetworkBehaviour
 
         if (readyButtonText != null)
         {
-            readyButtonText.text = RoomPlayer.Local.IsReady ? "ĐÃ CHỐT" : "SẴN SÀNG";
+            readyButtonText.text = RoomPlayer.Local.IsReady ? "ĐÃ CHỐT" : "";
             readyButtonText.color = RoomPlayer.Local.IsReady ? Color.green : Color.white;
         }
 

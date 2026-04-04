@@ -67,14 +67,14 @@ public class RoomUI : MonoBehaviour
         
         if (roomIDText != null) 
         {
-            roomIDText.text = "ID: " + idPhong;
+            roomIDText.text = "" + idPhong;
         }
 
         if (roomNameText != null)
         {
             if (_runner.SessionInfo.Properties != null && _runner.SessionInfo.Properties.TryGetValue("HostName", out var hostName))
             {
-                roomNameText.text = "Phòng của: " + hostName;
+                roomNameText.text = "" + hostName;
             }
             else
             {
