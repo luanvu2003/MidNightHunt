@@ -14,16 +14,9 @@ public class MrBeastController : MonoBehaviour
     public float sprintSpeed = 8f;      // Tốc độ chạy nhanh (Khi giữ Sprint)
     public float rotationSpeed = 10f;
 
-    [Header("Jump & Gravity Settings")]
-    public float jumpHeight = 2f;
-    public float gravity = -15f; // Tăng trọng lực để nhân vật rơi đầm hơn
-    private Vector3 velocity;
-    private bool isGrounded;
 
     [Header("Input Settings")]
     public InputActionReference moveInput;
-    public InputActionReference jumpInput;
-    public InputActionReference attackInput;
     public InputActionReference sprintInput;
     public InputActionReference walkInput;
 
@@ -42,8 +35,6 @@ public class MrBeastController : MonoBehaviour
     private void OnEnable()
     {
         moveInput.action.Enable();
-        jumpInput.action.Enable();
-        attackInput.action.Enable();
         sprintInput.action.Enable();
         walkInput.action.Enable();
     }
@@ -51,8 +42,6 @@ public class MrBeastController : MonoBehaviour
     private void OnDisable()
     {
         moveInput.action.Disable();
-        jumpInput.action.Disable();
-        attackInput.action.Disable();
         sprintInput.action.Disable();
         walkInput.action.Disable();
     }
@@ -69,7 +58,6 @@ public class MrBeastController : MonoBehaviour
         if (characterController != null && characterController.enabled == false) return;
 
         HandleMovement();
-        applyGravityAndJumping();
     }
 
     private void HandleMovement()
@@ -125,31 +113,7 @@ public class MrBeastController : MonoBehaviour
         }
     }
 
-    private void applyGravityAndJumping()
-    {
-        isGrounded = characterController.isGrounded;
 
-        // Trọng lực kéo xuống liên tục, khi chạm đất thì ép một lực nhẹ (-2f) để bám chặt sàn
-        if (isGrounded && velocity.y < 0)
-        {
-            velocity.y = -2f;
-            if (animator != null) animator.SetBool("IsGrounded", true);
-        }
-        else
-        {
-            if (animator != null) animator.SetBool("IsGrounded", false);
-        }
-
-        if (jumpInput.action.triggered && isGrounded)
-        {
-            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
-            if (animator != null) animator.SetTrigger("Jump");
-        }
-
-        // Áp dụng trọng lực vào vận tốc trục Y
-        velocity.y += gravity * Time.deltaTime;
-        characterController.Move(velocity * Time.deltaTime);
-    }
 }
 
 // using UnityEngine;
