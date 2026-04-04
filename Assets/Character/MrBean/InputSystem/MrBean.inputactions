@@ -7,9 +7,45 @@
             "id": "8a00a94d-39f3-4f07-94d5-2f15e31789fa",
             "actions": [
                 {
-                    "name": "New action",
+                    "name": "Move",
+                    "type": "Value",
+                    "id": "07a8aaf1-c53e-4384-92b5-d4388de135fa",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "Jump",
                     "type": "Button",
-                    "id": "67ae46e5-a32a-4f8b-842a-15e5cb2e9415",
+                    "id": "28ceafb2-15a5-4597-ac13-d13f7e5b34b4",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "TuongTac",
+                    "type": "Button",
+                    "id": "b707c45e-8d59-4961-8419-a364a02c5982",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Sprint",
+                    "type": "Button",
+                    "id": "33a6f83e-cf9a-4da2-91f7-245ec43fa91d",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Walk",
+                    "type": "Button",
+                    "id": "e040cce4-5cc3-4af6-b483-d17f65c56270",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -18,13 +54,101 @@
             ],
             "bindings": [
                 {
-                    "name": "",
-                    "id": "93bfb71c-12b5-4df7-bf85-9a56b2cfd98d",
-                    "path": "",
+                    "name": "2D Vector",
+                    "id": "e592a7a1-49a6-4f1d-9719-2e2a1a85690a",
+                    "path": "2DVector",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "New action",
+                    "action": "Move",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "up",
+                    "id": "d6481ca6-00d1-4bf9-a84b-d10309f88a24",
+                    "path": "<Keyboard>/w",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Move",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "down",
+                    "id": "3f837343-efce-43fe-988e-94e6f797dcc8",
+                    "path": "<Keyboard>/s",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Move",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "left",
+                    "id": "b78643cc-02e4-4293-8b1c-10b3de9db1ec",
+                    "path": "<Keyboard>/a",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Move",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "right",
+                    "id": "7611be97-16fc-4178-bcbd-51d3eadc07b7",
+                    "path": "<Keyboard>/d",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Move",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "",
+                    "id": "3d0184ce-9dcf-4f18-a387-fee3e2b16208",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Jump",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "39b0ad1a-40f6-41d7-87b5-cf8c52c79636",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "TuongTac",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "4d4db0ee-ddfa-4600-9bb2-f50f36598ce0",
+                    "path": "<Keyboard>/leftShift",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Sprint",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "cfc4a9ed-cb41-4da2-9b43-4ee489a24eac",
+                    "path": "<Keyboard>/leftCtrl",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Walk",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

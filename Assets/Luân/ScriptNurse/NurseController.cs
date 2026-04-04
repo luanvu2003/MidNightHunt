@@ -4,7 +4,7 @@ using Fusion;
 using Unity.Mathematics;
 
 [RequireComponent(typeof(CharacterController))]
-public class MrBeanController : MonoBehaviour
+public class NurseController : MonoBehaviour
 {
     [Header("Animator Settings")]
     public Animator animator;
@@ -111,7 +111,6 @@ public class MrBeanController : MonoBehaviour
             animator.SetFloat("Speed", Mathf.Lerp(currentAnimSpeed, targetAnimSpeed, Time.deltaTime * 10f));
         }
     }
-
 }
 
 // using UnityEngine;
