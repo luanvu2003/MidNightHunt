@@ -2,33 +2,47 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Fusion;
 using Unity.Mathematics;
+using System.Collections;
 
 [RequireComponent(typeof(CharacterController))]
 public class NurseController : MonoBehaviour
 {
     [Header("Animator Settings")]
     public Animator animator;
+
     [Header("Movement Settings")]
-    public float slowWalkSpeed = 2f;    // Tốc độ đi bộ (Khi giữ Left Ctrl)
-    public float mediumRunSpeed = 5f;   // Tốc độ chạy vừa (Mặc định)
-    public float sprintSpeed = 8f;      // Tốc độ chạy nhanh (Khi giữ Sprint)
+    public float slowWalkSpeed = 2f;
+    public float mediumRunSpeed = 5f;
+    public float sprintSpeed = 8f;
     public float rotationSpeed = 10f;
 
     [Header("Input Settings")]
     public InputActionReference moveInput;
     public InputActionReference sprintInput;
     public InputActionReference walkInput;
+    public InputActionReference jumpInput;
+
+    [Header("Window Vaulting Settings")]
+    public GameObject interactUI;
+    public string vaultAnimationTrigger = "Vault";
+    public float vaultDuration = 1.5f;
+    [Tooltip("Khoảng cách trượt qua cửa sổ")]
+    public float vaultDistance = 2.5f; // Đã thêm biến khoảng cách
 
     [Header("Camera Reference")]
     public Transform mainCamera;
 
     private CharacterController characterController;
 
+    private bool isNearWindow = false;
+    private bool isVaulting = false;
+
     private void Awake()
     {
         characterController = GetComponent<CharacterController>();
-        // Tự động tìm Animator ở mô hình 3D nằm bên trong (đối tượng Con)
         animator = GetComponentInChildren<Animator>();
+
+        if (interactUI != null) interactUI.SetActive(false);
     }
 
     private void OnEnable()
@@ -36,6 +50,7 @@ public class NurseController : MonoBehaviour
         moveInput.action.Enable();
         sprintInput.action.Enable();
         walkInput.action.Enable();
+        if (jumpInput != null) jumpInput.action.Enable();
     }
 
     private void OnDisable()
@@ -43,24 +58,28 @@ public class NurseController : MonoBehaviour
         moveInput.action.Disable();
         sprintInput.action.Disable();
         walkInput.action.Disable();
+        if (jumpInput != null) jumpInput.action.Disable();
     }
 
-    public void Start()
-    {
-        // Các logic chặn Camera và Fusion của bạn tôi vẫn giữ nguyên nếu cần mở lại
-    }
-
-    // Đổi thành Update thay vì FixedUpdate để Character Controller di chuyển mượt mà không bị delay nút bấm
     public void Update()
     {
         if (mainCamera == null) return;
-        if (characterController != null && characterController.enabled == false) return;
+
+        // Cập nhật: Chỉ return nếu không có CC, không block nếu CC bị tắt (để xử lý vụ trượt cửa sổ)
+        if (characterController == null) return;
+
+        // Chặn di chuyển tự do khi đang chạy animation đu cửa sổ
+        if (isVaulting) return;
 
         HandleMovement();
+        HandleWindowInteraction();
     }
 
     private void HandleMovement()
     {
+        // Chặn di chuyển nếu CharacterController đang tắt
+        if (!characterController.enabled) return;
+
         Vector2 moveInputValue = moveInput.action.ReadValue<Vector2>();
 
         Vector3 camForward = mainCamera.forward;
@@ -83,7 +102,6 @@ public class NurseController : MonoBehaviour
         {
             currentMoveSpeed = slowWalkSpeed;
             targetAnimSpeed = 0.2f;
-
         }
         else if (isSprinting)
         {
@@ -104,11 +122,79 @@ public class NurseController : MonoBehaviour
             characterController.Move(moveDirection * currentMoveSpeed * Time.deltaTime);
         }
 
-        // Bọc thêm check Null để an toàn nếu chưa có Animator
         if (animator != null)
         {
             float currentAnimSpeed = animator.GetFloat("Speed");
             animator.SetFloat("Speed", Mathf.Lerp(currentAnimSpeed, targetAnimSpeed, Time.deltaTime * 10f));
+        }
+    }
+
+    private void HandleWindowInteraction()
+    {
+        if (isNearWindow && jumpInput != null && jumpInput.action.triggered)
+        {
+            StartCoroutine(VaultWindowRoutine());
+        }
+    }
+
+    private IEnumerator VaultWindowRoutine()
+    {
+        isVaulting = true;
+
+        if (interactUI != null) interactUI.SetActive(false);
+
+        if (animator != null) animator.SetTrigger(vaultAnimationTrigger);
+
+        // QUAN TRỌNG: Tắt CharacterController để không bị kẹt vào tường/cửa sổ khi trượt
+        characterController.enabled = false;
+
+        // Lưu lại vị trí xuất phát và tính điểm rơi
+        Vector3 startPosition = transform.position;
+        Vector3 targetPosition = transform.position + (transform.forward * vaultDistance);
+
+        float elapsedTime = 0f;
+
+        // Vòng lặp trượt nhân vật mượt mà
+        while (elapsedTime < vaultDuration)
+        {
+            float t = elapsedTime / vaultDuration;
+            t = Mathf.SmoothStep(0f, 1f, t); // Làm mượt gia tốc
+
+            transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+
+        // Đảm bảo đáp xuống đúng vị trí
+        transform.position = targetPosition;
+
+        // Bật lại CharacterController để đi lại bình thường
+        characterController.enabled = true;
+        isVaulting = false;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Cuaso"))
+        {
+            isNearWindow = true;
+            if (interactUI != null && !isVaulting)
+            {
+                interactUI.SetActive(true);
+            }
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("Cuaso"))
+        {
+            isNearWindow = false;
+            if (interactUI != null)
+            {
+                interactUI.SetActive(false);
+            }
         }
     }
 }
