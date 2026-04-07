@@ -2,6 +2,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Unity.Mathematics;
 using System.Collections;
+using UnityEngine.UI;
+using TMPro;
 
 [RequireComponent(typeof(CharacterController))]
 public class IShowSpeedController : MonoBehaviour
@@ -20,21 +22,35 @@ public class IShowSpeedController : MonoBehaviour
     public InputActionReference sprintInput;
     public InputActionReference walkInput;
     public InputActionReference jumpInput;
+    public InputActionReference skillInput;
 
     [Header("Window Vaulting Settings")]
     public GameObject interactUI;
     public string vaultAnimationTrigger = "Vault";
     public float vaultDuration = 1.5f;
-    [Tooltip("Khoảng cách trượt qua cửa sổ")]
-    public float vaultDistance = 2.5f; // Đã thêm biến khoảng cách
+    public float vaultDistance = 2.5f;
+
+    [Header("Speed Skill Settings")]
+    public float skillSpeedBonus = 3f;
+    public float skillDuration = 10f;
+    public float skillCooldown = 30f;
+
+    [Header("Skill UI References")]
+    public Slider durationSlider;
+
+    [Tooltip("Dùng Image thay vì Slider để quét tròn đẹp hơn")]
+    public Image cooldownImage; // Đổi lại thành Image
+    public TextMeshProUGUI cooldownText;
 
     [Header("Camera Reference")]
     public Transform mainCamera;
 
     private CharacterController characterController;
-
     private bool isNearWindow = false;
     private bool isVaulting = false;
+
+    private bool isSkillActive = false;
+    private bool isSkillOnCooldown = false;
 
     private void Awake()
     {
@@ -42,6 +58,11 @@ public class IShowSpeedController : MonoBehaviour
         animator = GetComponentInChildren<Animator>();
 
         if (interactUI != null) interactUI.SetActive(false);
+
+        // Ẩn tất cả lúc mới vào game
+        if (durationSlider != null) durationSlider.gameObject.SetActive(false);
+        if (cooldownImage != null) cooldownImage.gameObject.SetActive(false); // Ẩn lớp mờ
+        if (cooldownText != null) cooldownText.text = "";
     }
 
     private void OnEnable()
@@ -50,6 +71,7 @@ public class IShowSpeedController : MonoBehaviour
         sprintInput.action.Enable();
         walkInput.action.Enable();
         if (jumpInput != null) jumpInput.action.Enable();
+        if (skillInput != null) skillInput.action.Enable();
     }
 
     private void OnDisable()
@@ -58,25 +80,106 @@ public class IShowSpeedController : MonoBehaviour
         sprintInput.action.Disable();
         walkInput.action.Disable();
         if (jumpInput != null) jumpInput.action.Disable();
+        if (skillInput != null) skillInput.action.Disable();
     }
 
     public void Update()
     {
-        if (mainCamera == null) return;
+        if (mainCamera == null || characterController == null) return;
 
-        // Cập nhật: Chỉ return nếu không có CC, không block nếu CC bị tắt (để xử lý vụ trượt cửa sổ)
-        if (characterController == null) return;
+        HandleSkillInput();
 
-        // Chặn di chuyển tự do khi đang chạy animation đu cửa sổ
         if (isVaulting) return;
 
         HandleMovement();
         HandleWindowInteraction();
     }
 
+    private void HandleSkillInput()
+    {
+        if (skillInput != null && skillInput.action.triggered)
+        {
+            if (!isSkillActive && !isSkillOnCooldown)
+            {
+                StartCoroutine(SpeedSkillRoutine());
+            }
+        }
+    }
+
+    private IEnumerator SpeedSkillRoutine()
+    {
+        // -----------------------------------------------------
+        // GIAI ĐOẠN 1: ĐANG SỬ DỤNG KỸ NĂNG (10s)
+        // -----------------------------------------------------
+        isSkillActive = true;
+
+        // Bật thanh Slider 10s
+        if (durationSlider != null)
+        {
+            durationSlider.gameObject.SetActive(true);
+            durationSlider.maxValue = skillDuration;
+            durationSlider.value = skillDuration;
+        }
+
+        // Bật lớp mờ Cooldown lên che icon, tô viền ĐẦY (1f) nhưng CHƯA HIỆN SỐ
+        if (cooldownImage != null)
+        {
+            cooldownImage.gameObject.SetActive(true);
+            cooldownImage.fillAmount = 1f;
+        }
+
+        // Đảm bảo Text được bật lên nhưng để trống
+        if (cooldownText != null)
+        {
+            cooldownText.gameObject.SetActive(true);
+            cooldownText.text = "";
+        }
+
+        // Chạy tụt thanh Slider 10s
+        float timeLeft = skillDuration;
+        while (timeLeft > 0)
+        {
+            timeLeft -= Time.deltaTime;
+            if (durationSlider != null) durationSlider.value = timeLeft;
+            yield return null;
+        }
+
+        // -----------------------------------------------------
+        // GIAI ĐOẠN 2: HẾT KỸ NĂNG -> BẮT ĐẦU HỒI CHIÊU (30s)
+        // -----------------------------------------------------
+        isSkillActive = false;
+        isSkillOnCooldown = true;
+
+        // Tắt hẳn Slider 10s
+        if (durationSlider != null) durationSlider.gameObject.SetActive(false);
+
+        // Chạy tụt lớp mờ Overlay và Đếm số
+        timeLeft = skillCooldown;
+        while (timeLeft > 0)
+        {
+            timeLeft -= Time.deltaTime;
+
+            // Ép Overlay quét hình tròn dần dần (từ 1 về 0)
+            if (cooldownImage != null) cooldownImage.fillAmount = timeLeft / skillCooldown;
+
+            // Ép Text đếm số giây
+            if (cooldownText != null) cooldownText.text = Mathf.Ceil(timeLeft).ToString();
+
+            yield return null;
+        }
+
+        // -----------------------------------------------------
+        // GIAI ĐOẠN 3: HỒI CHIÊU XONG
+        // -----------------------------------------------------
+        isSkillOnCooldown = false;
+
+        // Tắt lớp mờ và xóa số
+        if (cooldownImage != null) cooldownImage.gameObject.SetActive(false);
+        if (cooldownText != null) cooldownText.text = "";
+    }
+
     private void HandleMovement()
     {
-        // Chặn di chuyển nếu CharacterController đang tắt
         if (!characterController.enabled) return;
 
         Vector2 moveInputValue = moveInput.action.ReadValue<Vector2>();
@@ -97,15 +200,23 @@ public class IShowSpeedController : MonoBehaviour
         float currentMoveSpeed = mediumRunSpeed;
         float targetAnimSpeed = 0.5f;
 
-        if (isWalking)
+        if (isSkillActive)
         {
-            currentMoveSpeed = slowWalkSpeed;
-            targetAnimSpeed = 0.2f;
-        }
-        else if (isSprinting)
-        {
-            currentMoveSpeed = sprintSpeed;
+            currentMoveSpeed = sprintSpeed + skillSpeedBonus;
             targetAnimSpeed = 1f;
+        }
+        else
+        {
+            if (isWalking)
+            {
+                currentMoveSpeed = slowWalkSpeed;
+                targetAnimSpeed = 0.2f;
+            }
+            else if (isSprinting)
+            {
+                currentMoveSpeed = sprintSpeed;
+                targetAnimSpeed = 1f;
+            }
         }
 
         if (moveDirection.magnitude == 0)
@@ -139,25 +250,20 @@ public class IShowSpeedController : MonoBehaviour
     private IEnumerator VaultWindowRoutine()
     {
         isVaulting = true;
-
         if (interactUI != null) interactUI.SetActive(false);
-
         if (animator != null) animator.SetTrigger(vaultAnimationTrigger);
 
-        // QUAN TRỌNG: Tắt CharacterController để không bị kẹt vào tường/cửa sổ khi trượt
         characterController.enabled = false;
 
-        // Lưu lại vị trí xuất phát và tính điểm rơi
         Vector3 startPosition = transform.position;
         Vector3 targetPosition = transform.position + (transform.forward * vaultDistance);
 
         float elapsedTime = 0f;
 
-        // Vòng lặp trượt nhân vật mượt mà
         while (elapsedTime < vaultDuration)
         {
             float t = elapsedTime / vaultDuration;
-            t = Mathf.SmoothStep(0f, 1f, t); // Làm mượt gia tốc
+            t = Mathf.SmoothStep(0f, 1f, t);
 
             transform.position = Vector3.Lerp(startPosition, targetPosition, t);
 
@@ -165,10 +271,7 @@ public class IShowSpeedController : MonoBehaviour
             yield return null;
         }
 
-        // Đảm bảo đáp xuống đúng vị trí
         transform.position = targetPosition;
-
-        // Bật lại CharacterController để đi lại bình thường
         characterController.enabled = true;
         isVaulting = false;
     }
@@ -178,10 +281,7 @@ public class IShowSpeedController : MonoBehaviour
         if (other.CompareTag("Cuaso"))
         {
             isNearWindow = true;
-            if (interactUI != null && !isVaulting)
-            {
-                interactUI.SetActive(true);
-            }
+            if (interactUI != null && !isVaulting) interactUI.SetActive(true);
         }
     }
 
@@ -190,14 +290,10 @@ public class IShowSpeedController : MonoBehaviour
         if (other.CompareTag("Cuaso"))
         {
             isNearWindow = false;
-            if (interactUI != null)
-            {
-                interactUI.SetActive(false);
-            }
+            if (interactUI != null) interactUI.SetActive(false);
         }
     }
 }
-
 // using UnityEngine;
 // using UnityEngine.InputSystem;
 // using Fusion;
