@@ -207,14 +207,14 @@ MonoBehaviour:
   imgHunter3: {fileID: 0}
   maxAmmo: 10
   _currentAmmo: 0
-  reloadTime: 5
+  reloadTime: 15
   hammerPrefab: {fileID: 1807685069944734072, guid: fe17f494616dcdc40b6f6cb281b9c704, type: 3}
   throwPoint: {fileID: 3312282744366834754}
   leftHandHammer: {fileID: 0}
   maxTrap: 10
   _currentTrap: 0
   trapPrefab: {fileID: 1807685069944734072, guid: fe17f494616dcdc40b6f6cb281b9c704, type: 3}
-  trapPreview: {fileID: 0}
+  trapPreview: {fileID: 6230957394714945389, guid: 870adbbfe78ebfc4192c1ab4e7f904d7, type: 3}
   placeRange: 5
   groundLayer:
     serializedVersion: 2

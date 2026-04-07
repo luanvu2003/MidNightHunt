@@ -528,7 +528,6 @@
 //     public void DisableDamageFrames() { if (meleeWeapon != null) meleeWeapon.TurnOffHitbox(); }
 //     public void OnHitSuccess(GameObject victim) { if (attackSource != null && clipHitSuccess != null) attackSource.PlayOneShot(clipHitSuccess); }
 // }
-
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
@@ -595,7 +594,7 @@ public class AttackController : NetworkBehaviour
     [Networked, OnChangedRender(nameof(UpdateAmmoUI))] public int currentTrap { get; set; }
     public GameObject trapPrefab;
     public GameObject trapPreview;
-    public float placeRange = 5f;
+    public float placeRange = 6f; 
     public LayerMask groundLayer;
     [Networked] public NetworkBool isAimingTrap { get; set; }
 
@@ -635,6 +634,7 @@ public class AttackController : NetworkBehaviour
             if (imgHunter1 != null) imgHunter1.SetActive(false);
             if (imgHunter2 != null) imgHunter2.SetActive(false);
             if (imgHunter3 != null) imgHunter3.SetActive(false);
+            if (cooldownImage != null) cooldownImage.gameObject.SetActive(false);
         }
 
         if (Object.HasStateAuthority)
@@ -693,12 +693,13 @@ public class AttackController : NetworkBehaviour
     {
         if (Object.HasStateAuthority)
         {
-            if (typeOfHunter == HunterType.Hunter1_NemBua && isReloading)
+            if (isReloading)
             {
                 if (reloadTimer.Expired(Runner))
                 {
                     isReloading = false;
-                    currentAmmo = maxAmmo;
+                    if (typeOfHunter == HunterType.Hunter1_NemBua) currentAmmo = maxAmmo;
+                    else if (typeOfHunter == HunterType.Hunter2_DatTrap) currentTrap = maxTrap;
                     Rpc_ReloadCompleteVisual();
                 }
             }
@@ -718,16 +719,29 @@ public class AttackController : NetworkBehaviour
     {
         if (!Object.HasInputAuthority) return;
 
-        if (typeOfHunter == HunterType.Hunter1_NemBua && isReloading)
+        // 🚨 SỬA LỖI: Cho phép Hunter 1 và Hunter 2 dùng chung logic hiện Cooldown nạp đạn
+        if (typeOfHunter == HunterType.Hunter1_NemBua || typeOfHunter == HunterType.Hunter2_DatTrap)
         {
-            float remaining = reloadTimer.RemainingTime(Runner) ?? 0f;
-            if (cooldownImage != null) cooldownImage.fillAmount = remaining / reloadTime;
+            if (cooldownImage != null)
+            {
+                if (isReloading)
+                {
+                    if (!cooldownImage.gameObject.activeSelf) cooldownImage.gameObject.SetActive(true);
+                    float remaining = reloadTimer.RemainingTime(Runner) ?? 0f;
+                    cooldownImage.fillAmount = remaining / reloadTime;
+                }
+                else
+                {
+                    if (cooldownImage.gameObject.activeSelf) cooldownImage.gameObject.SetActive(false);
+                }
+            }
         }
 
         if (typeOfHunter == HunterType.Hunter2_DatTrap) UpdateTrapPreview();
         
         if (typeOfHunter == HunterType.Hunter3_OiDoc && cooldownImage != null)
         {
+            if (!cooldownImage.gameObject.activeSelf) cooldownImage.gameObject.SetActive(true);
             cooldownImage.fillAmount = currentSkillEnergy;
         }
     }
@@ -736,27 +750,36 @@ public class AttackController : NetworkBehaviour
     private void Rpc_ReloadCompleteVisual()
     {
         if (leftHandHammer != null) leftHandHammer.SetActive(true);
-        if (cooldownImage != null && Object.HasInputAuthority) cooldownImage.fillAmount = 0f;
+        if (cooldownImage != null && Object.HasInputAuthority)
+        {
+            cooldownImage.fillAmount = 0f;
+            cooldownImage.gameObject.SetActive(false);
+        }
     }
 
     private void UpdateTrapPreview()
     {
-        if (currentTrap <= 0 || isAttacking || trapPreview == null || !isAimingTrap)
+        if (currentTrap <= 0 || isAttacking || trapPreview == null || !isAimingTrap || isReloading)
         {
-            if (trapPreview != null && trapPreview.activeSelf) trapPreview.SetActive(false);
+            if (trapPreview.activeSelf) trapPreview.SetActive(false);
             return;
         }
 
         Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+        
         if (Physics.Raycast(ray, out RaycastHit hit, placeRange, groundLayer))
         {
             if (!trapPreview.activeSelf) trapPreview.SetActive(true);
-            trapPreview.transform.position = hit.point;
+            trapPreview.transform.position = hit.point + Vector3.up * 0.02f;
             trapPreview.transform.rotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
+            
             lockedTrapPos = hit.point;
             lockedTrapRot = trapPreview.transform.rotation;
         }
-        else trapPreview.SetActive(false);
+        else
+        {
+            if (trapPreview.activeSelf) trapPreview.SetActive(false);
+        }
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
@@ -764,7 +787,7 @@ public class AttackController : NetworkBehaviour
 
     public void PerformAttackLeft()
     {
-        if (isAttacking || isVomiting) return;
+        if (isAttacking || isVomiting || isReloading) return;
         Rpc_RequestAttack(animAttack, false);
     }
 
@@ -841,6 +864,13 @@ public class AttackController : NetworkBehaviour
 
             currentTrap--;
             Rpc_PlayReleaseSound();
+
+            // 🚨 SỬA LỖI: Kích hoạt hồi bẫy khi bẫy về 0
+            if (currentTrap <= 0)
+            {
+                isReloading = true;
+                reloadTimer = TickTimer.CreateFromSeconds(Runner, reloadTime);
+            }
         }
     }
 

@@ -44,13 +44,12 @@
 
 using UnityEngine;
 using System.Collections.Generic;
-using Fusion; // Thêm Fusion
+using Fusion;
 
-public class VomitDamage : NetworkBehaviour // Đổi sang NetworkBehaviour
+public class VomitDamage : NetworkBehaviour 
 {
     [Header("Cài đặt Sát thương Độc")]
     public int poisonDamage = 1;
-    
     [Header("Chống sát thương dồn dập (Spam)")]
     public float damageCooldown = 0.5f; 
     
@@ -58,19 +57,17 @@ public class VomitDamage : NetworkBehaviour // Đổi sang NetworkBehaviour
 
     private void OnParticleCollision(GameObject other)
     {
-        // CHỈ HOST/SERVER MỚI ĐƯỢC PHÉP TRỪ MÁU
-        if (!Object.HasStateAuthority) return;
+        // 🚨 FIX: Kiểm tra Object hợp lệ trước khi dùng .HasStateAuthority
+        if (Object == null || !Object.IsValid || !Object.HasStateAuthority) return;
 
         if (other.CompareTag("Player"))
         {
             float currentTime = Time.time;
-
             if (!lastHitTimes.ContainsKey(other) || currentTime - lastHitTimes[other] >= damageCooldown)
             {
                 lastHitTimes[other] = currentTime;
-                Debug.Log("🤮 Hạt độc đã văng trúng mặt: " + other.name);
-
-                // TODO: Gọi RPC trừ máu của Survivor tại đây
+                Debug.Log("🤮 Đã trúng: " + other.name);
+                // RPC trừ máu survivor tại đây
             }
         }
     }

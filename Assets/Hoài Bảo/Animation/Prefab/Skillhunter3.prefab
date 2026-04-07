@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 3497329548580103338}
   - component: {fileID: 8448572967842935156}
   - component: {fileID: 3888224310607129382}
+  - component: {fileID: 4084361304955263618}
   m_Layer: 0
   m_Name: Particle System_A
   m_TagString: HuntetHit
@@ -4901,6 +4902,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.9334488, y: 2.5858374, z: 16.060822}
   m_Center: {x: 0.32468796, y: 0.8700142, z: 8.142624}
+--- !u!114 &4084361304955263618
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1479216252396949880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0
 --- !u!1 &3687128829933977591
 GameObject:
   m_ObjectHideFlags: 0
@@ -4947,6 +4965,7 @@ GameObject:
   - component: {fileID: 6589898716106146900}
   - component: {fileID: 8042451986773532167}
   - component: {fileID: 2730699045067632006}
+  - component: {fileID: 7875054232479333063}
   m_Layer: 0
   m_Name: Particle System_C
   m_TagString: Untagged
@@ -9813,3 +9832,20 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours: []
   ForceRemoteRenderTimeframe: 0
+--- !u!114 &7875054232479333063
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8602328440621807680}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0
