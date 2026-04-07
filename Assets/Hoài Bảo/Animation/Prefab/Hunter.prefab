@@ -169,7 +169,7 @@ MonoBehaviour:
   leftHandHammer: {fileID: 0}
   maxTrap: 10
   _currentTrap: 0
-  trapPrefab: {fileID: 0}
+  trapPrefab: {fileID: 5903969895199762293}
   trapPreview: {fileID: 0}
   placeRange: 5
   groundLayer:
@@ -203,7 +203,7 @@ CharacterController:
     m_Bits: 0
   m_LayerOverridePriority: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Height: 2.99
   m_Radius: 0.5

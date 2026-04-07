@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 6875275453936360092}
   - component: {fileID: 3497329548580103338}
   - component: {fileID: 8448572967842935156}
-  - component: {fileID: 8450942479324689006}
   - component: {fileID: 3888224310607129382}
   m_Layer: 0
   m_Name: Particle System_A
@@ -4881,24 +4880,6 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours: []
   ForceRemoteRenderTimeframe: 0
---- !u!114 &8450942479324689006
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1479216252396949880}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 506319458, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Animator: {fileID: 0}
-  ApplyTiming: 2
-  SyncSettings: 79
-  StateHashes: 
-  TriggerHashes: 
-  TotalWords: 0
 --- !u!65 &3888224310607129382
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -4966,7 +4947,6 @@ GameObject:
   - component: {fileID: 6589898716106146900}
   - component: {fileID: 8042451986773532167}
   - component: {fileID: 2730699045067632006}
-  - component: {fileID: 5395976895252647865}
   m_Layer: 0
   m_Name: Particle System_C
   m_TagString: Untagged
@@ -9833,21 +9813,3 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours: []
   ForceRemoteRenderTimeframe: 0
---- !u!114 &5395976895252647865
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8602328440621807680}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 506319458, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Animator: {fileID: 0}
-  ApplyTiming: 2
-  SyncSettings: 79
-  StateHashes: 
-  TriggerHashes: 
-  TotalWords: 0

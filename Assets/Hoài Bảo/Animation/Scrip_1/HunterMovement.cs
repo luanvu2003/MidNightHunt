@@ -103,6 +103,7 @@
 
 using UnityEngine;
 using Fusion;
+using System.Collections;
 
 [RequireComponent(typeof(CharacterController), typeof(Animator))]
 public class HunterMovement : NetworkBehaviour
@@ -115,18 +116,18 @@ public class HunterMovement : NetworkBehaviour
     [Header("Âm Thanh")]
     public AudioSource audioSource;
     public AudioClip footstepClip;
-    public AudioClip landingClip; 
+    public AudioClip landingClip;
 
     [Header("Cài Đặt Rơi")]
-    public float hardLandingThreshold = -12f; 
-    public float landSlowMult = 0.2f;         
-    public float landSlowDuration = 1.5f;     
+    public float hardLandingThreshold = -12f;
+    public float landSlowMult = 0.2f;
+    public float landSlowDuration = 1.5f;
 
     private CharacterController controller;
     private Animator animator;
     [Networked] private float velocityY { get; set; }
     [Networked] private float currentSpeed { get; set; }
-    [Networked] private NetworkBool wasGrounded { get; set; } 
+    [Networked] private NetworkBool wasGrounded { get; set; }
 
     private readonly int animSpeed = Animator.StringToHash("Speed");
 
@@ -135,7 +136,22 @@ public class HunterMovement : NetworkBehaviour
         controller = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
+
+        // 🚨 THÊM ĐOẠN NÀY ĐỂ FIX DỰT
+        if (controller != null)
+        {
+            StartCoroutine(LocalCCReset());
+        }
+
         if (Object.HasStateAuthority) currentSpeedMultiplier = 1f;
+    }
+    IEnumerator LocalCCReset()
+    {
+        controller.enabled = false;
+        // Chờ 2 nhịp Tick của Fusion để đảm bảo vị trí từ Server đã đổ về máy mình
+        yield return new WaitForFixedUpdate();
+        yield return new WaitForFixedUpdate();
+        controller.enabled = true;
     }
 
     public void HandleMove(Vector2 input)
