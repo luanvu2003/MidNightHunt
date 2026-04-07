@@ -3770,17 +3770,9 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 619296693122280105, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
-      propertyPath: m_WarningMessage
-      value: "\nBinding warning: Some generic clip(s) animate transforms that are
-        already bound by a Humanoid avatar. These transforms can only be changed
-        by Humanoid clips.\n\tTransform 'mixamorig:Hips'\n\tTransform 'mixamorig:LeftFoot'\n\tTransform
-        'mixamorig:LeftHandThumb2'\n\tTransform 'mixamorig:LeftHandIndex1'\n\tTransform
-        'mixamorig:LeftHandPinky2'\n\tTransform 'mixamorig:RightHandRing2'\n\tTransform
-        'mixamorig:Spine1'\n\tTransform 'mixamorig:LeftToeBase'\n\tTransform 'mixamorig:LeftHandThumb3'\n\tTransform
-        'mixamorig:RightArm'\n\tand more ...\n\tFrom animation clip 'AnHit'\n\tFrom
-        animation clip 'BiGuc'\n\tFrom animation clip 'BiTreo'\n\tFrom animation
-        clip 'SuaMay'"
+    - target: {fileID: -7897685684272927585, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
+      propertyPath: SortKey
+      value: 1902386374
       objectReference: {fileID: 0}
     - target: {fileID: 3797800115358611150, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
       propertyPath: hookSlider
@@ -3791,14 +3783,6 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 349725732}
     - target: {fileID: 3797800115358611150, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
-      propertyPath: skillInput
-      value: 
-      objectReference: {fileID: -7970377097797473325, guid: 4e74303c32ff52d49baaf909e103bc4a, type: 3}
-    - target: {fileID: 3797800115358611150, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
-      propertyPath: vaultInput
-      value: 
-      objectReference: {fileID: -2694687926833327502, guid: 4e74303c32ff52d49baaf909e103bc4a, type: 3}
-    - target: {fileID: 3797800115358611150, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
       propertyPath: cooldownText
       value: 
       objectReference: {fileID: 1810131821}
@@ -3807,28 +3791,12 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2005695665}
     - target: {fileID: 3797800115358611150, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
-      propertyPath: vaultDistance
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 3797800115358611150, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
-      propertyPath: vaultDuration
-      value: 1.1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3797800115358611150, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
-      propertyPath: cooldownSlider
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 3797800115358611150, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
       propertyPath: durationSlider
       value: 
       objectReference: {fileID: 521190580}
     - target: {fileID: 6139483228109351529, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
       propertyPath: m_Name
       value: IShowSpeed
-      objectReference: {fileID: 0}
-    - target: {fileID: 6139483228109351529, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
-      propertyPath: m_IsActive
-      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6807195076597215443, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
       propertyPath: m_LocalPosition.x

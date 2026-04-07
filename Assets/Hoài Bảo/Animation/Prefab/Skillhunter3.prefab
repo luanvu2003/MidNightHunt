@@ -12,9 +12,11 @@ GameObject:
   - component: {fileID: 5192788463093671155}
   - component: {fileID: 6875275453936360092}
   - component: {fileID: 3497329548580103338}
+  - component: {fileID: 8448572967842935156}
+  - component: {fileID: 3888224310607129382}
   m_Layer: 0
   m_Name: Particle System_A
-  m_TagString: Untagged
+  m_TagString: HuntetHit
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -4860,6 +4862,45 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   poisonDamage: 1
   damageCooldown: 0.5
+--- !u!114 &8448572967842935156
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1479216252396949880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SortKey: 0
+  ObjectInterest: 1
+  Flags: 262144
+  NestedObjects: []
+  NetworkedBehaviours: []
+  ForceRemoteRenderTimeframe: 0
+--- !u!65 &3888224310607129382
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1479216252396949880}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.9334488, y: 2.5858374, z: 16.060822}
+  m_Center: {x: 0.32468796, y: 0.8700142, z: 8.142624}
 --- !u!1 &3687128829933977591
 GameObject:
   m_ObjectHideFlags: 0
@@ -4905,6 +4946,7 @@ GameObject:
   - component: {fileID: 2386585316574704744}
   - component: {fileID: 6589898716106146900}
   - component: {fileID: 8042451986773532167}
+  - component: {fileID: 2730699045067632006}
   m_Layer: 0
   m_Name: Particle System_C
   m_TagString: Untagged
@@ -9753,3 +9795,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   poisonDamage: 1
   damageCooldown: 0.5
+--- !u!114 &2730699045067632006
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8602328440621807680}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SortKey: 0
+  ObjectInterest: 1
+  Flags: 262144
+  NestedObjects: []
+  NetworkedBehaviours: []
+  ForceRemoteRenderTimeframe: 0
