@@ -5630,10 +5630,6 @@ PrefabInstance:
       propertyPath: interactionSlider
       value: 
       objectReference: {fileID: 500969795}
-    - target: {fileID: 7864317117520579066, guid: 86fec90da2a64134a8e81841c618f05c, type: 3}
-      propertyPath: throwPoint
-      value: 
-      objectReference: {fileID: 394383878}
     - target: {fileID: 7902378030018398077, guid: 86fec90da2a64134a8e81841c618f05c, type: 3}
       propertyPath: m_Name
       value: Hunter
