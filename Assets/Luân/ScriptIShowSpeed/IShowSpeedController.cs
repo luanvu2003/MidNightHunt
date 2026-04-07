@@ -21,7 +21,8 @@ public class IShowSpeedController : MonoBehaviour
     public InputActionReference moveInput;
     public InputActionReference sprintInput;
     public InputActionReference walkInput;
-    public InputActionReference jumpInput;
+    [Tooltip("Nút để nhảy qua cửa sổ (Ví dụ: Space hoặc E)")]
+    public InputActionReference vaultInput; // Đổi tên từ jumpInput để tránh nhầm lẫn
     public InputActionReference skillInput;
 
     [Header("Window Vaulting Settings")]
@@ -37,10 +38,17 @@ public class IShowSpeedController : MonoBehaviour
 
     [Header("Skill UI References")]
     public Slider durationSlider;
-
-    [Tooltip("Dùng Image thay vì Slider để quét tròn đẹp hơn")]
-    public Image cooldownImage; // Đổi lại thành Image
+    public Image cooldownImage;
     public TextMeshProUGUI cooldownText;
+
+    [Header("Health & States")]
+    public string hitAnimationTrigger = "AnHit";
+    public string downedAnimationBool = "BiGuc";
+    public string hookedAnimationBool = "BiTreo";
+    public float sacrificeTime = 90f;
+
+    [Header("Hook UI")]
+    public Slider hookSlider;
 
     [Header("Camera Reference")]
     public Transform mainCamera;
@@ -48,9 +56,13 @@ public class IShowSpeedController : MonoBehaviour
     private CharacterController characterController;
     private bool isNearWindow = false;
     private bool isVaulting = false;
-
     private bool isSkillActive = false;
     private bool isSkillOnCooldown = false;
+
+    private int currentHits = 0;
+    private float hitDecayTimer = 0f;
+    public bool isDowned = false;
+    public bool isHooked = false;
 
     private void Awake()
     {
@@ -58,11 +70,16 @@ public class IShowSpeedController : MonoBehaviour
         animator = GetComponentInChildren<Animator>();
 
         if (interactUI != null) interactUI.SetActive(false);
-
-        // Ẩn tất cả lúc mới vào game
         if (durationSlider != null) durationSlider.gameObject.SetActive(false);
-        if (cooldownImage != null) cooldownImage.gameObject.SetActive(false); // Ẩn lớp mờ
-        if (cooldownText != null) cooldownText.text = "";
+        if (cooldownImage != null) cooldownImage.gameObject.SetActive(false);
+
+        if (cooldownText != null)
+        {
+            cooldownText.text = "";
+            cooldownText.gameObject.SetActive(false); // Đảm bảo text tắt lúc đầu
+        }
+
+        if (hookSlider != null) hookSlider.gameObject.SetActive(false);
     }
 
     private void OnEnable()
@@ -70,7 +87,7 @@ public class IShowSpeedController : MonoBehaviour
         moveInput.action.Enable();
         sprintInput.action.Enable();
         walkInput.action.Enable();
-        if (jumpInput != null) jumpInput.action.Enable();
+        if (vaultInput != null) vaultInput.action.Enable();
         if (skillInput != null) skillInput.action.Enable();
     }
 
@@ -79,7 +96,7 @@ public class IShowSpeedController : MonoBehaviour
         moveInput.action.Disable();
         sprintInput.action.Disable();
         walkInput.action.Disable();
-        if (jumpInput != null) jumpInput.action.Disable();
+        if (vaultInput != null) vaultInput.action.Disable();
         if (skillInput != null) skillInput.action.Disable();
     }
 
@@ -87,95 +104,144 @@ public class IShowSpeedController : MonoBehaviour
     {
         if (mainCamera == null || characterController == null) return;
 
+        HandleHitDecay();
+
+        if (isDowned || isHooked) return;
+
         HandleSkillInput();
 
         if (isVaulting) return;
 
         HandleMovement();
-        HandleWindowInteraction();
+        HandleWindowInteraction(); // Chỉ thực hiện nhảy khi gặp cửa sổ
+    }
+
+    private void HandleHitDecay()
+    {
+        if (currentHits == 0 || isDowned || isHooked) return;
+
+        hitDecayTimer -= Time.deltaTime;
+        if (hitDecayTimer <= 0)
+        {
+            currentHits = 0;
+            hitDecayTimer = 0f;
+        }
+    }
+
+    public void TakeHit()
+    {
+        if (isDowned || isHooked) return;
+
+        currentHits++;
+        if (currentHits == 1)
+        {
+            if (animator != null) animator.SetTrigger(hitAnimationTrigger);
+            hitDecayTimer = 10f;
+        }
+        else if (currentHits == 2)
+        {
+            if (animator != null) animator.SetTrigger(hitAnimationTrigger);
+            hitDecayTimer = 20f;
+        }
+        else if (currentHits >= 3)
+        {
+            isDowned = true;
+            if (animator != null) animator.SetBool(downedAnimationBool, true);
+            characterController.enabled = false;
+        }
+    }
+
+    public void GetHooked(Vector3 hookPos)
+    {
+        if (isHooked) return;
+
+        isHooked = true;
+        isDowned = false;
+
+        transform.position = hookPos;
+
+        if (animator != null)
+        {
+            animator.SetBool(downedAnimationBool, false);
+            animator.SetBool(hookedAnimationBool, true);
+        }
+
+        characterController.enabled = false;
+        StartCoroutine(SacrificeRoutine());
+    }
+
+    private IEnumerator SacrificeRoutine()
+    {
+        if (hookSlider != null)
+        {
+            hookSlider.gameObject.SetActive(true);
+            hookSlider.maxValue = sacrificeTime;
+            hookSlider.value = sacrificeTime;
+        }
+
+        float timer = sacrificeTime;
+        while (timer > 0 && isHooked)
+        {
+            timer -= Time.deltaTime;
+            if (hookSlider != null) hookSlider.value = timer;
+            yield return null;
+        }
+
+        if (timer <= 0)
+        {
+            Destroy(gameObject);
+        }
     }
 
     private void HandleSkillInput()
     {
-        if (skillInput != null && skillInput.action.triggered)
+        if (skillInput != null && skillInput.action.triggered && !isSkillActive && !isSkillOnCooldown)
         {
-            if (!isSkillActive && !isSkillOnCooldown)
-            {
-                StartCoroutine(SpeedSkillRoutine());
-            }
+            StartCoroutine(SpeedSkillRoutine());
         }
     }
 
     private IEnumerator SpeedSkillRoutine()
     {
-        // -----------------------------------------------------
-        // GIAI ĐOẠN 1: ĐANG SỬ DỤNG KỸ NĂNG (10s)
-        // -----------------------------------------------------
         isSkillActive = true;
-
-        // Bật thanh Slider 10s
         if (durationSlider != null)
         {
             durationSlider.gameObject.SetActive(true);
             durationSlider.maxValue = skillDuration;
             durationSlider.value = skillDuration;
         }
+        if (cooldownImage != null) { cooldownImage.gameObject.SetActive(true); cooldownImage.fillAmount = 1f; }
 
-        // Bật lớp mờ Cooldown lên che icon, tô viền ĐẦY (1f) nhưng CHƯA HIỆN SỐ
-        if (cooldownImage != null)
-        {
-            cooldownImage.gameObject.SetActive(true);
-            cooldownImage.fillAmount = 1f;
-        }
-
-        // Đảm bảo Text được bật lên nhưng để trống
-        if (cooldownText != null)
-        {
-            cooldownText.gameObject.SetActive(true);
-            cooldownText.text = "";
-        }
-
-        // Chạy tụt thanh Slider 10s
         float timeLeft = skillDuration;
-        while (timeLeft > 0)
+        while (timeLeft > 0 && !isDowned && !isHooked)
         {
             timeLeft -= Time.deltaTime;
             if (durationSlider != null) durationSlider.value = timeLeft;
             yield return null;
         }
 
-        // -----------------------------------------------------
-        // GIAI ĐOẠN 2: HẾT KỸ NĂNG -> BẮT ĐẦU HỒI CHIÊU (30s)
-        // -----------------------------------------------------
         isSkillActive = false;
         isSkillOnCooldown = true;
-
-        // Tắt hẳn Slider 10s
         if (durationSlider != null) durationSlider.gameObject.SetActive(false);
 
-        // Chạy tụt lớp mờ Overlay và Đếm số
+        // HIỆN TEXT KHI BẮT ĐẦU COOLDOWN
+        if (cooldownText != null) cooldownText.gameObject.SetActive(true);
+
         timeLeft = skillCooldown;
         while (timeLeft > 0)
         {
             timeLeft -= Time.deltaTime;
-
-            // Ép Overlay quét hình tròn dần dần (từ 1 về 0)
             if (cooldownImage != null) cooldownImage.fillAmount = timeLeft / skillCooldown;
-
-            // Ép Text đếm số giây
             if (cooldownText != null) cooldownText.text = Mathf.Ceil(timeLeft).ToString();
-
             yield return null;
         }
-
-        // -----------------------------------------------------
-        // GIAI ĐOẠN 3: HỒI CHIÊU XONG
-        // -----------------------------------------------------
         isSkillOnCooldown = false;
-
-        // Tắt lớp mờ và xóa số
         if (cooldownImage != null) cooldownImage.gameObject.SetActive(false);
-        if (cooldownText != null) cooldownText.text = "";
+        if (cooldownText != null)
+        {
+            cooldownText.text = "";
+            cooldownText.gameObject.SetActive(false); // Tắt text khi xong
+        }
     }
 
     private void HandleMovement()
@@ -183,19 +249,9 @@ public class IShowSpeedController : MonoBehaviour
         if (!characterController.enabled) return;
 
         Vector2 moveInputValue = moveInput.action.ReadValue<Vector2>();
-
-        Vector3 camForward = mainCamera.forward;
-        Vector3 camRight = mainCamera.right;
-
-        camForward.y = 0f;
-        camRight.y = 0f;
-        camForward.Normalize();
-        camRight.Normalize();
-
+        Vector3 camForward = Vector3.Scale(mainCamera.forward, new Vector3(1, 0, 1)).normalized;
+        Vector3 camRight = Vector3.Scale(mainCamera.right, new Vector3(1, 0, 1)).normalized;
         Vector3 moveDirection = (camForward * moveInputValue.y) + (camRight * moveInputValue.x);
-
-        bool isSprinting = sprintInput.action.IsPressed();
-        bool isWalking = walkInput.action.IsPressed();
 
         float currentMoveSpeed = mediumRunSpeed;
         float targetAnimSpeed = 0.5f;
@@ -207,41 +263,26 @@ public class IShowSpeedController : MonoBehaviour
         }
         else
         {
-            if (isWalking)
-            {
-                currentMoveSpeed = slowWalkSpeed;
-                targetAnimSpeed = 0.2f;
-            }
-            else if (isSprinting)
-            {
-                currentMoveSpeed = sprintSpeed;
-                targetAnimSpeed = 1f;
-            }
+            if (walkInput.action.IsPressed()) { currentMoveSpeed = slowWalkSpeed; targetAnimSpeed = 0.2f; }
+            else if (sprintInput.action.IsPressed()) { currentMoveSpeed = sprintSpeed; targetAnimSpeed = 1f; }
         }
 
-        if (moveDirection.magnitude == 0)
-        {
-            targetAnimSpeed = 0f;
-        }
+        if (moveDirection.magnitude == 0) targetAnimSpeed = 0f;
 
         if (moveDirection.magnitude >= 0.1f)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(moveDirection), rotationSpeed * Time.deltaTime);
             characterController.Move(moveDirection * currentMoveSpeed * Time.deltaTime);
         }
 
         if (animator != null)
-        {
-            float currentAnimSpeed = animator.GetFloat("Speed");
-            animator.SetFloat("Speed", Mathf.Lerp(currentAnimSpeed, targetAnimSpeed, Time.deltaTime * 10f));
-        }
+            animator.SetFloat("Speed", Mathf.Lerp(animator.GetFloat("Speed"), targetAnimSpeed, Time.deltaTime * 10f));
     }
 
     private void HandleWindowInteraction()
     {
-        if (isNearWindow && jumpInput != null && jumpInput.action.triggered)
+        // BUG FIX: Chỉ cho phép nhấn nút khi đang ở gần cửa sổ
+        if (isNearWindow && vaultInput != null && vaultInput.action.triggered)
         {
             StartCoroutine(VaultWindowRoutine());
         }
@@ -250,30 +291,40 @@ public class IShowSpeedController : MonoBehaviour
     private IEnumerator VaultWindowRoutine()
     {
         isVaulting = true;
+
+        // BUG FIX: Ép biến này về false ngay lập tức khi bắt đầu nhảy
+        // Để tránh việc sau khi nhảy xong máy vẫn tưởng mình đang ở gần cửa sổ.
+        isNearWindow = false;
+
         if (interactUI != null) interactUI.SetActive(false);
         if (animator != null) animator.SetTrigger(vaultAnimationTrigger);
 
         characterController.enabled = false;
 
-        Vector3 startPosition = transform.position;
-        Vector3 targetPosition = transform.position + (transform.forward * vaultDistance);
+        Vector3 startPos = transform.position;
+        Vector3 targetPos = transform.position + (transform.forward * vaultDistance);
 
         float elapsedTime = 0f;
-
         while (elapsedTime < vaultDuration)
         {
             float t = elapsedTime / vaultDuration;
             t = Mathf.SmoothStep(0f, 1f, t);
 
-            transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+            transform.position = Vector3.Lerp(startPos, targetPos, t);
 
             elapsedTime += Time.deltaTime;
             yield return null;
         }
 
-        transform.position = targetPosition;
+        transform.position = targetPos;
+
+        // Sau khi nhảy xong mới bật lại va chạm
         characterController.enabled = true;
         isVaulting = false;
+
+        // Cẩn thận hơn: Kiểm tra lại một lần nữa xem có thực sự thoát khỏi Trigger chưa
+        // (Dòng này giúp reset UI nếu bạn vô tình nhảy nhưng vẫn còn dính collider)
+        if (interactUI != null) interactUI.SetActive(false);
     }
 
     private void OnTriggerEnter(Collider other)
@@ -281,7 +332,15 @@ public class IShowSpeedController : MonoBehaviour
         if (other.CompareTag("Cuaso"))
         {
             isNearWindow = true;
-            if (interactUI != null && !isVaulting) interactUI.SetActive(true);
+            if (interactUI != null && !isVaulting && !isDowned && !isHooked) interactUI.SetActive(true);
+        }
+        else if (other.CompareTag("HunterHit"))
+        {
+            TakeHit();
+        }
+        else if (other.CompareTag("Moc") && isDowned)
+        {
+            GetHooked(other.transform.position);
         }
     }
 
