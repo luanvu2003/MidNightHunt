@@ -12,15 +12,16 @@ public class ReadyGameManager : NetworkBehaviour
 
     // 🚨 THÊM MỚI: Text cảnh báo khi quên chọn tướng
     [Header("UI Cảnh Báo")]
-    public TextMeshProUGUI warningText; 
+    public TextMeshProUGUI warningText;
+    private bool _isTransitioning = false;
 
     [Header("Hiệu Ứng Cá Nhân")]
-    public GameObject readyOverlayObject; 
-    public ParticleSystem readyParticle; 
-    public AudioSource readyAudio;       
+    public GameObject readyOverlayObject;
+    public ParticleSystem readyParticle;
+    public AudioSource readyAudio;
 
     [Header("Đồng Bộ Sẵn Sàng (4 Người)")]
-    public GameObject[] readyIndicators; 
+    public GameObject[] readyIndicators;
 
     [Networked] public TickTimer SelectionTimer { get; set; }
 
@@ -75,11 +76,11 @@ public class ReadyGameManager : NetworkBehaviour
             if (RoomPlayer.Local.CharacterID >= 0)
             {
                 RoomPlayer.Local.RPC_ToggleReady();
-                
+
                 // Tắt cảnh báo nếu lỡ hiện
                 if (warningText != null) warningText.gameObject.SetActive(false);
 
-                if (!RoomPlayer.Local.IsReady) 
+                if (!RoomPlayer.Local.IsReady)
                 {
                     if (readyParticle != null) readyParticle.Play();
                     if (readyAudio != null) readyAudio.Play();
@@ -92,9 +93,9 @@ public class ReadyGameManager : NetworkBehaviour
                 {
                     warningText.text = "Bạn chưa chọn nhân vật!";
                     warningText.gameObject.SetActive(true);
-                    
+
                     // Tắt cảnh báo đang chạy cũ (nếu có) và chạy cái mới để đếm lại 3 giây
-                    StopAllCoroutines(); 
+                    StopAllCoroutines();
                     StartCoroutine(HideWarningRoutine());
                 }
             }
@@ -110,16 +111,22 @@ public class ReadyGameManager : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        if (!Runner.IsServer) return; 
+        if (!Runner.IsServer) return;
 
         var allPlayers = FindObjectsOfType<RoomPlayer>().ToList();
-        
+
         bool isAllReady = allPlayers.Count > 0 && allPlayers.All(p => p.IsReady);
 
-        if (isAllReady || SelectionTimer.Expired(Runner))
+        if ((isAllReady || SelectionTimer.Expired(Runner)) && !_isTransitioning)
         {
-            SelectionTimer = TickTimer.None; 
-            Runner.LoadScene(SceneRef.FromIndex(4)); 
+            if (Runner.IsServer) // Đảm bảo chỉ Host mới ra lệnh load
+            {
+                _isTransitioning = true; // Khóa lại ngay lập tức
+                SelectionTimer = TickTimer.None; // Xóa timer để chắc chắn
+
+                Debug.Log("🚀 Bắt đầu chuyển cảnh sang HBao_Map...");
+                Runner.LoadScene(SceneRef.FromIndex(4));
+            }
         }
     }
 }
