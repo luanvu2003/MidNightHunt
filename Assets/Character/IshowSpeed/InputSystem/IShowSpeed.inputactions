@@ -59,15 +59,6 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
-                },
-                {
-                    "name": "TuongTac",
-                    "type": "Button",
-                    "id": "94466139-9fab-4a90-b848-34d847148000",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -189,17 +180,6 @@
                     "processors": "",
                     "groups": "",
                     "action": "UseSkill",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "e28b5169-4878-4864-a170-ea2f298a3817",
-                    "path": "<Keyboard>/e",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "TuongTac",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
