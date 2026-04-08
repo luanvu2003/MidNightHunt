@@ -304,7 +304,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &4473363898011073013
 RectTransform:
   m_ObjectHideFlags: 0
@@ -685,6 +685,59 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!1 &4053483981459488938
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7318856669644216487}
+  - component: {fileID: 768868043491534022}
+  m_Layer: 0
+  m_Name: BoxBiGuc
+  m_TagString: Playerchet
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &7318856669644216487
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4053483981459488938}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.571, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6807195076597215443}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &768868043491534022
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4053483981459488938}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.6053276, y: 1.1366307, z: 2.980072}
+  m_Center: {x: -0.0786953, y: 0.06831533, z: -0.043312073}
 --- !u!1 &5106914226988202233
 GameObject:
   m_ObjectHideFlags: 0
@@ -1108,7 +1161,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &2125520079273531320
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1122,6 +1175,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4473363898011073013}
+  - {fileID: 8238017025808544083}
   m_Father: {fileID: 6807195076597215443}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -1147,7 +1201,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
@@ -1291,12 +1345,12 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8581287540685163941}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -59.727745}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7918853175607731527}
-  m_Father: {fileID: 6807195076597215443}
+  m_Father: {fileID: 2125520079273531320}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
@@ -1586,25 +1640,17 @@ PrefabInstance:
       objectReference: {fileID: 9100000, guid: 088b7d13fd0856547858e3ecace08f3d, type: 2}
     - target: {fileID: 5866666021909216657, guid: 46b6f02f14e52a448b468e6bd9ccc733, type: 3}
       propertyPath: m_WarningMessage
-      value: "\nBinding warning: Some generic clip(s) animate transforms that are
-        already bound by a Humanoid avatar. These transforms can only be changed
-        by Humanoid clips.\n\tTransform 'mixamorig:Hips'\n\tTransform 'mixamorig:LeftFoot'\n\tTransform
-        'mixamorig:LeftHandThumb2'\n\tTransform 'mixamorig:LeftHandIndex1'\n\tTransform
-        'mixamorig:LeftHandPinky2'\n\tTransform 'mixamorig:RightHandRing2'\n\tTransform
-        'mixamorig:Spine1'\n\tTransform 'mixamorig:LeftToeBase'\n\tTransform 'mixamorig:LeftHandThumb3'\n\tTransform
-        'mixamorig:RightArm'\n\tand more ...\n\tFrom animation clip 'AnHit'\n\tFrom
-        animation clip 'BiGuc'\n\tFrom animation clip 'BiTreo'\n\tFrom animation
-        clip 'SuaMay'"
+      value: 
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 46b6f02f14e52a448b468e6bd9ccc733, type: 3}
-      insertIndex: 0
-      addedObject: {fileID: 8238017025808544083}
-    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 46b6f02f14e52a448b468e6bd9ccc733, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2125520079273531320}
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 46b6f02f14e52a448b468e6bd9ccc733, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7318856669644216487}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 46b6f02f14e52a448b468e6bd9ccc733, type: 3}
       insertIndex: -1
@@ -1689,12 +1735,22 @@ MonoBehaviour:
   downedAnimationBool: BiGuc
   hookedAnimationBool: BiTreo
   sacrificeTime: 90
-  interactUI: {fileID: 7050181960089957192}
-  durationSlider: {fileID: 1568237998604360944}
-  cooldownImage: {fileID: 8306803388017089881}
-  cooldownText: {fileID: 1058826919841446738}
-  hookSlider: {fileID: 9210801029612386800}
+  interactUI: {fileID: 974264407572441134}
+  durationSlider: {fileID: 0}
+  cooldownImage: {fileID: 0}
+  cooldownText: {fileID: 0}
+  hookSlider: {fileID: 0}
   mainCamera: {fileID: 0}
+  PlayerDeadthBox: {fileID: 4053483981459488938}
+  reviveTime: 90
+  revivingAnimBool: IsReviving
+  interactInput: {fileID: 0}
+  revivePrompt: {fileID: 0}
+  reviveSlider: {fileID: 0}
+  _IsBeingRevived:
+    _value: 0
+  _IsReviving:
+    _value: 0
   _IsDowned:
     _value: 0
   _IsHooked:
@@ -1755,9 +1811,9 @@ MonoBehaviour:
   Animator: {fileID: 619296693122280105}
   ApplyTiming: 2
   SyncSettings: 79
-  StateHashes: 000000001439c2ab278ae79c67bf96e5e5f0da60a96219512b2d55d418d8edb15b76deb2cea90da48d073ea713cd87b4f80e0f49
+  StateHashes: 000000001439c2ab278ae79c13cd87b4f80e0f4967bf96e5e5f0da60a96219512b2d55d418d8edb15b76deb28be2bafff2282959cea90da48d073ea7958341e290e793e1f14e9948
   TriggerHashes: 000000002566f13e67bf96e5
-  TotalWords: 3
+  TotalWords: 4
 --- !u!4 &6807195076597215443 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 46b6f02f14e52a448b468e6bd9ccc733, type: 3}
