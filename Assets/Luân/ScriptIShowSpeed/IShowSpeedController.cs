@@ -406,6 +406,21 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
 
     [Header("Camera Reference")]
     public Transform mainCamera;
+    [Header("PLayer State")]
+    public GameObject PlayerDeadthBox;
+
+    [Header("Revive Settings")]
+    public float reviveTime = 90f; // Đặt là 90s theo yêu cầu
+    public string revivingAnimBool = "IsReviving"; // Tên parameter trong Animator
+    private IShowSpeedController_Fusion _targetToRevive;
+    public InputActionReference interactInput; // Gán phím E vào đây
+    public GameObject revivePrompt; // Cái Text hoặc Icon hiện chữ "Nhấn E để cứu"
+    public Slider reviveSlider;     // Thanh Slider chạy từ 0 đến 1
+
+    [Networked] public NetworkBool IsBeingRevived { get; set; } // Đang được cứu
+    [Networked] public NetworkBool IsReviving { get; set; } // Đang đi cứu người khác
+    [Networked] private TickTimer ReviveTimer { get; set; }
+    [Networked] private NetworkObject ReviverObject { get; set; } // Lưu thông tin người đang cứu mình
 
     private CharacterController _characterController;
     private bool _isNearWindow = false;
@@ -479,21 +494,43 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
         HandleSkillInput();
         HandleMovement();
         HandleWindowInput();
+        HandleReviveLogic();
     }
 
     // Render dùng để cập nhật UI và Animator mượt mà (chạy theo FPS máy khách)
     public override void Render()
     {
-        // Đồng bộ Animator dựa trên biến mạng
+        // Các dòng code cũ của bạn...
         animator.SetBool(downedAnimationBool, IsDowned);
         animator.SetBool(hookedAnimationBool, IsHooked);
+
+        // Thêm dòng này để chạy animation cứu người (dạng bool)
+        animator.SetBool(revivingAnimBool, IsReviving);
 
         if (Object.HasInputAuthority)
         {
             UpdateSkillUI();
             UpdateHookUI();
-            if (interactUI) interactUI.SetActive(_isNearWindow && !IsVaulting && !IsDowned);
+
+            // --- PHẦN 1: HIỆN NÚT E ---
+            // Nút E hiện lên khi: Bạn còn sống VÀ ở gần xác đồng đội VÀ chưa bắt đầu cứu
+            bool canShowE = !IsDowned && IsNearDeadBody() && !IsReviving;
+            if (revivePrompt) revivePrompt.SetActive(canShowE);
+
+            // --- PHẦN 2: HIỆN THANH TIẾN TRÌNH SLIDER ---
+            UpdateReviveProgressUI();
         }
+    }
+
+    // Hàm hỗ trợ kiểm tra xem có xác người chơi nào ở gần không để hiện UI
+    private bool IsNearDeadBody()
+    {
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, 2f);
+        foreach (var hit in hitColliders)
+        {
+            if (hit.CompareTag("Playerchet")) return true;
+        }
+        return false;
     }
 
     private void HandleMovement()
@@ -571,20 +608,36 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
 
     public void TakeHit()
     {
+        // Chỉ StateAuthority (Host) mới được xử lý máu
         if (IsDowned || IsHooked || !Object.HasStateAuthority) return;
 
         CurrentHits++;
-        RPC_PlayHitAnim();
 
+        // Kiểm tra xem nhân vật có đang di chuyển hay không (vận tốc > 0.1)
+        bool isMoving = _characterController.velocity.magnitude > 0.1f;
+
+        // Truyền trạng thái di chuyển sang RPC để đồng bộ animation cho mọi máy
+        RPC_PlayHitAnim(isMoving);
+
+        // Logic thời gian phục hồi hit ngầm
         if (CurrentHits == 1) HitDecayTimer = TickTimer.CreateFromSeconds(Runner, 10f);
         else if (CurrentHits == 2) HitDecayTimer = TickTimer.CreateFromSeconds(Runner, 20f);
         else if (CurrentHits >= 3)
         {
             IsDowned = true;
             _characterController.enabled = false;
+            PlayerDeadthBox.SetActive(true);
         }
     }
 
+    // Thay đổi RPC: Thêm tham số NetworkBool isMoving
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlayHitAnim(NetworkBool isMoving)
+    {
+        // Set biến IsMoving vào Animator để hệ thống tự chia Layer
+        animator.SetBool("IsMoving", isMoving);
+        animator.SetTrigger(hitAnimationTrigger);
+    }
     public void GetHooked(Vector3 hookPos)
     {
         if (IsHooked || !Object.HasStateAuthority) return;
@@ -645,5 +698,105 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Cuaso")) _isNearWindow = false;
+        else if (Object.HasInputAuthority && other.CompareTag("Playerchet"))
+        {
+            // Nếu đang cứu mà đi ra khỏi vùng box thì hủy cứu
+            if (IsReviving) RPC_SetReviveState(false, default); // Sử dụng default thay cho NetworkId.None
+            _targetToRevive = null; // Xóa mục tiêu khi đi xa
+        }
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        if (!Object.HasInputAuthority) return;
+
+        if (!IsDowned && other.CompareTag("Playerchet"))
+        {
+            var target = other.GetComponentInParent<IShowSpeedController_Fusion>();
+            if (target != null && target.IsDowned)
+            {
+                _targetToRevive = target; // Lưu lại để lấy Slider progress ở trên
+
+                if (interactInput.action.IsPressed())
+                {
+                    if (!IsReviving) RPC_SetReviveState(true, target.Object.Id);
+                }
+                else
+                {
+                    if (IsReviving) RPC_SetReviveState(false, target.Object.Id);
+                }
+            }
+        }
+    }
+
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_SetReviveState(NetworkBool start, NetworkId targetId)
+    {
+        IsReviving = start; // Bật/tắt animation người cứu
+
+        if (targetId.IsValid)
+        {
+            var target = Runner.FindObject(targetId).GetComponent<IShowSpeedController_Fusion>();
+            if (target != null)
+            {
+                target.IsBeingRevived = start;
+                if (start)
+                    target.ReviveTimer = TickTimer.CreateFromSeconds(Runner, reviveTime);
+                else
+                    target.ReviveTimer = TickTimer.None; // Reset timer nếu ngừng cứu
+            }
+        }
+    }
+
+    private void HandleReviveLogic()
+    {
+        // Chỉ chạy trên Server (StateAuthority)
+        if (!Object.HasStateAuthority) return;
+
+        if (IsBeingRevived && ReviveTimer.Expired(Runner))
+        {
+            CompleteRevive();
+        }
+    }
+
+    private void CompleteRevive()
+    {
+        IsDowned = false;
+        IsBeingRevived = false;
+        _characterController.enabled = true;
+        PlayerDeadthBox.SetActive(false); // Ẩn box khi được cứu xong
+        CurrentHits = 1; // Cho phép hồi phục về 1 hit thay vì 0 để tránh vừa dậy đã full máu
+    }
+
+    private void UpdateReviveProgressUI()
+    {
+        if (reviveSlider == null) return;
+
+        // Hiển thị Slider nếu BẠN đang cứu người khác HOẶC BẠN đang được người khác cứu
+        bool showingSlider = IsReviving || IsBeingRevived;
+        reviveSlider.gameObject.SetActive(showingSlider);
+
+        if (showingSlider)
+        {
+            // Lấy thời gian còn lại từ TickTimer
+            // Vì mỗi người gục có một ReviveTimer riêng, chúng ta cần xác định đang lấy Timer của ai
+            float? remainingTime = 0;
+
+            if (IsBeingRevived)
+                remainingTime = ReviveTimer.RemainingTime(Runner); // Nếu mình là người bị gục
+            else if (IsReviving)
+                // Nếu mình là người đi cứu, mình cần lấy Timer từ thằng đang được mình cứu
+                // (Đoạn này bạn nên lưu target player vào một biến local như _targetToRevive)
+                remainingTime = _targetToRevive != null ? _targetToRevive.ReviveTimer.RemainingTime(Runner) : 0;
+
+            if (remainingTime.HasValue)
+            {
+                // Tính toán giá trị Slider (0 đến 1)
+                // Công thức: 1 - (Thời gian còn lại / Tổng thời gian 90s)
+                float progress = 1f - (remainingTime.Value / reviveTime);
+                reviveSlider.value = progress;
+            }
+        }
     }
 }
