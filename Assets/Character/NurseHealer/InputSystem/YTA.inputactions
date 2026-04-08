@@ -16,7 +16,7 @@
                     "initialStateCheck": true
                 },
                 {
-                    "name": "Interac",
+                    "name": "Jump",
                     "type": "Button",
                     "id": "f9e88909-960e-46bc-80ce-26f43a8c5f48",
                     "expectedControlType": "",
@@ -25,7 +25,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "go sit",
+                    "name": "Walk",
                     "type": "Button",
                     "id": "9b66730a-facd-44be-a94c-1b3dfc23f545",
                     "expectedControlType": "",
@@ -34,7 +34,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "FixmachineSkill",
+                    "name": "TuongTac",
                     "type": "Button",
                     "id": "14fd3f8f-d5e2-4ea5-9020-538234f4a3b2",
                     "expectedControlType": "",
@@ -43,9 +43,18 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "X2move",
+                    "name": "Sprint",
                     "type": "Button",
                     "id": "3956762f-a449-4f00-9c6b-a6fab0372c23",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "UseSkill",
+                    "type": "Button",
+                    "id": "308e4e2c-0aef-4d04-8f29-00e2263c49e7",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -115,7 +124,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Interac",
+                    "action": "Jump",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -126,7 +135,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "go sit",
+                    "action": "Walk",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -137,7 +146,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "FixmachineSkill",
+                    "action": "TuongTac",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -148,7 +157,18 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "X2move",
+                    "action": "Sprint",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "d06e4b53-3d5c-44bb-85aa-b41cd84d8cc2",
+                    "path": "<Keyboard>/f",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "UseSkill",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
