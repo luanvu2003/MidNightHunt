@@ -532,7 +532,7 @@ public class MrBeanController_Fusion : NetworkBehaviour // Đổi từ MonoBehav
         if (!Object.HasStateAuthority) return;
 
         if (other.CompareTag("Cuaso")) _isNearWindow = true;
-        else if (other.CompareTag("HunterHit")) TakeHit();
+        else if (other.CompareTag("HuntetHit")) TakeHit();
         else if (other.CompareTag("Moc") && IsDowned) GetHooked(other.transform.position);
     }
 
