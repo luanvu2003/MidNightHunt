@@ -102,7 +102,7 @@ public partial class @YTA: IInputActionCollection2, IDisposable
                     ""initialStateCheck"": true
                 },
                 {
-                    ""name"": ""Interac"",
+                    ""name"": ""Jump"",
                     ""type"": ""Button"",
                     ""id"": ""f9e88909-960e-46bc-80ce-26f43a8c5f48"",
                     ""expectedControlType"": """",
@@ -111,7 +111,7 @@ public partial class @YTA: IInputActionCollection2, IDisposable
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""go sit"",
+                    ""name"": ""Walk"",
                     ""type"": ""Button"",
                     ""id"": ""9b66730a-facd-44be-a94c-1b3dfc23f545"",
                     ""expectedControlType"": """",
@@ -120,7 +120,7 @@ public partial class @YTA: IInputActionCollection2, IDisposable
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""FixmachineSkill"",
+                    ""name"": ""TuongTac"",
                     ""type"": ""Button"",
                     ""id"": ""14fd3f8f-d5e2-4ea5-9020-538234f4a3b2"",
                     ""expectedControlType"": """",
@@ -129,9 +129,18 @@ public partial class @YTA: IInputActionCollection2, IDisposable
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""X2move"",
+                    ""name"": ""Sprint"",
                     ""type"": ""Button"",
                     ""id"": ""3956762f-a449-4f00-9c6b-a6fab0372c23"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""UseSkill"",
+                    ""type"": ""Button"",
+                    ""id"": ""308e4e2c-0aef-4d04-8f29-00e2263c49e7"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -201,7 +210,7 @@ public partial class @YTA: IInputActionCollection2, IDisposable
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""Interac"",
+                    ""action"": ""Jump"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -212,7 +221,7 @@ public partial class @YTA: IInputActionCollection2, IDisposable
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""go sit"",
+                    ""action"": ""Walk"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -223,7 +232,7 @@ public partial class @YTA: IInputActionCollection2, IDisposable
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""FixmachineSkill"",
+                    ""action"": ""TuongTac"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -234,7 +243,18 @@ public partial class @YTA: IInputActionCollection2, IDisposable
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""X2move"",
+                    ""action"": ""Sprint"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""d06e4b53-3d5c-44bb-85aa-b41cd84d8cc2"",
+                    ""path"": ""<Keyboard>/f"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""UseSkill"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -246,10 +266,11 @@ public partial class @YTA: IInputActionCollection2, IDisposable
         // Yta
         m_Yta = asset.FindActionMap("Yta", throwIfNotFound: true);
         m_Yta_Move = m_Yta.FindAction("Move", throwIfNotFound: true);
-        m_Yta_Interac = m_Yta.FindAction("Interac", throwIfNotFound: true);
-        m_Yta_gosit = m_Yta.FindAction("go sit", throwIfNotFound: true);
-        m_Yta_FixmachineSkill = m_Yta.FindAction("FixmachineSkill", throwIfNotFound: true);
-        m_Yta_X2move = m_Yta.FindAction("X2move", throwIfNotFound: true);
+        m_Yta_Jump = m_Yta.FindAction("Jump", throwIfNotFound: true);
+        m_Yta_Walk = m_Yta.FindAction("Walk", throwIfNotFound: true);
+        m_Yta_TuongTac = m_Yta.FindAction("TuongTac", throwIfNotFound: true);
+        m_Yta_Sprint = m_Yta.FindAction("Sprint", throwIfNotFound: true);
+        m_Yta_UseSkill = m_Yta.FindAction("UseSkill", throwIfNotFound: true);
     }
 
     ~@YTA()
@@ -331,10 +352,11 @@ public partial class @YTA: IInputActionCollection2, IDisposable
     private readonly InputActionMap m_Yta;
     private List<IYtaActions> m_YtaActionsCallbackInterfaces = new List<IYtaActions>();
     private readonly InputAction m_Yta_Move;
-    private readonly InputAction m_Yta_Interac;
-    private readonly InputAction m_Yta_gosit;
-    private readonly InputAction m_Yta_FixmachineSkill;
-    private readonly InputAction m_Yta_X2move;
+    private readonly InputAction m_Yta_Jump;
+    private readonly InputAction m_Yta_Walk;
+    private readonly InputAction m_Yta_TuongTac;
+    private readonly InputAction m_Yta_Sprint;
+    private readonly InputAction m_Yta_UseSkill;
     /// <summary>
     /// Provides access to input actions defined in input action map "Yta".
     /// </summary>
@@ -351,21 +373,25 @@ public partial class @YTA: IInputActionCollection2, IDisposable
         /// </summary>
         public InputAction @Move => m_Wrapper.m_Yta_Move;
         /// <summary>
-        /// Provides access to the underlying input action "Yta/Interac".
+        /// Provides access to the underlying input action "Yta/Jump".
         /// </summary>
-        public InputAction @Interac => m_Wrapper.m_Yta_Interac;
+        public InputAction @Jump => m_Wrapper.m_Yta_Jump;
         /// <summary>
-        /// Provides access to the underlying input action "Yta/gosit".
+        /// Provides access to the underlying input action "Yta/Walk".
         /// </summary>
-        public InputAction @gosit => m_Wrapper.m_Yta_gosit;
+        public InputAction @Walk => m_Wrapper.m_Yta_Walk;
         /// <summary>
-        /// Provides access to the underlying input action "Yta/FixmachineSkill".
+        /// Provides access to the underlying input action "Yta/TuongTac".
         /// </summary>
-        public InputAction @FixmachineSkill => m_Wrapper.m_Yta_FixmachineSkill;
+        public InputAction @TuongTac => m_Wrapper.m_Yta_TuongTac;
         /// <summary>
-        /// Provides access to the underlying input action "Yta/X2move".
+        /// Provides access to the underlying input action "Yta/Sprint".
         /// </summary>
-        public InputAction @X2move => m_Wrapper.m_Yta_X2move;
+        public InputAction @Sprint => m_Wrapper.m_Yta_Sprint;
+        /// <summary>
+        /// Provides access to the underlying input action "Yta/UseSkill".
+        /// </summary>
+        public InputAction @UseSkill => m_Wrapper.m_Yta_UseSkill;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -395,18 +421,21 @@ public partial class @YTA: IInputActionCollection2, IDisposable
             @Move.started += instance.OnMove;
             @Move.performed += instance.OnMove;
             @Move.canceled += instance.OnMove;
-            @Interac.started += instance.OnInterac;
-            @Interac.performed += instance.OnInterac;
-            @Interac.canceled += instance.OnInterac;
-            @gosit.started += instance.OnGosit;
-            @gosit.performed += instance.OnGosit;
-            @gosit.canceled += instance.OnGosit;
-            @FixmachineSkill.started += instance.OnFixmachineSkill;
-            @FixmachineSkill.performed += instance.OnFixmachineSkill;
-            @FixmachineSkill.canceled += instance.OnFixmachineSkill;
-            @X2move.started += instance.OnX2move;
-            @X2move.performed += instance.OnX2move;
-            @X2move.canceled += instance.OnX2move;
+            @Jump.started += instance.OnJump;
+            @Jump.performed += instance.OnJump;
+            @Jump.canceled += instance.OnJump;
+            @Walk.started += instance.OnWalk;
+            @Walk.performed += instance.OnWalk;
+            @Walk.canceled += instance.OnWalk;
+            @TuongTac.started += instance.OnTuongTac;
+            @TuongTac.performed += instance.OnTuongTac;
+            @TuongTac.canceled += instance.OnTuongTac;
+            @Sprint.started += instance.OnSprint;
+            @Sprint.performed += instance.OnSprint;
+            @Sprint.canceled += instance.OnSprint;
+            @UseSkill.started += instance.OnUseSkill;
+            @UseSkill.performed += instance.OnUseSkill;
+            @UseSkill.canceled += instance.OnUseSkill;
         }
 
         /// <summary>
@@ -421,18 +450,21 @@ public partial class @YTA: IInputActionCollection2, IDisposable
             @Move.started -= instance.OnMove;
             @Move.performed -= instance.OnMove;
             @Move.canceled -= instance.OnMove;
-            @Interac.started -= instance.OnInterac;
-            @Interac.performed -= instance.OnInterac;
-            @Interac.canceled -= instance.OnInterac;
-            @gosit.started -= instance.OnGosit;
-            @gosit.performed -= instance.OnGosit;
-            @gosit.canceled -= instance.OnGosit;
-            @FixmachineSkill.started -= instance.OnFixmachineSkill;
-            @FixmachineSkill.performed -= instance.OnFixmachineSkill;
-            @FixmachineSkill.canceled -= instance.OnFixmachineSkill;
-            @X2move.started -= instance.OnX2move;
-            @X2move.performed -= instance.OnX2move;
-            @X2move.canceled -= instance.OnX2move;
+            @Jump.started -= instance.OnJump;
+            @Jump.performed -= instance.OnJump;
+            @Jump.canceled -= instance.OnJump;
+            @Walk.started -= instance.OnWalk;
+            @Walk.performed -= instance.OnWalk;
+            @Walk.canceled -= instance.OnWalk;
+            @TuongTac.started -= instance.OnTuongTac;
+            @TuongTac.performed -= instance.OnTuongTac;
+            @TuongTac.canceled -= instance.OnTuongTac;
+            @Sprint.started -= instance.OnSprint;
+            @Sprint.performed -= instance.OnSprint;
+            @Sprint.canceled -= instance.OnSprint;
+            @UseSkill.started -= instance.OnUseSkill;
+            @UseSkill.performed -= instance.OnUseSkill;
+            @UseSkill.canceled -= instance.OnUseSkill;
         }
 
         /// <summary>
@@ -481,32 +513,39 @@ public partial class @YTA: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnMove(InputAction.CallbackContext context);
         /// <summary>
-        /// Method invoked when associated input action "Interac" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// Method invoked when associated input action "Jump" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
         /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-        void OnInterac(InputAction.CallbackContext context);
+        void OnJump(InputAction.CallbackContext context);
         /// <summary>
-        /// Method invoked when associated input action "go sit" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// Method invoked when associated input action "Walk" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
         /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-        void OnGosit(InputAction.CallbackContext context);
+        void OnWalk(InputAction.CallbackContext context);
         /// <summary>
-        /// Method invoked when associated input action "FixmachineSkill" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// Method invoked when associated input action "TuongTac" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
         /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-        void OnFixmachineSkill(InputAction.CallbackContext context);
+        void OnTuongTac(InputAction.CallbackContext context);
         /// <summary>
-        /// Method invoked when associated input action "X2move" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// Method invoked when associated input action "Sprint" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
         /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-        void OnX2move(InputAction.CallbackContext context);
+        void OnSprint(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "UseSkill" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnUseSkill(InputAction.CallbackContext context);
     }
 }
