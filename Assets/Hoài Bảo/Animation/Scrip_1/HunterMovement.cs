@@ -100,17 +100,18 @@
 //     public void ApplySlow(float mult) => currentSpeedMultiplier = mult;
 //     public void ResetSlow() => currentSpeedMultiplier = 1f;
 // }
-
 using UnityEngine;
-using Fusion;
+using Fusion; // 1. Thêm thư viện Fusion
 using System.Collections;
 
 [RequireComponent(typeof(CharacterController), typeof(Animator))]
-public class HunterMovement : NetworkBehaviour
+public class HunterMovement : NetworkBehaviour // 2. Đổi thành NetworkBehaviour
 {
     [Header("Cài Đặt Tốc Độ")]
     public float walkStraight = 5f;
     public float walkBackward = 4f;
+
+    // Đồng bộ tốc độ qua mạng để Animator các máy khác chạy khớp nhau
     [Networked] public float currentSpeedMultiplier { get; set; }
 
     [Header("Âm Thanh")]
@@ -125,30 +126,38 @@ public class HunterMovement : NetworkBehaviour
 
     private CharacterController controller;
     private Animator animator;
+
+    // 3. Các biến vật lý phải là [Networked] để Fusion dự đoán (Prediction)
     [Networked] private float velocityY { get; set; }
     [Networked] private float currentSpeed { get; set; }
     [Networked] private NetworkBool wasGrounded { get; set; }
 
+    // Thay thế Invoke bằng TickTimer của Fusion
+    [Networked] private TickTimer slowTimer { get; set; }
+
     private readonly int animSpeed = Animator.StringToHash("Speed");
 
-    public override void Spawned()
+    public override void Spawned() // Thay Awake/Start bằng Spawned
     {
         controller = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
 
-        // 🚨 THÊM ĐOẠN NÀY ĐỂ FIX DỰT
+        // 🚨 FIX DỰT DỰT: Reset vật lý khi vừa đẻ ra
         if (controller != null)
         {
             StartCoroutine(LocalCCReset());
         }
 
-        if (Object.HasStateAuthority) currentSpeedMultiplier = 1f;
+        if (Object.HasStateAuthority)
+        {
+            currentSpeedMultiplier = 1f;
+        }
     }
+
     IEnumerator LocalCCReset()
     {
         controller.enabled = false;
-        // Chờ 2 nhịp Tick của Fusion để đảm bảo vị trí từ Server đã đổ về máy mình
         yield return new WaitForFixedUpdate();
         yield return new WaitForFixedUpdate();
         controller.enabled = true;
@@ -158,6 +167,19 @@ public class HunterMovement : NetworkBehaviour
     {
         if (controller == null || !controller.enabled) return;
 
+        // 🚨 FIX LỖI XOAY CAMERA: Ép thân xoay theo Camera ngay trong nhịp đập của mạng
+        if (Object.HasInputAuthority && Camera.main != null)
+        {
+            float camYaw = Camera.main.transform.eulerAngles.y;
+            transform.rotation = Quaternion.Euler(0, camYaw, 0);
+        }
+
+        if (slowTimer.Expired(Runner))
+        {
+            ResetSlow();
+            slowTimer = TickTimer.None;
+        }
+
         if (!wasGrounded && controller.isGrounded)
         {
             if (velocityY < hardLandingThreshold) TriggerHardLanding();
@@ -165,6 +187,7 @@ public class HunterMovement : NetworkBehaviour
 
         wasGrounded = controller.isGrounded;
 
+        // Đi hướng nào là do cái transform.forward quyết định (Vừa được xoay ở trên xong)
         Vector3 move = (transform.forward * input.y + transform.right * input.x).normalized;
 
         float targetSpeed = 0f;
@@ -186,25 +209,47 @@ public class HunterMovement : NetworkBehaviour
 
     private void TriggerHardLanding()
     {
-        Rpc_PlayLandingSound();
+        // Chỉ Host gọi RPC để tránh phát âm thanh 2 lần
+        if (Object.HasStateAuthority)
+        {
+            Rpc_PlayLandingSound();
+        }
+
+        // 2. Làm chậm Hunter
         ApplySlow(landSlowMult);
-        Invoke(nameof(ResetSlow), landSlowDuration);
+
+        // 3. Đặt đồng hồ đếm ngược thay cho Invoke
+        slowTimer = TickTimer.CreateFromSeconds(Runner, landSlowDuration);
+
+        Debug.Log("💥 Tiếp đất mạnh! Bị làm chậm.");
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void Rpc_PlayLandingSound()
     {
-        if (audioSource != null && landingClip != null) audioSource.PlayOneShot(landingClip);
+        // Phát âm thanh trên máy của tất cả mọi người
+        if (audioSource != null && landingClip != null)
+        {
+            audioSource.PlayOneShot(landingClip);
+        }
     }
 
     public void PlayFootstep()
     {
+        // Footstep chạy bằng Animation Event nên chỉ cần chạy Local (Ai cũng tự thấy Hunter bước chân)
         if (controller.isGrounded && Mathf.Abs(currentSpeed) > 0.2f && footstepClip != null)
         {
             if (audioSource != null) audioSource.PlayOneShot(footstepClip, 0.6f);
         }
     }
 
-    public void ApplySlow(float mult) { if (Object.HasStateAuthority) currentSpeedMultiplier = mult; }
-    public void ResetSlow() { if (Object.HasStateAuthority) currentSpeedMultiplier = 1f; }
+    public void ApplySlow(float mult)
+    {
+        currentSpeedMultiplier = mult;
+    }
+
+    public void ResetSlow()
+    {
+        currentSpeedMultiplier = 1f;
+    }
 }

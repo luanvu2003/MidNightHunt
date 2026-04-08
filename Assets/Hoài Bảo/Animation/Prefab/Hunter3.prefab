@@ -235,7 +235,7 @@ MonoBehaviour:
   maxTrap: 10
   _currentTrap: 0
   trapPrefab: {fileID: 0}
-  trapPreview: {fileID: 0}
+  trapPreviewPrefab: {fileID: 0}
   placeRange: 5
   groundLayer:
     serializedVersion: 2
@@ -245,7 +245,7 @@ MonoBehaviour:
   vomitPrefab: {fileID: 3687128829933977591, guid: 2d03c5c8d36c5694baf51307e44fe5d4, type: 3}
   mouthPointName: VomitSpawnPoint
   mouthPoint: {fileID: 0}
-  vomitDuration: 8
+  vomitDuration: 5
   skillRechargeTime: 15
   vomitMoveSpeedMult: 0.5
   clipVomitStart: {fileID: 8300000, guid: f27695237b37585479b12ea42147c675, type: 3}
@@ -266,6 +266,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   spineBone: {fileID: 6432646850483210609}
   aimWeight: 0.5
+  _networkPitch: 0
 --- !u!114 &7807763775412780828
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -519,6 +520,8 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 3573531495402429458}
+  - {fileID: 6303510776516636727}
+  - {fileID: 7807763775412780828}
   - {fileID: 5787243610346403347}
   - {fileID: 9098957649225675213}
   - {fileID: 910712385311960406}
