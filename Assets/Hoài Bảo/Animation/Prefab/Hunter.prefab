@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &30935674155370279
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 209996293271614794}
+  m_Layer: 0
+  m_Name: Throwpoin
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &209996293271614794
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 30935674155370279}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0.7071006, w: 0.70711297}
+  m_LocalPosition: {x: -0.093, y: 1.675, z: 0.569}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 968681906226940134}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 89.999}
 --- !u!1 &969316845748730525
 GameObject:
   m_ObjectHideFlags: 0
@@ -105,6 +136,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6323762559684213681}
+  - {fileID: 209996293271614794}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &254057895863010733
@@ -165,12 +197,12 @@ MonoBehaviour:
   _currentAmmo: 0
   reloadTime: 15
   hammerPrefab: {fileID: 78301717899730383, guid: 6e3addecae776974bb53cecb8796a955, type: 3}
-  throwPoint: {fileID: 0}
+  throwPoint: {fileID: 209996293271614794}
   leftHandHammer: {fileID: 0}
   maxTrap: 10
   _currentTrap: 0
   trapPrefab: {fileID: 5903969895199762293}
-  trapPreview: {fileID: 0}
+  trapPreviewPrefab: {fileID: 0}
   placeRange: 5
   groundLayer:
     serializedVersion: 2
@@ -323,6 +355,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   spineBone: {fileID: 730788485947048008}
   aimWeight: 0.5
+  _networkPitch: 0
 --- !u!82 &861717294013518816
 AudioSource:
   m_ObjectHideFlags: 0
@@ -441,6 +474,8 @@ MonoBehaviour:
   - {fileID: 4209219084360219197}
   - {fileID: 7217707400525481010}
   - {fileID: 3329641582074757257}
+  - {fileID: 569497948861788551}
+  - {fileID: 8796096746854104928}
   - {fileID: 7161010782460737858}
   - {fileID: 1285061914258829460}
   - {fileID: 1171227272122937652}
@@ -555,6 +590,10 @@ PrefabInstance:
     - target: {fileID: 2169951315416363664, guid: 29e785e38ce6a7d478001b27ab05bf94, type: 3}
       propertyPath: m_Layer
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2169951315416363664, guid: 29e785e38ce6a7d478001b27ab05bf94, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2669190151067675030, guid: 29e785e38ce6a7d478001b27ab05bf94, type: 3}
       propertyPath: m_Layer

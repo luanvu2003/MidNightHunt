@@ -60,69 +60,93 @@
 //         }
 //     }
 // }
-
 using UnityEngine;
-using UnityEngine.InputSystem;
-using Fusion;
+using UnityEngine.InputSystem; 
+using Fusion; // 1. Thêm thư viện Fusion
 
-public class HunterInputHandler : NetworkBehaviour
+public class HunterInputHandler : NetworkBehaviour // 2. Đổi thành NetworkBehaviour
 {
     private HunterMovement moveScript; 
     private HunterInteraction interactScript; 
     private AttackController attackScript; 
     private HunterControllerInput actions; 
 
-    public override void Spawned()
+    private void Awake()
     {
         moveScript = GetComponent<HunterMovement>();
         interactScript = GetComponent<HunterInteraction>();
         attackScript = GetComponent<AttackController>();
         
         actions = new HunterControllerInput();
-        
-        // Chỉ bật Input nếu đây là nhân vật do máy mình điều khiển
-        if (Object.HasInputAuthority) actions.Enable(); 
     }
 
-    private void OnDisable() 
-    { 
-        if (actions != null) actions.Disable(); 
-    }
-
-    public override void FixedUpdateNetwork()
+    // 3. Thay OnEnable/OnDisable bằng Spawned/Despawned để đảm bảo Mạng đã sẵn sàng
+    public override void Spawned()
     {
-        // CHỈ XỬ LÝ NẾU MÌNH CÓ QUYỀN GỬI INPUT
+        // CHỈ BẬT NHẬN PHÍM NẾU ĐÂY LÀ NHÂN VẬT CỦA MÌNH
+        if (Object.HasInputAuthority)
+        {
+            actions.Enable(); 
+        }
+    }
+
+    public override void Despawned(NetworkRunner runner, bool hasState)
+    {
+        actions.Disable(); 
+    }
+
+    // =========================================================
+    // UPDATE: XỬ LÝ NHỮNG NÚT "BẤM 1 LẦN" ĐỂ TRÁNH BỊ MISS NHỊP
+    // =========================================================
+    private void Update()
+    {
+        // 🚨 CHỐT CHẶN MẠNG: Chỉ người cầm chuột mới được gửi lệnh
         if (!Object.HasInputAuthority) return;
 
+        // TƯƠNG TÁC
+        if (actions.HunterControllerS.Interact.WasPressedThisFrame()) 
+        {
+            interactScript.TryInteract(); 
+        }
+        
+        // TẤN CÔNG & SKILL CỤ THỂ
+        if (attackScript != null)
+        {
+            // Báo lên cho Host biết mình có đang đè phím ngắm bẫy không (Dùng RPC thay vì gán trực tiếp)
+            attackScript.Rpc_SetAimingTrap(actions.HunterControllerS.AimTrap.IsPressed());
+
+            // Đọc Action "Attack" (Chuột trái)
+            if (actions.HunterControllerS.Attack.WasPressedThisFrame()) 
+            {
+                attackScript.PerformAttackLeft(); 
+            }
+            
+            // Đọc Action "Phibua" (Chuột phải - Xài chung cho Đặt bẫy)
+            if (actions.HunterControllerS.Phibua.WasPressedThisFrame()) 
+            {
+                attackScript.PerformAttackRight(); 
+            }
+        }
+    }
+
+    // =========================================================
+    // FIXED UPDATE NETWORK: XỬ LÝ DI CHUYỂN VẬT LÝ VÀ ĐỒNG BỘ
+    // =========================================================
+    public override void FixedUpdateNetwork()
+    {
+        // 🚨 CHỐT CHẶN MẠNG
+        if (!Object.HasInputAuthority) return;
+
+        // DI CHUYỂN CÓ CHỐT CHẶN AN TOÀN
         if (interactScript != null && interactScript.IsDoingAction())
         {
             moveScript.HandleMove(Vector2.zero); 
         }
         else
         {
+            // Đọc Action "Move" (WASD)
             Vector2 moveInput = actions.HunterControllerS.Move.ReadValue<Vector2>();
             moveScript.HandleMove(moveInput);
-        }
-
-        if (actions.HunterControllerS.Interact.WasPressedThisFrame()) 
-        {
-            interactScript.TryInteract(); 
-        }
-        
-        if (attackScript != null)
-        {
-            // Báo lên cho Host biết mình có đang đè phím ngắm bẫy không
-            attackScript.Rpc_SetAimingTrap(actions.HunterControllerS.AimTrap.IsPressed());
-
-            if (actions.HunterControllerS.Attack.WasPressedThisFrame()) 
-            {
-                attackScript.PerformAttackLeft(); 
-            }
-            
-            if (actions.HunterControllerS.Phibua.WasPressedThisFrame()) 
-            {
-                attackScript.PerformAttackRight(); 
-            }
         }
     }
 }

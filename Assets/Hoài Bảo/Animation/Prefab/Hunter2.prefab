@@ -214,7 +214,7 @@ MonoBehaviour:
   maxTrap: 10
   _currentTrap: 0
   trapPrefab: {fileID: 1807685069944734072, guid: fe17f494616dcdc40b6f6cb281b9c704, type: 3}
-  trapPreview: {fileID: 6230957394714945389, guid: 870adbbfe78ebfc4192c1ab4e7f904d7, type: 3}
+  trapPreviewPrefab: {fileID: 6230957394714945389, guid: 870adbbfe78ebfc4192c1ab4e7f904d7, type: 3}
   placeRange: 5
   groundLayer:
     serializedVersion: 2
@@ -271,6 +271,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   spineBone: {fileID: 8128713298185979406}
   aimWeight: 0.5
+  _networkPitch: 0
 --- !u!82 &3236336337957476489
 AudioSource:
   m_ObjectHideFlags: 0
@@ -410,6 +411,8 @@ MonoBehaviour:
   - {fileID: 7478536259884448233}
   - {fileID: 7450912723286064828}
   - {fileID: 345003743573772114}
+  - {fileID: 9078698942962370315}
+  - {fileID: 2658514166855154901}
   - {fileID: 877235556028763662}
   - {fileID: 441912001392829226}
   - {fileID: 2222510979204809398}

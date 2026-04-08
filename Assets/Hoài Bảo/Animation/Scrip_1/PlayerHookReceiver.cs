@@ -53,14 +53,17 @@
 //         }
 //     }
 // }
-
 using UnityEngine;
-using Fusion;
+using Fusion; 
 
-public class PlayerHookReceiver : NetworkBehaviour
+public class PlayerHookReceiver : NetworkBehaviour 
 {
     [Header("Trạng Thái Bị Vác / Treo")]
-    [Networked] public NetworkBool isBeingCarried { get; set; }
+    
+    // 🚨 FIX FUSION 2: Đổi từ OnChanged sang OnChangedRender
+    [Networked, OnChangedRender(nameof(OnCarryStateChanged))] 
+    public NetworkBool isBeingCarried { get; set; }
+    
     public Transform targetFollow;  
     public float followSpeed = 8f; 
 
@@ -71,40 +74,45 @@ public class PlayerHookReceiver : NetworkBehaviour
         controller = GetComponent<CharacterController>();
     }
 
-    [Rpc(RpcSources.All, RpcTargets.All)]
-    public void Rpc_GetPickedUpOrHooked(NetworkObject targetNetObj, string pointName)
+    public void GetPickedUpOrHooked(Transform targetPoint)
     {
-        // Tìm Transform cụ thể trên người Hunter hoặc Móc dựa vào tên để Follow
-        if (targetNetObj != null)
-        {
-            Transform[] children = targetNetObj.GetComponentsInChildren<Transform>(true);
-            foreach (Transform t in children)
-            {
-                if (t.name == pointName)
-                {
-                    targetFollow = t;
-                    break;
-                }
-            }
-        }
-        
-        isBeingCarried = true;
-        if (controller != null) controller.enabled = false;
+        if (!Object.HasStateAuthority) return;
+
+        targetFollow = targetPoint;
+        isBeingCarried = true; 
+
+        Debug.Log("😱 Player: Đang bám chặt vào -> " + targetPoint.name);
     }
 
-    [Rpc(RpcSources.All, RpcTargets.All)]
-    public void Rpc_ReleaseFromHunter()
+    public void ReleaseFromHunter()
     {
-        isBeingCarried = false;
+        if (!Object.HasStateAuthority) return;
+
+        isBeingCarried = false; 
         targetFollow = null;
-        if (controller != null) controller.enabled = true;
     }
 
-    private void LateUpdate()
+    // =========================================================
+    // 🚨 FIX FUSION 2: Hàm chạy cục bộ khi biến mạng thay đổi (Bỏ static)
+    // =========================================================
+    public void OnCarryStateChanged()
     {
+        if (controller != null)
+        {
+            // Bị vác -> Tắt CharacterController (Để không bị rớt do trọng lực)
+            // Thả ra -> Bật lại CharacterController
+            controller.enabled = !isBeingCarried;
+        }
+    }
+
+    public override void FixedUpdateNetwork()
+    {
+        if (!Object.HasStateAuthority) return;
+
         if (isBeingCarried && targetFollow != null)
         {
             float distance = Vector3.Distance(transform.position, targetFollow.position);
+
             if (distance < 0.1f)
             {
                 transform.position = targetFollow.position;
@@ -112,8 +120,8 @@ public class PlayerHookReceiver : NetworkBehaviour
             }
             else
             {
-                transform.position = Vector3.Lerp(transform.position, targetFollow.position, followSpeed * Time.deltaTime);
-                transform.rotation = Quaternion.Lerp(transform.rotation, targetFollow.rotation, followSpeed * Time.deltaTime);
+                transform.position = Vector3.Lerp(transform.position, targetFollow.position, followSpeed * Runner.DeltaTime);
+                transform.rotation = Quaternion.Lerp(transform.rotation, targetFollow.rotation, followSpeed * Runner.DeltaTime);
             }
         }
     }

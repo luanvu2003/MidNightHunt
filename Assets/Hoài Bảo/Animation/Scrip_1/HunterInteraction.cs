@@ -344,21 +344,22 @@
 //     public void EventVault() { if (isVaulting) { if (interactAudioSource != null && clipTreoCuaso != null) interactAudioSource.PlayOneShot(clipTreoCuaso); } }
 //     public void EventTreoMoc() { if (isCarryingPlayer) { if (interactAudioSource != null && clipTreoMoc != null) interactAudioSource.PlayOneShot(clipTreoMoc); HookPlayerToHook(); } }
 // }
-
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
-using Fusion;
+using Fusion; // 1. Thêm thư viện Fusion
 
-public class HunterInteraction : NetworkBehaviour
+public class HunterInteraction : NetworkBehaviour // 2. Đổi sang NetworkBehaviour
 {
     [Header("Giao Diện & UI")]
     public Image interactImage;
     public Slider interactionSlider;
+
+    [Header("Tự Động Tìm UI (Nhập đúng tên ngoài Hierarchy)")]
     public string interactImageName = "Imgtt";
     public string sliderUIName = "Slidertt";
 
-    [Header("Cài Đặt Thời Gian")]
+    [Header("Cài Đặt Thời Gian Animation")]
     public float timeDapMay = 2.0f;
     public float timeTreoCUASO = 1.5f;
     public float timeTreoMoc = 3.0f;
@@ -367,9 +368,10 @@ public class HunterInteraction : NetworkBehaviour
     [Header("Hệ Thống Vác Người")]
     public Transform handPoint;
     public Transform shoulderPoint;
-    [Networked] public NetworkBool isCarryingPlayer { get; set; }
+    [Networked] public NetworkBool isCarryingPlayer { get; set; } // Đồng bộ cờ vác người
     private GameObject carriedPlayerObject;
 
+    [Header("Vượt Cửa Sổ")]
     public float vaultDistance = 2.5f;
 
     [Header("Âm Thanh Tương Tác")]
@@ -378,24 +380,30 @@ public class HunterInteraction : NetworkBehaviour
     public AudioClip clipTreoCuaso;
     public AudioClip clipTreoMoc;
 
-    private Material auraMatRed;   
-    private Material auraMatWhite; 
+    // =========================================================
+    // 🚨 HỆ THỐNG AURA XUYÊN TƯỜNG (TỰ ĐỘNG TÌM MATERIAL)
+    // =========================================================
+    [Header("Hệ Thống Aura (Tự Động)")]
+    private Material auraMatRed;   // Dành cho Móc
+    private Material auraMatWhite; // Dành cho Máy
     private GameObject[] allHooks;
     private GameObject[] allGenerators;
 
     private Collider currentInteractTarget;
     private float currentDuration = 1f;
-    [Networked] private NetworkBool isInteracting { get; set; }
+    
+    [Networked] private NetworkBool isInteracting { get; set; } 
+    [Networked] private NetworkBool isVaulting { get; set; }
+    
     private bool isSliderRunning = false;
     private float sliderTimer = 0f;
-    [Networked] private NetworkBool isVaulting { get; set; }
     private Vector3 vStart, vEnd;
 
     private Animator animator;
     private CharacterController controller;
     private FPSCamera fpsCameraScript;
 
-    public override void Spawned()
+    public override void Spawned() // 3. Đổi Awake/Start thành Spawned
     {
         animator = GetComponent<Animator>();
         controller = GetComponent<CharacterController>();
@@ -404,10 +412,15 @@ public class HunterInteraction : NetworkBehaviour
 
         if (Object.HasInputAuthority) AutoFindUI();
 
+        // Load Material từ Resources
         auraMatRed = Resources.Load<Material>("Mat_AuraRed");
         auraMatWhite = Resources.Load<Material>("Mat_AuraWhite");
 
-        if (Object.HasInputAuthority) // Aura chỉ xử lý local
+        if (auraMatRed == null) Debug.LogError("❌ KHÔNG TÌM THẤY 'Mat_AuraRed' trong thư mục Resources!");
+        if (auraMatWhite == null) Debug.LogError("❌ KHÔNG TÌM THẤY 'Mat_AuraWhite' trong thư mục Resources!");
+
+        // Hệ thống Aura XUYÊN TƯỜNG chỉ xử lý trên máy người chơi Hunter (để tối ưu)
+        if (Object.HasInputAuthority)
         {
             allHooks = GameObject.FindGameObjectsWithTag("Moc");
             allGenerators = GameObject.FindGameObjectsWithTag("May");
@@ -442,19 +455,27 @@ public class HunterInteraction : NetworkBehaviour
         return null;
     }
 
+    // 4. Xử lý di chuyển vật lý khi trèo cửa sổ bằng FixedUpdateNetwork cho mượt
     public override void FixedUpdateNetwork()
     {
         if (isVaulting)
         {
+            sliderTimer += Runner.DeltaTime;
             transform.position = Vector3.Lerp(vStart, vEnd, sliderTimer / currentDuration);
+        }
+        else if (isInteracting)
+        {
+            sliderTimer += Runner.DeltaTime;
         }
     }
 
     private void Update()
     {
-        if (isSliderRunning && interactionSlider != null && Object.HasInputAuthority)
+        if (!Object.HasInputAuthority) return;
+
+        // Chỉ xử lý UI trên Update
+        if (isSliderRunning && interactionSlider != null)
         {
-            sliderTimer += Time.deltaTime;
             interactionSlider.value = sliderTimer / currentDuration;
 
             if (sliderTimer >= currentDuration)
@@ -474,27 +495,24 @@ public class HunterInteraction : NetworkBehaviour
         if (isCarryingPlayer && tag != "Moc") return;
         if (tag == "Moc" && !isCarryingPlayer) return;
         
+        // Phát lệnh tương tác qua mạng
         Rpc_StartInteraction(tag, currentInteractTarget.transform.position);
     }
 
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void Rpc_StartInteraction(string tag, Vector3 targetPos)
+    [Rpc(RpcSources.InputAuthority, RpcTargets.All)] // 5. Lệnh từ Client gửi cho tất cả để chạy Anim
+    private void Rpc_StartInteraction(string tag, Vector3 targetPosition)
     {
         isInteracting = true;
-        Rpc_SyncInteractionVisuals(tag, targetPos);
-    }
-
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void Rpc_SyncInteractionVisuals(string tag, Vector3 targetPos)
-    {
         sliderTimer = 0f;
+
+        // UI Chỉ xử lý trên máy mình
         if (Object.HasInputAuthority)
         {
             if (interactImage != null) interactImage.gameObject.SetActive(false);
             if (interactionSlider != null) { interactionSlider.gameObject.SetActive(true); interactionSlider.value = 0f; isSliderRunning = true; }
         }
 
-        Vector3 lookPos = targetPos;
+        Vector3 lookPos = targetPosition;
         lookPos.y = transform.position.y;
         transform.LookAt(lookPos);
 
@@ -505,8 +523,11 @@ public class HunterInteraction : NetworkBehaviour
         else if (tag == "Playerchet")
         {
             animator.SetTrigger("Nhacplayer"); currentDuration = timeNhatPlayer;
-            if (currentInteractTarget != null) 
-                carriedPlayerObject = currentInteractTarget.transform.parent != null ? currentInteractTarget.transform.parent.gameObject : currentInteractTarget.gameObject;
+            if (currentInteractTarget != null)
+            {
+                if (currentInteractTarget.transform.parent != null) carriedPlayerObject = currentInteractTarget.transform.parent.gameObject;
+                else carriedPlayerObject = currentInteractTarget.gameObject;
+            }
         }
         else if (tag == "Cuaso")
         {
@@ -518,63 +539,77 @@ public class HunterInteraction : NetworkBehaviour
 
     public void AttachPlayerToHand()
     {
-        if (carriedPlayerObject != null && handPoint != null && Object.HasStateAuthority)
+        if (carriedPlayerObject != null && handPoint != null)
         {
-            PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
-            if (receiver != null) receiver.Rpc_GetPickedUpOrHooked(Object, handPoint.name);
+            Transform interactionTrigger = carriedPlayerObject.transform.Find("Playerchet");
+            if (interactionTrigger == null) interactionTrigger = FindChildWithTag(carriedPlayerObject, "Playerchet");
+            if (interactionTrigger != null) interactionTrigger.gameObject.SetActive(false);
+
+            if (Object.HasStateAuthority) // Server ra lệnh nhặt
+            {
+                PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
+                if (receiver != null) receiver.GetPickedUpOrHooked(handPoint);
+            }
 
             if (Object.HasInputAuthority && interactImage != null) interactImage.gameObject.SetActive(false);
+            currentInteractTarget = null;
         }
     }
 
     public void AttachPlayerToShoulder()
     {
-        if (carriedPlayerObject != null && shoulderPoint != null && Object.HasStateAuthority)
+        if (carriedPlayerObject != null && shoulderPoint != null)
         {
-            PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
-            if (receiver != null) receiver.Rpc_GetPickedUpOrHooked(Object, shoulderPoint.name);
+            if (Object.HasStateAuthority)
+            {
+                PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
+                if (receiver != null) receiver.GetPickedUpOrHooked(shoulderPoint);
+                isCarryingPlayer = true;
+            }
 
-            isCarryingPlayer = true;
-            Rpc_ToggleAuraShoulderLocal();
+            if (Object.HasInputAuthority)
+            {
+                ToggleAuraGroup(allGenerators, auraMatRed, false);
+                ToggleAuraGroup(allGenerators, auraMatWhite, true);
+                ToggleAuraGroup(allHooks, auraMatRed, true);
+            }
         }
-    }
-
-    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
-    private void Rpc_ToggleAuraShoulderLocal()
-    {
-        ToggleAuraGroup(allGenerators, auraMatRed, false);
-        ToggleAuraGroup(allGenerators, auraMatWhite, true);
-        ToggleAuraGroup(allHooks, auraMatRed, true);
     }
 
     public void HookPlayerToHook()
     {
-        if (carriedPlayerObject != null && currentInteractTarget != null && Object.HasStateAuthority)
+        if (carriedPlayerObject != null && currentInteractTarget != null)
         {
             Transform hookPoint = currentInteractTarget.transform.Find("HookPoint");
             Transform finalPoint = hookPoint ? hookPoint : currentInteractTarget.transform;
 
-            PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
-            NetworkObject hookNetObj = finalPoint.GetComponentInParent<NetworkObject>();
-            
-            if (receiver != null && hookNetObj != null) receiver.Rpc_GetPickedUpOrHooked(hookNetObj, finalPoint.name);
+            if (Object.HasStateAuthority)
+            {
+                PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
+                if (receiver != null) receiver.GetPickedUpOrHooked(finalPoint);
+                isCarryingPlayer = false;
+            }
 
             currentInteractTarget.tag = "Untagged";
-            isCarryingPlayer = false;
+
+            if (Object.HasInputAuthority)
+            {
+                if (interactImage != null) interactImage.gameObject.SetActive(false);
+                ToggleAuraGroup(allGenerators, auraMatWhite, false);
+                ToggleAuraGroup(allGenerators, auraMatRed, true);
+                ToggleAuraGroup(allHooks, auraMatRed, false);
+            }
+
             carriedPlayerObject = null;
             currentInteractTarget = null;
-
-            Rpc_ToggleAuraHookLocal();
         }
     }
 
-    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
-    private void Rpc_ToggleAuraHookLocal()
+    private Transform FindChildWithTag(GameObject parent, string tag)
     {
-        if (interactImage != null) interactImage.gameObject.SetActive(false);
-        ToggleAuraGroup(allGenerators, auraMatWhite, false);
-        ToggleAuraGroup(allGenerators, auraMatRed, true);
-        ToggleAuraGroup(allHooks, auraMatRed, false);
+        foreach (Transform child in parent.GetComponentsInChildren<Transform>(true))
+            if (child.CompareTag(tag)) return child;
+        return null;
     }
 
     public void FinishInteraction()
@@ -582,8 +617,7 @@ public class HunterInteraction : NetworkBehaviour
         if (Object.HasStateAuthority)
         {
             isInteracting = false;
-            isVaulting = false;
-            controller.enabled = true;
+            if (isVaulting) { isVaulting = false; controller.enabled = true; }
         }
 
         if (Object.HasInputAuthority)
@@ -596,26 +630,31 @@ public class HunterInteraction : NetworkBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        if (currentInteractTarget == other && Object.HasInputAuthority)
+        if (currentInteractTarget == other)
         {
             currentInteractTarget = null;
-            if (interactImage != null) interactImage.gameObject.SetActive(false);
+            if (Object.HasInputAuthority && interactImage != null) interactImage.gameObject.SetActive(false);
         }
     }
 
     private void ToggleAuraGroup(GameObject[] objects, Material targetMat, bool turnOn)
     {
         if (targetMat == null) return;
+
         foreach (GameObject obj in objects)
         {
             if (obj == null) continue;
+
             Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
             foreach (Renderer r in renderers)
             {
                 if (r is ParticleSystemRenderer) continue;
+
                 Material[] currentMats = r.materials;
                 bool hasAura = false;
+
                 foreach (Material m in currentMats) { if (m.name.Contains(targetMat.name)) hasAura = true; }
+
                 if (turnOn && !hasAura)
                 {
                     Material[] newMats = new Material[currentMats.Length + 1];
@@ -635,8 +674,6 @@ public class HunterInteraction : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!Object.HasInputAuthority) return;
-
         if (other.CompareTag("May") || other.CompareTag("Moc") || other.CompareTag("Playerchet") || other.CompareTag("Cuaso"))
         {
             if (isCarryingPlayer && !other.CompareTag("Moc")) return;
@@ -644,39 +681,38 @@ public class HunterInteraction : NetworkBehaviour
 
             if (other.CompareTag("May"))
             {
-                // TODO: Đảm bảo script Generator cũng được nâng cấp lên Fusion
-                // Generator gen = other.GetComponent<Generator>();
-                // if (gen == null || !gen.CanBeDamagedByHunter()) return;
+                Generator gen = other.GetComponent<Generator>();
+                if (gen == null || !gen.CanBeDamagedByHunter()) return;
             }
 
-            if (interactImage == null || interactionSlider == null) AutoFindUI();
+            // Ghi nhận chung mục tiêu va chạm
             currentInteractTarget = other;
 
-            if (interactImage != null) interactImage.gameObject.SetActive(true);
-            if (interactionSlider != null) interactionSlider.gameObject.SetActive(false);
+            // Chỉ bật UI nếu đó là máy của mình
+            if (Object.HasInputAuthority)
+            {
+                if (interactImage == null || interactionSlider == null) AutoFindUI();
+                if (interactImage != null) interactImage.gameObject.SetActive(true);
+                if (interactionSlider != null) interactionSlider.gameObject.SetActive(false);
+            }
         }
     }
 
+    // --- ANIMATION EVENTS ---
     public void EventDapMay()
     {
-        if (currentInteractTarget != null && currentInteractTarget.CompareTag("May") && Object.HasStateAuthority)
+        if (currentInteractTarget != null && currentInteractTarget.CompareTag("May"))
         {
-            Rpc_PlaySound(1);
-            // TODO: Gọi hàm trừ máu máy phát điện qua mạng
-        }
-    }
-    
-    public void EventVault() { if (isVaulting) Rpc_PlaySound(2); }
-    public void EventTreoMoc() { if (isCarryingPlayer && Object.HasStateAuthority) { Rpc_PlaySound(3); HookPlayerToHook(); } }
+            if (interactAudioSource != null && clipDapMay != null) interactAudioSource.PlayOneShot(clipDapMay);
 
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void Rpc_PlaySound(int soundID)
-    {
-        if (interactAudioSource != null)
-        {
-            if (soundID == 1 && clipDapMay != null) interactAudioSource.PlayOneShot(clipDapMay);
-            if (soundID == 2 && clipTreoCuaso != null) interactAudioSource.PlayOneShot(clipTreoCuaso);
-            if (soundID == 3 && clipTreoMoc != null) interactAudioSource.PlayOneShot(clipTreoMoc);
+            // Chỉ Server mới được phép gọi hàm trừ máu vào Máy phát điện
+            if (Object.HasStateAuthority)
+            {
+                Generator gen = currentInteractTarget.GetComponent<Generator>();
+                if (gen != null) gen.DamageByHunter();
+            }
         }
     }
+    public void EventVault() { if (isVaulting) { if (interactAudioSource != null && clipTreoCuaso != null) interactAudioSource.PlayOneShot(clipTreoCuaso); } }
+    public void EventTreoMoc() { if (isCarryingPlayer) { if (interactAudioSource != null && clipTreoMoc != null) interactAudioSource.PlayOneShot(clipTreoMoc); HookPlayerToHook(); } }
 }
