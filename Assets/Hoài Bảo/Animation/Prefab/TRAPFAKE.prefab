@@ -9,6 +9,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7899320645975594781}
+  - component: {fileID: -7862760967332710277}
+  - component: {fileID: -6655124815869356250}
   m_Layer: 0
   m_Name: TRAPFAKE
   m_TagString: Untagged
@@ -24,14 +26,50 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6230957394714945389}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.0077773053, z: 0, w: 0.9999698}
-  m_LocalPosition: {x: 446.7564, y: 0.12749314, z: 190.6929}
+  m_LocalRotation: {x: 0, y: 0.23035866, z: 0, w: 0.9731058}
+  m_LocalPosition: {x: 451.1455, y: 0.10749346, z: 162.74957}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7447573729727403693}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &-7862760967332710277
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6230957394714945389}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SortKey: 935037076
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: -6655124815869356250}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &-6655124815869356250
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6230957394714945389}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0
 --- !u!1001 &3952177988145598155
 PrefabInstance:
   m_ObjectHideFlags: 0
