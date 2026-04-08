@@ -2349,14 +2349,6 @@ PrefabInstance:
       propertyPath: mainCamera
       value: 
       objectReference: {fileID: 349725732}
-    - target: {fileID: 2006207292993136333, guid: f49449c111e98a04e9371b76ac04f9a7, type: 3}
-      propertyPath: vaultDistance
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 2006207292993136333, guid: f49449c111e98a04e9371b76ac04f9a7, type: 3}
-      propertyPath: vaultDuration
-      value: 1.1
-      objectReference: {fileID: 0}
     - target: {fileID: 3165707616130625318, guid: f49449c111e98a04e9371b76ac04f9a7, type: 3}
       propertyPath: SortKey
       value: 1095556375
@@ -2364,10 +2356,6 @@ PrefabInstance:
     - target: {fileID: 7292639732778651450, guid: f49449c111e98a04e9371b76ac04f9a7, type: 3}
       propertyPath: m_Name
       value: MrBean
-      objectReference: {fileID: 0}
-    - target: {fileID: 7292639732778651450, guid: f49449c111e98a04e9371b76ac04f9a7, type: 3}
-      propertyPath: m_IsActive
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7962216387632141696, guid: f49449c111e98a04e9371b76ac04f9a7, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2536,17 +2524,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1660043084456656430, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
+      propertyPath: m_Name
+      value: Nurse
+      objectReference: {fileID: 0}
     - target: {fileID: 2006184711979089739, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
       propertyPath: m_Name
       value: Nurse
       objectReference: {fileID: 0}
     - target: {fileID: 2006184711979089739, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 2706563698061901829, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: m_IsActive
-      value: 1
+    - target: {fileID: 2006184711979089739, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
+      propertyPath: m_TagString
+      value: Player
       objectReference: {fileID: 0}
     - target: {fileID: 3112147768813184209, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
       propertyPath: SortKey
@@ -2556,98 +2548,6 @@ PrefabInstance:
       propertyPath: mainCamera
       value: 
       objectReference: {fileID: 349725732}
-    - target: {fileID: 8315465095852867494, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: reviveTime
-      value: 30
-      objectReference: {fileID: 0}
-    - target: {fileID: 8315465095852867494, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: skillInput
-      value: 
-      objectReference: {fileID: 3515880274572810358, guid: 5a37795843509104bb7250bad636b6d5, type: 3}
-    - target: {fileID: 8315465095852867494, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: vaultInput
-      value: 
-      objectReference: {fileID: -2152897105021674240, guid: 5a37795843509104bb7250bad636b6d5, type: 3}
-    - target: {fileID: 8315465095852867494, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: interactInput
-      value: 
-      objectReference: {fileID: -8641634458056426778, guid: 5a37795843509104bb7250bad636b6d5, type: 3}
-    - target: {fileID: 8778292444764546065, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: TotalWords
-      value: 4
-      objectReference: {fileID: 0}
-    - target: {fileID: 8778292444764546065, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: StateHashes.Array.size
-      value: 18
-      objectReference: {fileID: 0}
-    - target: {fileID: 8778292444764546065, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: 'StateHashes.Array.data[7]'
-      value: 1360618153
-      objectReference: {fileID: 0}
-    - target: {fileID: 8778292444764546065, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: 'StateHashes.Array.data[8]'
-      value: -732615381
-      objectReference: {fileID: 0}
-    - target: {fileID: 8778292444764546065, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: 'StateHashes.Array.data[9]'
-      value: -1309812712
-      objectReference: {fileID: 0}
-    - target: {fileID: 8778292444764546065, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: 'StateHashes.Array.data[10]'
-      value: -1294043557
-      objectReference: {fileID: 0}
-    - target: {fileID: 8778292444764546065, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: 'StateHashes.Array.data[11]'
-      value: -1542608434
-      objectReference: {fileID: 0}
-    - target: {fileID: 8778292444764546065, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: 'StateHashes.Array.data[12]'
-      value: -1489107059
-      objectReference: {fileID: 0}
-    - target: {fileID: 8778292444764546065, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: 'StateHashes.Array.data[13]'
-      value: 1971426788
-      objectReference: {fileID: 0}
-    - target: {fileID: 8778292444764546065, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: 'StateHashes.Array.data[14]'
-      value: -2012654065
-      objectReference: {fileID: 0}
-    - target: {fileID: 8778292444764546065, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: 'StateHashes.Array.data[15]'
-      value: -499022955
-      objectReference: {fileID: 0}
-    - target: {fileID: 8778292444764546065, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: 'StateHashes.Array.data[16]'
-      value: -510400624
-      objectReference: {fileID: 0}
-    - target: {fileID: 8778292444764546065, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: 'StateHashes.Array.data[17]'
-      value: 1892943889
-      objectReference: {fileID: 0}
-    - target: {fileID: 8958471834678136796, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8958471834678136796, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8958471834678136796, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8958471834678136796, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8958471834678136796, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8958471834678136796, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: 0
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2708,10 +2608,6 @@ PrefabInstance:
     - target: {fileID: 2076240760902448350, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
       propertyPath: m_Name
       value: MrBeast
-      objectReference: {fileID: 0}
-    - target: {fileID: 2076240760902448350, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: m_IsActive
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6465637124812313721, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
       propertyPath: SortKey
