@@ -250,6 +250,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 6c115849636d07741b3afe203d483fe8, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8315465095852867494}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 6c115849636d07741b3afe203d483fe8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3112147768813184209}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 6c115849636d07741b3afe203d483fe8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -362250094445081149}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 6c115849636d07741b3afe203d483fe8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8778292444764546065}
   m_SourcePrefab: {fileID: 100100000, guid: 6c115849636d07741b3afe203d483fe8, type: 3}
 --- !u!4 &1197032748752397809 stripped
 Transform:
@@ -306,12 +315,97 @@ MonoBehaviour:
   moveInput: {fileID: -2407139750347397286, guid: 5a37795843509104bb7250bad636b6d5, type: 3}
   sprintInput: {fileID: 4083994671680889239, guid: 5a37795843509104bb7250bad636b6d5, type: 3}
   walkInput: {fileID: -2094771407716535625, guid: 5a37795843509104bb7250bad636b6d5, type: 3}
-  jumpInput: {fileID: -2152897105021674240, guid: 5a37795843509104bb7250bad636b6d5, type: 3}
-  interactUI: {fileID: 2706563698061901829}
+  vaultInput: {fileID: 0}
+  skillInput: {fileID: 0}
   vaultAnimationTrigger: Vault
   vaultDuration: 1.1
   vaultDistance: 3
+  skillSpeedBonus: 3
+  skillDuration: 10
+  skillCooldown: 30
+  hitAnimationTrigger: AnHit
+  downedAnimationBool: BiGuc
+  hookedAnimationBool: BiTreo
+  sacrificeTime: 90
+  interactUI: {fileID: 2706563698061901829}
+  durationSlider: {fileID: 0}
+  cooldownImage: {fileID: 0}
+  cooldownText: {fileID: 0}
+  hookSlider: {fileID: 0}
   mainCamera: {fileID: 0}
+  PlayerDeadthBox: {fileID: 0}
+  reviveTime: 90
+  revivingAnimBool: IsReviving
+  interactInput: {fileID: 0}
+  revivePrompt: {fileID: 0}
+  reviveSlider: {fileID: 0}
+  _IsBeingRevived:
+    _value: 0
+  _IsReviving:
+    _value: 0
+  _IsDowned:
+    _value: 0
+  _IsHooked:
+    _value: 0
+  _CurrentHits: 0
+  _IsVaulting:
+    _value: 0
+--- !u!114 &3112147768813184209
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2006184711979089739}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SortKey: 710237315
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 8315465095852867494}
+  - {fileID: -362250094445081149}
+  - {fileID: 8778292444764546065}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &-362250094445081149
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2006184711979089739}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0
+--- !u!114 &8778292444764546065
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2006184711979089739}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 506319458, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Animator: {fileID: 5079103967105433483}
+  ApplyTiming: 2
+  SyncSettings: 79
+  StateHashes: 000000008a18fce4b9abd9d387f9dbdd05b6975813cd87b4f80e0f49e49581750f560988a96219512b2d55d46ac022f2296e11f12eef409c6d41739f81be5a48059d8ca7
+  TriggerHashes: 000000002566f13e67bf96e5
+  TotalWords: 3
 --- !u!95 &5079103967105433483 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 6c115849636d07741b3afe203d483fe8, type: 3}

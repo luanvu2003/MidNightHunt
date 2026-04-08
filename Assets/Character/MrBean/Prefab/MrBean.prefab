@@ -252,6 +252,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2006207292993136333}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3165707616130625318}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -248134908168145914}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -6279293376566966823}
   m_SourcePrefab: {fileID: 100100000, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
 --- !u!95 &4080073567845634042 stripped
 Animator:
@@ -308,12 +317,97 @@ MonoBehaviour:
   moveInput: {fileID: -7547968697249659152, guid: 5d3126308f258f146aa8efa2f820b362, type: 3}
   sprintInput: {fileID: 1669326918838992397, guid: 5d3126308f258f146aa8efa2f820b362, type: 3}
   walkInput: {fileID: 1567739123892707811, guid: 5d3126308f258f146aa8efa2f820b362, type: 3}
-  jumpInput: {fileID: -5625498440643658418, guid: 5d3126308f258f146aa8efa2f820b362, type: 3}
-  interactUI: {fileID: 8445042920204595263}
+  vaultInput: {fileID: 0}
+  skillInput: {fileID: 0}
   vaultAnimationTrigger: Vault
   vaultDuration: 1.5
   vaultDistance: 2.5
+  skillSpeedBonus: 3
+  skillDuration: 10
+  skillCooldown: 30
+  hitAnimationTrigger: AnHit
+  downedAnimationBool: BiGuc
+  hookedAnimationBool: BiTreo
+  sacrificeTime: 90
+  interactUI: {fileID: 8445042920204595263}
+  durationSlider: {fileID: 0}
+  cooldownImage: {fileID: 0}
+  cooldownText: {fileID: 0}
+  hookSlider: {fileID: 0}
   mainCamera: {fileID: 0}
+  PlayerDeadthBox: {fileID: 0}
+  reviveTime: 90
+  revivingAnimBool: IsReviving
+  interactInput: {fileID: 0}
+  revivePrompt: {fileID: 0}
+  reviveSlider: {fileID: 0}
+  _IsBeingRevived:
+    _value: 0
+  _IsReviving:
+    _value: 0
+  _IsDowned:
+    _value: 0
+  _IsHooked:
+    _value: 0
+  _CurrentHits: 0
+  _IsVaulting:
+    _value: 0
+--- !u!114 &3165707616130625318
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7292639732778651450}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SortKey: 3404787424
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 2006207292993136333}
+  - {fileID: -248134908168145914}
+  - {fileID: -6279293376566966823}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &-248134908168145914
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7292639732778651450}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0
+--- !u!114 &-6279293376566966823
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7292639732778651450}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 506319458, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Animator: {fileID: 4080073567845634042}
+  ApplyTiming: 2
+  SyncSettings: 79
+  StateHashes: 000000001439c2ab278ae79c67bf96e5e5f0da60a96219512b2d55d418d8edb15b76deb2cea90da48d073ea713cd87b4f80e0f49
+  TriggerHashes: 000000002566f13e
+  TotalWords: 3
 --- !u!4 &7962216387632141696 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
