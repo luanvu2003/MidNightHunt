@@ -17,6 +17,8 @@ public class RoomPlayer : NetworkBehaviour
 
     [Networked, OnChangedRender(nameof(OnDataChanged))]
     public NetworkBool IsReady { get; set; } // Cờ báo hiệu: Đã bấm nút Sẵn Sàng chưa?
+    [Networked, OnChangedRender(nameof(OnDataChanged))]
+    public int RoomIndex { get; set; } = -1; // 0 là Hunter, 1-2-3 là Survivor
 
     // Biến tĩnh để tìm ra chính bản thân mình trên máy tính của mình
     public static RoomPlayer Local;

@@ -53,6 +53,7 @@ GameObject:
   - component: {fileID: 1186244846220050800}
   - component: {fileID: 877235556028763662}
   - component: {fileID: 441912001392829226}
+  - component: {fileID: 2311731886261963367}
   m_Layer: 0
   m_Name: Hunter2
   m_TagString: Hunter
@@ -415,6 +416,7 @@ MonoBehaviour:
   - {fileID: 2658514166855154901}
   - {fileID: 877235556028763662}
   - {fileID: 441912001392829226}
+  - {fileID: 2311731886261963367}
   - {fileID: 2222510979204809398}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &877235556028763662
@@ -452,6 +454,21 @@ MonoBehaviour:
   SyncParent: 0
   _autoAOIOverride: 1
   DisableSharedModeInterpolation: 0
+--- !u!114 &2311731886261963367
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1616768864332459727}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fed702da464343b4a9bff20cbcd85301, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  headBoneName: mixamorig:Head
+  myFpsEyeOffset: {x: 0, y: 0.1, z: 0.2}
+  myTpsOffset: {x: 0.5, y: 1.5, z: -3}
 --- !u!1 &5496359086038836481
 GameObject:
   m_ObjectHideFlags: 0

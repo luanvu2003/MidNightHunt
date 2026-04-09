@@ -7,27 +7,44 @@ using System.Linq;
 
 public class RandomRoleManager : NetworkBehaviour
 {
-    [Header("UI Hiển Thị")]
+    [Header("== UI HIỂN THỊ ==")]
     public TextMeshProUGUI statusText;
     public TextMeshProUGUI resultText;
-    
-    [Header("Danh Sách Tên Người Chơi")]
+
+    [Header("== DANH SÁCH NGƯỜI CHƠI ==")]
     public TextMeshProUGUI[] playerNameTexts;
 
-    [Header("Hiệu Ứng Vòng Quay")]
+    [Header("== HIỆU ỨNG VÒNG QUAY ==")]
     public RectTransform highlightFrame;
     public Color normalColor = Color.white;
-    public Color highlightColor = Color.yellow; 
-    public Color hunterColor = Color.red;       
+    public Color highlightColor = Color.yellow;
+    public Color hunterColor = Color.red;
 
+    [Header("== ÂM THANH (AUDIO) ==")]
+    public AudioSource audioSource;
+    [Tooltip("Tiếng tạch tạch khi khung viền nhảy qua từng người")]
+    public AudioClip spinSound;
+    [Tooltip("Tiếng BÙM chốt kết quả (Dùng chung cho Hunter & Survivor)")]
+    public AudioClip resultSound;
+    [Tooltip("Tiếng Tít đếm ngược 10 giây cuối")]
+    public AudioClip tickSound;
+
+    // Các biến Mạng đồng bộ
     [Networked] public TickTimer TransitionTimer { get; set; }
     [Networked] public NetworkBool IsRoleAssigned { get; set; }
 
+    // Biến phụ để canh me tiếng Tít đếm ngược
+    private int lastTickSecond = -1;
+
     public override void Spawned()
     {
-        foreach (var txt in playerNameTexts) txt.text = "";
+        // 1. Dọn dẹp UI lúc mới vào
+        foreach (var txt in playerNameTexts) if (txt != null) txt.text = "";
         if (highlightFrame != null) highlightFrame.gameObject.SetActive(false);
+        if (resultText != null) resultText.text = "";
+        lastTickSecond = -1;
 
+        // 2. Chỉ Server mới được quyền quay số
         if (Runner.IsServer)
         {
             StartCoroutine(ServerLogicRoutine());
@@ -36,27 +53,51 @@ public class RandomRoleManager : NetworkBehaviour
 
     IEnumerator ServerLogicRoutine()
     {
-        yield return new WaitForSeconds(1f); 
+        yield return new WaitForSeconds(1f); // Đợi mọi người load Scene xong
 
-        // 🚨 CHỐT ĐỒNG BỘ 100%: Ép tất cả các máy phải xếp danh sách theo ID người chơi vào phòng!
+        // Ép danh sách đồng bộ theo PlayerId để không bị lệch thứ tự giữa các máy
         var allPlayers = FindObjectsOfType<RoomPlayer>().OrderBy(p => p.Object.InputAuthority.PlayerId).ToList();
 
         if (allPlayers.Count > 0)
         {
-            int hunterIndex = Random.Range(0, allPlayers.Count);
+            // Lắc xí ngầu lấy hạt giống thời gian thực để chống trùng lặp
+            Random.InitState(System.DateTime.Now.Millisecond + allPlayers.Count);
 
+            // 1. Gán index ban đầu theo thứ tự danh sách (0, 1, 2, 3)
             for (int i = 0; i < allPlayers.Count; i++)
             {
-                allPlayers[i].SetRoleByServer(i == hunterIndex);
+                allPlayers[i].RoomIndex = i;
             }
 
+            // 2. Chốt vị trí người làm Hunter trong danh sách
+            int hunterIndex = Random.Range(0, allPlayers.Count);
+            Debug.Log($"🎲 Server chốt: Người chơi ở vị trí [{hunterIndex}] làm Hunter!");
+
+            // 3. 🚨 SWAP INDEX: Đảm bảo Hunter LUÔN giữ RoomIndex = 0
+            if (hunterIndex != 0) // Nếu người trúng Hunter không phải chủ phòng (người đang giữ số 0)
+            {
+                // Tráo đổi RoomIndex cho nhau
+                allPlayers[hunterIndex].RoomIndex = 0;
+                allPlayers[0].RoomIndex = hunterIndex;
+            }
+
+            // 4. Set Role: Đọc theo RoomIndex mới, ai cầm số 0 thì thành Hunter
+            for (int i = 0; i < allPlayers.Count; i++)
+            {
+                allPlayers[i].SetRoleByServer(allPlayers[i].RoomIndex == 0);
+            }
+
+            // 5. Chuẩn bị UI hiển thị vòng quay (Vẫn giữ nguyên thứ tự UI ban đầu)
             string p0 = allPlayers.Count > 0 ? allPlayers[0].PlayerName.ToString() : "";
             string p1 = allPlayers.Count > 1 ? allPlayers[1].PlayerName.ToString() : "";
             string p2 = allPlayers.Count > 2 ? allPlayers[2].PlayerName.ToString() : "";
             string p3 = allPlayers.Count > 3 ? allPlayers[3].PlayerName.ToString() : "";
 
-            int randomExtraSpins = Random.Range(40, 60);
+            // Chọn số vòng quay phụ (từ 50 đến 80 bước) để tạo cảm giác quay ngẫu nhiên
+            int randomExtraSpins = Random.Range(51, 80);
 
+            // Phóng lệnh RPC báo TẤT CẢ các máy bắt đầu bật hiệu ứng vòng quay
+            // Gửi đúng hunterIndex (vị trí vật lý trong mảng) để UI nhảy khung đỏ vào đúng ô
             RPC_PlayRouletteEffect(hunterIndex, allPlayers.Count, p0, p1, p2, p3, randomExtraSpins);
         }
     }
@@ -70,11 +111,11 @@ public class RandomRoleManager : NetworkBehaviour
     IEnumerator VisualRouletteRoutine(int winnerIndex, int playerCount, string[] names, int extraSpins)
     {
         if (statusText != null) statusText.text = "Hệ thống đang chọn thợ săn...";
-        if (resultText != null) resultText.text = "";
 
+        // Gắn tên lên UI
         for (int i = 0; i < playerNameTexts.Length; i++)
         {
-            if (i < playerCount)
+            if (i < playerCount && playerNameTexts[i] != null)
             {
                 playerNameTexts[i].text = names[i];
                 playerNameTexts[i].color = normalColor;
@@ -83,9 +124,11 @@ public class RandomRoleManager : NetworkBehaviour
 
         if (highlightFrame != null) highlightFrame.gameObject.SetActive(true);
 
-        int totalSpins = (playerCount * extraSpins) + winnerIndex; 
-        float delayTime = 0.1f; 
+        // Tính toán tổng số bước nhảy sao cho điểm dừng cuối cùng khớp với winnerIndex
+        int totalSpins = (playerCount * extraSpins) + winnerIndex;
+        float delayTime = 0.05f;
 
+        // 🟢 VÒNG LẶP QUAY SỐ
         for (int i = 0; i <= totalSpins; i++)
         {
             for (int j = 0; j < playerCount; j++) playerNameTexts[j].color = normalColor;
@@ -93,25 +136,40 @@ public class RandomRoleManager : NetworkBehaviour
             int currentIndex = i % playerCount;
             playerNameTexts[currentIndex].color = highlightColor;
 
+            // Di chuyển khung viền
             if (highlightFrame != null)
             {
                 highlightFrame.position = playerNameTexts[currentIndex].rectTransform.position;
             }
 
-            if (i > totalSpins - (playerCount * 3)) delayTime += 0.06f; 
-            else if (i > totalSpins - (playerCount * 6)) delayTime += 0.02f; 
+            // 🎵 PHÁT ÂM THANH QUAY (Spin)
+            if (audioSource != null && spinSound != null)
+            {
+                audioSource.PlayOneShot(spinSound, 0.5f); // Âm lượng 50% cho đỡ nhức đầu
+            }
+
+            // Hiệu ứng chậm dần đều
+            int remainingSpins = totalSpins - i;
+            if (remainingSpins < 3) delayTime += 0.2f;       // 3 ô cuối cực chậm
+            else if (remainingSpins < 10) delayTime += 0.05f; // 10 ô cuối chậm dần
 
             yield return new WaitForSeconds(delayTime);
         }
 
+        // 🔴 CHỐT KẾT QUẢ!
         playerNameTexts[winnerIndex].color = hunterColor;
-        playerNameTexts[winnerIndex].text = names[winnerIndex];
-        
         if (highlightFrame != null && highlightFrame.TryGetComponent<Image>(out Image frameImage))
         {
             frameImage.color = hunterColor;
         }
 
+        // 🎵 PHÁT ÂM THANH CHỐT (Dùng chung cho cả 2 phe)
+        if (audioSource != null && resultSound != null)
+        {
+            audioSource.PlayOneShot(resultSound, 1f); // Âm lượng 100%
+        }
+
+        // Hiện chữ to báo cho người chơi biết họ là phe nào
         if (RoomPlayer.Local != null && resultText != null)
         {
             if (RoomPlayer.Local.IsHunter)
@@ -122,14 +180,15 @@ public class RandomRoleManager : NetworkBehaviour
             else
             {
                 resultText.text = "BẠN LÀ:\n<size=150%>SURVIVOR</size>";
-                resultText.color = new Color(0.2f, 0.6f, 1f); 
+                resultText.color = new Color(0.2f, 0.6f, 1f); // Xanh dương cho Survivor
             }
         }
 
+        // Server bắt đầu đếm ngược 10s để sang Scene tiếp theo
         if (Runner.IsServer)
         {
             IsRoleAssigned = true;
-            TransitionTimer = TickTimer.CreateFromSeconds(Runner, 10f);
+            TransitionTimer = TickTimer.CreateFromSeconds(Runner, 10f); // Đúng 10 giây
         }
     }
 
@@ -137,19 +196,31 @@ public class RandomRoleManager : NetworkBehaviour
     {
         if (Object == null || !Object.IsValid) return;
 
+        // Xử lý UI và tiếng TÍP đếm ngược
         if (IsRoleAssigned && TransitionTimer.IsRunning && statusText != null)
         {
             int timeLeft = Mathf.CeilToInt(TransitionTimer.RemainingTime(Runner) ?? 0);
             statusText.text = $"Vào phòng chốt nhân vật sau: {timeLeft}s";
+
+            // 🎵 PHÁT ÂM THANH ĐẾM NGƯỢC (Mỗi giây kêu 1 lần)
+            if (timeLeft != lastTickSecond && timeLeft <= 10 && timeLeft > 0)
+            {
+                lastTickSecond = timeLeft;
+                if (audioSource != null && tickSound != null)
+                {
+                    audioSource.PlayOneShot(tickSound, 0.7f);
+                }
+            }
         }
     }
 
     public override void FixedUpdateNetwork()
     {
+        // Khi đồng hồ mạng hết giờ, Server sẽ lôi cả đám sang Scene 3 (Chọn tướng)
         if (IsRoleAssigned && Runner.IsServer && TransitionTimer.Expired(Runner))
         {
-            TransitionTimer = TickTimer.None; 
-            Runner.LoadScene(SceneRef.FromIndex(3)); 
+            TransitionTimer = TickTimer.None;
+            Runner.LoadScene(SceneRef.FromIndex(3));
         }
     }
 }
