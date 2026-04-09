@@ -115,6 +115,7 @@ GameObject:
   - component: {fileID: 7161010782460737858}
   - component: {fileID: 1285061914258829460}
   - component: {fileID: 8350662706083400960}
+  - component: {fileID: 6545867723466642158}
   m_Layer: 0
   m_Name: Hunter
   m_TagString: Hunter
@@ -197,6 +198,7 @@ MonoBehaviour:
   clipVomitingLoop: {fileID: 0}
   slowMultiplier: 0.5
   slowDuraction: 1.5
+  _attackCounter: 0
 --- !u!143 &7576504347506079531
 CharacterController:
   m_ObjectHideFlags: 0
@@ -265,6 +267,7 @@ MonoBehaviour:
   hardLandingThreshold: -12
   landSlowMult: 0.2
   landSlowDuration: 1.5
+  _AnimSpeedValue: 0
 --- !u!114 &7217707400525481010
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -510,6 +513,33 @@ MonoBehaviour:
   headBoneName: mixamorig:Head
   myFpsEyeOffset: {x: 0, y: 0.1, z: 0.2}
   myTpsOffset: {x: 0.5, y: 1.5, z: -3}
+--- !u!54 &6545867723466642158
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7902378030018398077}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1001 &1737060766795976618
 PrefabInstance:
   m_ObjectHideFlags: 0

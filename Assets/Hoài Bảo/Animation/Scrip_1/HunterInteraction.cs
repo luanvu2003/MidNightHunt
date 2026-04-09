@@ -490,23 +490,6 @@ public class HunterInteraction : NetworkBehaviour // 2. Đổi sang NetworkBehav
 
     public bool IsDoingAction() { return isInteracting || isVaulting; }
 
-   public void TryInteract()
-    {
-        if (isInteracting || currentInteractTarget == null) return;
-        string tag = currentInteractTarget.tag;
-        if (isCarryingPlayer && tag != "Moc") return;
-        if (tag == "Moc" && !isCarryingPlayer) return;
-
-        // Lấy NetworkId của Máy hoặc Móc để gửi cho Server
-        NetworkObject netObj = currentInteractTarget.GetComponentInParent<NetworkObject>();
-        
-        // 🚨 ĐÃ SỬA LỖI Ở ĐÂY: Dùng từ khóa 'default' thay vì 'NetworkId.Invalid'
-        NetworkId idToSend = netObj != null ? netObj.Id : default;
-
-        // Phát lệnh tương tác qua mạng kèm theo ID
-        Rpc_StartInteraction(tag, currentInteractTarget.transform.position, idToSend);
-    }
-
     [Rpc(RpcSources.InputAuthority, RpcTargets.All)]
     private void Rpc_StartInteraction(string tag, Vector3 targetPosition, NetworkId targetId)
     {
@@ -681,12 +664,28 @@ public class HunterInteraction : NetworkBehaviour // 2. Đổi sang NetworkBehav
         }
     }
 
+    // --- CẬP NHẬT LẠI HÀM OnTriggerEnter TRONG HunterInteraction.cs ---
+
     private void OnTriggerEnter(Collider other)
     {
+        // 1. Log để bạn kiểm tra xem Hunter có thực sự chạm vào cái gì không
+        // Debug.Log("Hunter va chạm với: " + other.name + " | Tag: " + other.tag);
+
         if (other.CompareTag("May") || other.CompareTag("Moc") || other.CompareTag("Playerchet") || other.CompareTag("Cuaso"))
         {
+            // Kiểm tra logic vác người
             if (isCarryingPlayer && !other.CompareTag("Moc")) return;
             if (other.CompareTag("Moc") && !isCarryingPlayer) return;
+
+            // Riêng với Survivor đã gục (Playerchet)
+            if (other.CompareTag("Playerchet"))
+            {
+                // Nếu đang vác người rồi thì không hiện UI nhặt nữa
+                if (isCarryingPlayer) return;
+
+                // Debug cực mạnh để biết đã chạm trúng Survivor gục
+                Debug.Log("<color=cyan>➔ Đã tìm thấy Survivor gục! Hiện UI nhặt người.</color>");
+            }
 
             if (other.CompareTag("May"))
             {
@@ -696,16 +695,40 @@ public class HunterInteraction : NetworkBehaviour // 2. Đổi sang NetworkBehav
 
             currentInteractTarget = other;
 
-            // BẬT UI (Thêm Debug để kiểm tra xem Collider có hoạt động không)
+            // BẬT UI
             if (Object.HasInputAuthority)
             {
-                Debug.Log("Đã chạm vào: " + other.name + " -> Kích hoạt UI");
                 if (interactImage == null || interactionSlider == null) AutoFindUI();
-                
-                if (interactImage != null) interactImage.gameObject.SetActive(true);
+
+                if (interactImage != null)
+                {
+                    interactImage.gameObject.SetActive(true);
+                    // Nếu bạn có nhiều icon khác nhau (icon nhặt người, icon đạp máy) 
+                    // thì có thể đổi Sprite ở đây.
+                }
                 if (interactionSlider != null) interactionSlider.gameObject.SetActive(false);
             }
         }
+    }
+
+    // --- CẬP NHẬT LẠI HÀM TryInteract ĐỂ CHẮC CHẮN NHẬN DIỆN ĐÚNG ---
+
+    public void TryInteract()
+    {
+        if (isInteracting || currentInteractTarget == null) return;
+
+        string currentTag = currentInteractTarget.tag;
+
+        // Chặn trường hợp hy hữu: Đang vác mà đòi nhặt tiếp hoặc đang không vác mà đòi treo móc
+        if (isCarryingPlayer && currentTag == "Playerchet") return;
+        if (!isCarryingPlayer && currentTag == "Moc") return;
+
+        // Tìm NetworkId để đồng bộ hành động lên Server
+        NetworkObject netObj = currentInteractTarget.GetComponentInParent<NetworkObject>();
+        NetworkId idToSend = netObj != null ? netObj.Id : default;
+
+        Debug.Log($"<color=yellow>Bắt đầu tương tác với: {currentTag}</color>");
+        Rpc_StartInteraction(currentTag, currentInteractTarget.transform.position, idToSend);
     }
 
     // --- ANIMATION EVENTS ---
