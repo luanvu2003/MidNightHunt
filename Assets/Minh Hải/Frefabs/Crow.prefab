@@ -2304,6 +2304,7 @@ MonoBehaviour:
   patrolRadius: 3
   waitTime: 3
   rotationSpeed: 8
+  respawnDelay: 300
   idleModel: {fileID: 6336038652835492950}
   flyModel: {fileID: 7250905231381443666}
   cawSound: {fileID: 3958676201132615580}

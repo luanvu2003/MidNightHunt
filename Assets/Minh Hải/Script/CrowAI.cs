@@ -3,15 +3,15 @@ using System.Collections;
 
 public class CrowAI : MonoBehaviour
 {
-    [Header("Cài đặt Tuần tra (Vừa đi vừa quay đầu)")]
+    [Header("Cài đặt Tuần tra")]
     public float moveSpeed = 0.8f;   
     public float patrolRadius = 3f; 
     public float waitTime = 3f;      
-    public float rotationSpeed = 8f; // Tốc độ quay đầu
+    public float rotationSpeed = 8f; 
 
-    private Vector3 targetPoint;
-    private Vector3 startPosition;
-    private bool isMoving = false;
+    [Header("Cài đặt Hồi sinh")]
+    [Tooltip("Thời gian (giây) để quạ hiện lại tại chỗ cũ")]
+    public float respawnDelay = 300f; 
 
     [Header("Model & Bay")]
     public GameObject idleModel; 
@@ -20,11 +20,16 @@ public class CrowAI : MonoBehaviour
     public float flyUpSpeed = 18f; 
     public float detectionRadius = 5f;
 
+    private Vector3 startPosition;
+    private Quaternion startRotation;
     private bool hasFled = false;
 
     void Start()
     {
+        // Lưu lại vị trí ban đầu mà RandomSpawner đã đặt để hồi sinh đúng chỗ
         startPosition = transform.position;
+        startRotation = transform.rotation;
+
         if (idleModel != null) idleModel.SetActive(true);
         if (flyModel != null) flyModel.SetActive(false);
 
@@ -35,7 +40,6 @@ public class CrowAI : MonoBehaviour
     {
         if (hasFled) return;
 
-        // Quét Player đang chạy (Sprinting)
         Collider[] targets = Physics.OverlapSphere(transform.position, detectionRadius);
         foreach (var t in targets)
         {
@@ -51,18 +55,26 @@ public class CrowAI : MonoBehaviour
         }
     }
 
+    // --- HÀM QUAN TRỌNG: Generator.cs gọi hàm này ---
+    public void OnGeneratorExplosion()
+    {
+        if (!hasFled) 
+        {
+            // Tránh quạ bay đi đồng loạt quá thô, tạo độ trễ ngẫu nhiên
+            Invoke("TriggerFlee", Random.Range(0.1f, 0.4f));
+        }
+    }
+
     IEnumerator PatrolRoutine()
     {
         while (!hasFled)
         {
-            // Nghỉ ngơi tại chỗ
             yield return new WaitForSeconds(Random.Range(waitTime * 0.5f, waitTime * 1.5f));
+            if (hasFled) yield break;
 
-            // Chọn điểm mới
             Vector2 randomCircle = Random.insideUnitCircle * patrolRadius;
-            targetPoint = startPosition + new Vector3(randomCircle.x, 0, randomCircle.y);
+            Vector3 targetPoint = startPosition + new Vector3(randomCircle.x, 0, randomCircle.y);
             
-            // Xoay đầu nhìn sang đó trước khi đi
             Vector3 direction = (targetPoint - transform.position).normalized;
             if (direction != Vector3.zero)
             {
@@ -74,34 +86,14 @@ public class CrowAI : MonoBehaviour
                 }
             }
 
-            // Bắt đầu di chuyển
-            isMoving = true;
-            
             float startTime = Time.time;
             while (Vector3.Distance(transform.position, targetPoint) > 0.1f && !hasFled)
             {
-                // Vừa đi vừa đảm bảo hướng luôn nhìn thẳng vào mục tiêu
                 transform.position = Vector3.MoveTowards(transform.position, targetPoint, moveSpeed * Time.deltaTime);
-                
-                // Fail-safe: Nếu đi quá lâu mà không tới (bị kẹt) thì dừng lại
                 if (Time.time - startTime > 5f) break; 
-                
                 yield return null;
             }
-
-            isMoving = false;
         }
-    }
-
-    // --- CÁC HÀM CŨ GIỮ NGUYÊN ---
-    public void OnGeneratorExplosion()
-    {
-        if (!hasFled) Invoke("TriggerFlee", Random.Range(0.1f, 0.4f));
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (!hasFled && other.CompareTag("Player")) TriggerFlee();
     }
 
     public void TriggerFlee()
@@ -119,13 +111,15 @@ public class CrowAI : MonoBehaviour
         }
 
         if (cawSound != null) cawSound.Play();
-        StartCoroutine(FlyUpRoutine());
+        StartCoroutine(FlyAndRespawnRoutine());
     }
 
-    IEnumerator FlyUpRoutine()
+    IEnumerator FlyAndRespawnRoutine()
     {
         float timer = 0f;
         Vector3 randomDir = (new Vector3(Random.Range(-1f, 1f), 0, Random.Range(-1f, 1f)).normalized * 1.5f + Vector3.up).normalized;
+        
+        // Giai đoạn 1: Bay vút lên trời
         while (timer < 2.5f)
         {
             float currentSpeed = Mathf.Lerp(flyUpSpeed, flyUpSpeed * 0.4f, timer / 2.5f);
@@ -134,6 +128,24 @@ public class CrowAI : MonoBehaviour
             timer += Time.deltaTime;
             yield return null;
         }
-        Destroy(gameObject);
+
+        // Giai đoạn 2: Ẩn model bay (quạ biến mất)
+        if (flyModel != null) flyModel.SetActive(false);
+
+        // Giai đoạn 3: Đợi hồi sinh (5 phút)
+        yield return new WaitForSeconds(respawnDelay);
+
+        // Giai đoạn 4: Đưa quạ về vị trí cũ và hiện lại
+        transform.position = startPosition;
+        transform.rotation = startRotation;
+        hasFled = false;
+
+        if (idleModel != null) idleModel.SetActive(true);
+        StartCoroutine(PatrolRoutine());
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (!hasFled && other.CompareTag("Player")) TriggerFlee();
     }
 }
