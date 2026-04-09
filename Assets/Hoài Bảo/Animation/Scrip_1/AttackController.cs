@@ -632,6 +632,7 @@ public class AttackController : NetworkBehaviour
 
     private readonly int animAttack = Animator.StringToHash("Attack");
     private readonly int animThrow = Animator.StringToHash("Phibua");
+    [Networked] public int attackCounter { get; set; }
 
     private void Awake()
     {
@@ -1036,13 +1037,14 @@ public class AttackController : NetworkBehaviour
         isAttacking = true;
         isSpecialActionLocked = isLocked;
 
-        // Server lưu lại tọa độ bẫy do Client cung cấp
+        // Tăng ID nhát chém lên để Hitbox biết đây là đợt tấn công mới hoàn toàn
+        attackCounter++;
+
         lockedTrapPos = trapPos;
         lockedTrapRot = trapRot;
 
         Rpc_PlayAttackAnim(attackTriggerHash, isLocked);
     }
-
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void Rpc_PlayAttackAnim(int attackTriggerHash, bool isLocked)
     {
