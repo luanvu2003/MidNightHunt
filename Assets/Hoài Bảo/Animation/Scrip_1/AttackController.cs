@@ -991,13 +991,17 @@ public class AttackController : NetworkBehaviour
     {
         if (isAttacking || isVomiting) return;
         isSpecialActionLocked = false;
-        Rpc_RequestAttack(animAttack, isSpecialActionLocked);
+        // Truyền tọa độ rỗng vì chém thường không cần
+        Rpc_RequestAttack(animAttack, isSpecialActionLocked, Vector3.zero, Quaternion.identity);
     }
 
     public void PerformAttackRight()
     {
         if (isAttacking || isVomiting || isReloading) return;
         if (interactionScript != null && interactionScript.isCarryingPlayer) return;
+
+        Vector3 sendPos = Vector3.zero;
+        Quaternion sendRot = Quaternion.identity;
 
         switch (typeOfHunter)
         {
@@ -1009,8 +1013,9 @@ public class AttackController : NetworkBehaviour
             case HunterType.Hunter2_DatTrap:
                 if (currentTrap <= 0 || trapPreviewInstance == null || !trapPreviewInstance.activeSelf) return;
 
-                lockedTrapPos = trapPreviewInstance.transform.position;
-                lockedTrapRot = trapPreviewInstance.transform.rotation;
+                // Lấy tọa độ Client nhắm để chuẩn bị gửi cho Server
+                sendPos = trapPreviewInstance.transform.position;
+                sendRot = trapPreviewInstance.transform.rotation;
                 trapPreviewInstance.SetActive(false);
                 isSpecialActionLocked = true;
                 break;
@@ -1021,14 +1026,20 @@ public class AttackController : NetworkBehaviour
                 break;
         }
 
-        Rpc_RequestAttack(animThrow, isSpecialActionLocked);
+        // 🚨 CHÌA KHÓA Ở ĐÂY: Gửi kèm tọa độ bẫy lên Server
+        Rpc_RequestAttack(animThrow, isSpecialActionLocked, sendPos, sendRot);
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void Rpc_RequestAttack(int attackTriggerHash, bool isLocked)
+    private void Rpc_RequestAttack(int attackTriggerHash, bool isLocked, Vector3 trapPos, Quaternion trapRot)
     {
         isAttacking = true;
         isSpecialActionLocked = isLocked;
+
+        // Server lưu lại tọa độ bẫy do Client cung cấp
+        lockedTrapPos = trapPos;
+        lockedTrapRot = trapRot;
+
         Rpc_PlayAttackAnim(attackTriggerHash, isLocked);
     }
 

@@ -402,6 +402,7 @@ public class HunterInteraction : NetworkBehaviour // 2. Đổi sang NetworkBehav
     private Animator animator;
     private CharacterController controller;
     private FPSCamera fpsCameraScript;
+    private NetworkId syncedTargetId;
 
     public override void Spawned() // 3. Đổi Awake/Start thành Spawned
     {
@@ -489,22 +490,29 @@ public class HunterInteraction : NetworkBehaviour // 2. Đổi sang NetworkBehav
 
     public bool IsDoingAction() { return isInteracting || isVaulting; }
 
-    public void TryInteract()
+   public void TryInteract()
     {
         if (isInteracting || currentInteractTarget == null) return;
         string tag = currentInteractTarget.tag;
         if (isCarryingPlayer && tag != "Moc") return;
         if (tag == "Moc" && !isCarryingPlayer) return;
 
-        // Phát lệnh tương tác qua mạng
-        Rpc_StartInteraction(tag, currentInteractTarget.transform.position);
+        // Lấy NetworkId của Máy hoặc Móc để gửi cho Server
+        NetworkObject netObj = currentInteractTarget.GetComponentInParent<NetworkObject>();
+        
+        // 🚨 ĐÃ SỬA LỖI Ở ĐÂY: Dùng từ khóa 'default' thay vì 'NetworkId.Invalid'
+        NetworkId idToSend = netObj != null ? netObj.Id : default;
+
+        // Phát lệnh tương tác qua mạng kèm theo ID
+        Rpc_StartInteraction(tag, currentInteractTarget.transform.position, idToSend);
     }
 
-    [Rpc(RpcSources.InputAuthority, RpcTargets.All)] // 5. Lệnh từ Client gửi cho tất cả để chạy Anim
-    private void Rpc_StartInteraction(string tag, Vector3 targetPosition)
+    [Rpc(RpcSources.InputAuthority, RpcTargets.All)]
+    private void Rpc_StartInteraction(string tag, Vector3 targetPosition, NetworkId targetId)
     {
         isInteracting = true;
         sliderTimer = 0f;
+        syncedTargetId = targetId; // Đồng bộ ID cho tất cả các máy
 
         // UI Chỉ xử lý trên máy mình
         if (Object.HasInputAuthority)
@@ -686,13 +694,14 @@ public class HunterInteraction : NetworkBehaviour // 2. Đổi sang NetworkBehav
                 if (gen == null || !gen.CanBeDamagedByHunter()) return;
             }
 
-            // Ghi nhận chung mục tiêu va chạm
             currentInteractTarget = other;
 
-            // Chỉ bật UI nếu đó là máy của mình
+            // BẬT UI (Thêm Debug để kiểm tra xem Collider có hoạt động không)
             if (Object.HasInputAuthority)
             {
+                Debug.Log("Đã chạm vào: " + other.name + " -> Kích hoạt UI");
                 if (interactImage == null || interactionSlider == null) AutoFindUI();
+                
                 if (interactImage != null) interactImage.gameObject.SetActive(true);
                 if (interactionSlider != null) interactionSlider.gameObject.SetActive(false);
             }
@@ -702,14 +711,16 @@ public class HunterInteraction : NetworkBehaviour // 2. Đổi sang NetworkBehav
     // --- ANIMATION EVENTS ---
     public void EventDapMay()
     {
-        if (currentInteractTarget != null && currentInteractTarget.CompareTag("May"))
-        {
-            if (interactAudioSource != null && clipDapMay != null) interactAudioSource.PlayOneShot(clipDapMay);
+        if (interactAudioSource != null && clipDapMay != null) interactAudioSource.PlayOneShot(clipDapMay);
 
-            // Chỉ Server mới được phép gọi hàm trừ máu vào Máy phát điện
-            if (Object.HasStateAuthority)
+        // Chỉ Server mới được phép gọi hàm trừ máu
+        if (Object.HasStateAuthority)
+        {
+            // Tìm đúng cái máy dựa trên ID mà Client đã gửi
+            NetworkObject targetObj = Runner.FindObject(syncedTargetId);
+            if (targetObj != null)
             {
-                Generator gen = currentInteractTarget.GetComponent<Generator>();
+                Generator gen = targetObj.GetComponent<Generator>();
                 if (gen != null) gen.DamageByHunter();
             }
         }
