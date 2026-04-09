@@ -2347,6 +2347,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
       insertIndex: -1
       addedObject: {fileID: -6279293376566966823}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 110847039076100471}
   m_SourcePrefab: {fileID: 100100000, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
 --- !u!95 &4080073567845634042 stripped
 Animator:
@@ -2458,6 +2461,7 @@ MonoBehaviour:
   - {fileID: 2006207292993136333}
   - {fileID: -248134908168145914}
   - {fileID: -6279293376566966823}
+  - {fileID: 110847039076100471}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &-248134908168145914
 MonoBehaviour:
@@ -2494,6 +2498,21 @@ MonoBehaviour:
   StateHashes: 000000001439c2ab278ae79c67bf96e5e5f0da60a96219512b2d55d418d8edb15b76deb2cea90da48d073ea713cd87b4f80e0f498be2bafff2282959958341e290e793e1f14e9948
   TriggerHashes: 000000002566f13e67bf96e5
   TotalWords: 4
+--- !u!114 &110847039076100471
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7292639732778651450}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fed702da464343b4a9bff20cbcd85301, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  headBoneName: mixamorig:Head
+  myFpsEyeOffset: {x: 0, y: 0.1, z: 0.2}
+  myTpsOffset: {x: 0.5, y: 1.5, z: -3}
 --- !u!4 &7962216387632141696 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
