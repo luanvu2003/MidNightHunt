@@ -41,7 +41,6 @@ GameObject:
   m_Component:
   - component: {fileID: 3912571811426023669}
   - component: {fileID: 6562402545620324131}
-  - component: {fileID: 5418038691741151864}
   - component: {fileID: 4171629197596074543}
   - component: {fileID: 7478536259884448233}
   - component: {fileID: 7450912723286064828}
@@ -102,28 +101,6 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0.9, z: 0}
---- !u!95 &5418038691741151864
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1616768864332459727}
-  m_Enabled: 1
-  m_Avatar: {fileID: 9000000, guid: a621577eb5b83a048bcf5f9edffa8101, type: 3}
-  m_Controller: {fileID: 9100000, guid: a4f38341f506c64478c2fed307ca111a, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!114 &4171629197596074543
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -136,6 +113,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6f215d1936421a749a9056e9837ac20f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  animator: {fileID: 6115892787269768177}
   walkStraight: 7
   walkBackward: 7
   _currentSpeedMultiplier: 0
@@ -431,7 +409,7 @@ MonoBehaviour:
   m_Script: {fileID: 506319458, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Animator: {fileID: 5418038691741151864}
+  Animator: {fileID: 6115892787269768177}
   ApplyTiming: 2
   SyncSettings: 79
   StateHashes: 000000008a18fce4b9abd9d3807870ab253c9714024217c431f132f3cbb4197d4f97cf926bf4f3bbe9bbbf3eb5dc56fff67265fcc9120e847466466198ae2464a92b0430
@@ -886,8 +864,53 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -1070350730909333850, guid: a621577eb5b83a048bcf5f9edffa8101, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5769104524064936328}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a621577eb5b83a048bcf5f9edffa8101, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6115892787269768177}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a621577eb5b83a048bcf5f9edffa8101, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8032345166558150955}
   m_SourcePrefab: {fileID: 100100000, guid: a621577eb5b83a048bcf5f9edffa8101, type: 3}
+--- !u!1 &2766302859386120013 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: a621577eb5b83a048bcf5f9edffa8101, type: 3}
+  m_PrefabInstance: {fileID: 3072167544003910172}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &6115892787269768177
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2766302859386120013}
+  m_Enabled: 1
+  m_Avatar: {fileID: 9000000, guid: a621577eb5b83a048bcf5f9edffa8101, type: 3}
+  m_Controller: {fileID: 9100000, guid: a4f38341f506c64478c2fed307ca111a, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &8032345166558150955
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2766302859386120013}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e4023684d028cb4aa25e35f50951741, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!4 &3253905052723265015 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: a621577eb5b83a048bcf5f9edffa8101, type: 3}

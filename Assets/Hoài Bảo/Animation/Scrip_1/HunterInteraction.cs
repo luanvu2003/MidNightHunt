@@ -391,10 +391,10 @@ public class HunterInteraction : NetworkBehaviour // 2. Đổi sang NetworkBehav
 
     private Collider currentInteractTarget;
     private float currentDuration = 1f;
-    
-    [Networked] private NetworkBool isInteracting { get; set; } 
+
+    [Networked] private NetworkBool isInteracting { get; set; }
     [Networked] private NetworkBool isVaulting { get; set; }
-    
+
     private bool isSliderRunning = false;
     private float sliderTimer = 0f;
     private Vector3 vStart, vEnd;
@@ -405,7 +405,8 @@ public class HunterInteraction : NetworkBehaviour // 2. Đổi sang NetworkBehav
 
     public override void Spawned() // 3. Đổi Awake/Start thành Spawned
     {
-        animator = GetComponent<Animator>();
+        animator = GetComponentInChildren<Animator>();
+
         controller = GetComponent<CharacterController>();
         if (Camera.main != null && Object.HasInputAuthority) fpsCameraScript = Camera.main.GetComponent<FPSCamera>();
         if (interactAudioSource == null) interactAudioSource = GetComponent<AudioSource>();
@@ -494,7 +495,7 @@ public class HunterInteraction : NetworkBehaviour // 2. Đổi sang NetworkBehav
         string tag = currentInteractTarget.tag;
         if (isCarryingPlayer && tag != "Moc") return;
         if (tag == "Moc" && !isCarryingPlayer) return;
-        
+
         // Phát lệnh tương tác qua mạng
         Rpc_StartInteraction(tag, currentInteractTarget.transform.position);
     }

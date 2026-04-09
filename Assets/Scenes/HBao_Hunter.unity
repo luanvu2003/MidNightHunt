@@ -2090,7 +2090,6 @@ MonoBehaviour:
   eyeOffset: {x: 0, y: 0.1, z: 0.2}
   mouseSensitivity: 25
   maxLookAngle: 80
-  bodyRotationSpeed: 8
   isCameraLockedForAnim: 0
 --- !u!1 &940108374
 GameObject:
@@ -3833,11 +3832,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1682470585}
   m_CullTransparentMesh: 1
---- !u!1 &1722115925 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6230957394714945389, guid: 870adbbfe78ebfc4192c1ab4e7f904d7, type: 3}
-  m_PrefabInstance: {fileID: 122938687210518488}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1763556002
 GameObject:
   m_ObjectHideFlags: 0
@@ -5307,6 +5301,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -7862760967332710277, guid: 870adbbfe78ebfc4192c1ab4e7f904d7, type: 3}
+      propertyPath: SortKey
+      value: 2271023746
+      objectReference: {fileID: 0}
     - target: {fileID: 504990796135525315, guid: 870adbbfe78ebfc4192c1ab4e7f904d7, type: 3}
       propertyPath: m_Layer
       value: 9
@@ -5695,10 +5693,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 7450912723286064828, guid: 22ab31beed4457645b037259bcd1f89d, type: 3}
-      propertyPath: trapPreview
-      value: 
-      objectReference: {fileID: 1722115925}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
