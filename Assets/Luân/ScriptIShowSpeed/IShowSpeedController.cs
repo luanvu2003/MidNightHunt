@@ -524,11 +524,26 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
 
     public void GetHooked(Vector3 hookPos)
     {
+        // Chỉ Server/Host mới có quyền quyết định việc treo móc
         if (IsHooked || !Object.HasStateAuthority) return;
+
         IsHooked = true;
-        IsDowned = false;
+        IsDowned = false; // Tắt trạng thái gục
+
+        // 🚨 QUAN TRỌNG: Gọi script kia để nhả nhân vật khỏi vai Hunter
+        PlayerHookReceiver hookReceiver = GetComponent<PlayerHookReceiver>();
+        if (hookReceiver != null)
+        {
+            hookReceiver.ReleaseFromHunter();
+        }
+
+        // Đưa nhân vật vào đúng vị trí của cái Móc
         transform.position = hookPos;
+
+        // Bắt đầu đếm ngược thời gian chết
         SacrificeTimer = TickTimer.CreateFromSeconds(Runner, sacrificeTime);
+
+        Debug.Log("MÓC THÀNH CÔNG! Đã ép IsHooked = true");
     }
 
     [Rpc(RpcSources.All, RpcTargets.All)]

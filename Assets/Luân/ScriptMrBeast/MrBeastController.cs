@@ -292,13 +292,15 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     [Networked] private Vector3 VaultStartPos { get; set; }
     [Networked] private Vector3 VaultTargetPos { get; set; }
     [Networked] public NetworkBool IsGameStarted { get; set; } = false;
+    [Networked] public float AnimSpeedValue { get; set; }
+    [Networked] private float velocityY { get; set; }
 
     public override void Spawned()
     {
         _characterController = GetComponent<CharacterController>();
         animator = GetComponentInChildren<Animator>();
 
-        // 🚨 TẮT CC ngay lập tức để Fusion set vị trí mạng mà không bị Unity vật lý cản trở
+        // TẮT NGAY LẬP TỨC ĐỂ TRÁNH XUNG ĐỘT
         if (_characterController != null) _characterController.enabled = false;
 
         if (Object.HasInputAuthority)
@@ -320,11 +322,15 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
             Runner.AddCallbacks(this);
         }
 
-        // 🚨 Thay vì dùng Invoke (dễ lỗi timing mạng), dùng Coroutine đợi 1 frame rồi mới bật CC
-        StartCoroutine(EnableCharacterControllerRoutine());
+        // 🚨 QUAN TRỌNG NHẤT LÀ ĐOẠN NÀY:
+        // Chỉ bật lại CharacterController nếu bạn là Host HOẶC bạn là chủ của nhân vật này.
+        // Còn nếu bạn đang nhìn nhân vật của người khác (Proxy), thì CC PHẢI BỊ TẮT!
+        if (Object.HasStateAuthority || Object.HasInputAuthority)
+        {
+            StartCoroutine(EnableCharacterControllerRoutine());
+        }
 
         if (Runner.IsServer) IsGameStarted = true;
-
     }
 
     private System.Collections.IEnumerator EnableCharacterControllerRoutine()
@@ -332,6 +338,7 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         yield return null; // Đợi 1 frame cho vị trí mạng đồng bộ xong
         if (_characterController != null) _characterController.enabled = true;
     }
+
 
 
     public override void Despawned(NetworkRunner runner, bool hasState)
@@ -366,7 +373,7 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         if (GetInput(out MrBeastGameplayInput input))
         {
             HandleSkillInput(input);
-            HandleMovement(input);
+            HandleMovement(input); // Chuyền input vào đây
             HandleWindowInput(input);
         }
 
@@ -378,6 +385,11 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         animator.SetBool(downedAnimationBool, IsDowned);
         animator.SetBool(hookedAnimationBool, IsHooked);
         animator.SetBool(revivingAnimBool, IsReviving);
+
+        // 🚨 ĐÃ FIX: Chạy Lerp Animation bằng Time.deltaTime ở hàm Render. 
+        // Đảm bảo 100% mượt mà và không bao giờ bị giật khung hình.
+        float currentAnimSpeed = animator.GetFloat("Speed");
+        animator.SetFloat("Speed", Mathf.Lerp(currentAnimSpeed, AnimSpeedValue, Time.deltaTime * 15f));
 
         if (Object.HasInputAuthority)
         {
@@ -403,32 +415,49 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
 
     private void HandleMovement(MrBeastGameplayInput input)
     {
-        Vector3 direction = CalculateDirection(input.moveDirection);
+        _characterController.enabled = false;
+        _characterController.enabled = true;
+        Vector3 direction = CalculateDirection(input.moveDirection, input.camForward, input.camRight);
+
+        // 🚨 CHUẨN HÓA: Chống lỗi đi chéo bị nhân đôi tốc độ (X2 Speed)
+        if (direction.magnitude > 1f) direction.Normalize();
 
         float speed = mediumRunSpeed;
-        float animSpeed = 0.5f;
+        float targetAnimSpeed = 0.5f;
         bool skillActive = !SkillDurationTimer.ExpiredOrNotRunning(Runner);
 
         if (skillActive)
         {
             speed = sprintSpeed + skillSpeedBonus;
-            animSpeed = 1f;
+            targetAnimSpeed = 1f;
         }
         else
         {
-            if (input.isWalking) { speed = slowWalkSpeed; animSpeed = 0.2f; }
-            else if (input.isSprinting) { speed = sprintSpeed; animSpeed = 1f; }
+            if (input.isWalking) { speed = slowWalkSpeed; targetAnimSpeed = 0.2f; }
+            else if (input.isSprinting) { speed = sprintSpeed; targetAnimSpeed = 1f; }
         }
 
-        if (direction.magnitude == 0) animSpeed = 0f;
+        if (direction.magnitude == 0) targetAnimSpeed = 0f;
+
+        // 🚨 THÊM TRỌNG LỰC: Ép nhân vật dính sát đất để Host và Client tính toán chính xác 100%
+        if (_characterController.isGrounded && velocityY < 0) velocityY = -2f;
+        velocityY += -9.81f * Runner.DeltaTime;
 
         if (direction.magnitude >= 0.1f)
         {
-            _characterController.Move(direction * speed * Runner.DeltaTime);
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), rotationSpeed * Runner.DeltaTime);
+            Vector3 moveVelocity = direction * speed;
+            moveVelocity.y = velocityY; // Gắn trọng lực vào
+
+            _characterController.Move(moveVelocity * Runner.DeltaTime);
+            transform.rotation = Quaternion.LookRotation(direction);
+        }
+        else
+        {
+            // Vẫn phải rớt xuống đất kể cả khi đứng im
+            _characterController.Move(new Vector3(0, velocityY, 0) * Runner.DeltaTime);
         }
 
-        animator.SetFloat("Speed", Mathf.Lerp(animator.GetFloat("Speed"), animSpeed, Runner.DeltaTime * 10f));
+        AnimSpeedValue = targetAnimSpeed;
     }
 
     private void HandleVaultingMovement()
@@ -495,11 +524,26 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
 
     public void GetHooked(Vector3 hookPos)
     {
+        // Chỉ Server/Host mới có quyền quyết định việc treo móc
         if (IsHooked || !Object.HasStateAuthority) return;
+
         IsHooked = true;
-        IsDowned = false;
+        IsDowned = false; // Tắt trạng thái gục
+
+        // 🚨 QUAN TRỌNG: Gọi script kia để nhả nhân vật khỏi vai Hunter
+        PlayerHookReceiver hookReceiver = GetComponent<PlayerHookReceiver>();
+        if (hookReceiver != null)
+        {
+            hookReceiver.ReleaseFromHunter();
+        }
+
+        // Đưa nhân vật vào đúng vị trí của cái Móc
         transform.position = hookPos;
+
+        // Bắt đầu đếm ngược thời gian chết
         SacrificeTimer = TickTimer.CreateFromSeconds(Runner, sacrificeTime);
+
+        Debug.Log("MÓC THÀNH CÔNG! Đã ép IsHooked = true");
     }
 
     [Rpc(RpcSources.All, RpcTargets.All)]
@@ -527,12 +571,17 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         if (IsHooked) hookSlider.value = SacrificeTimer.RemainingTime(Runner) ?? 0;
     }
 
-    private Vector3 CalculateDirection(Vector2 input)
+    private Vector3 CalculateDirection(Vector2 inputDir, Vector3 camFwd, Vector3 camRight)
     {
-        if (mainCamera == null) return Vector3.zero;
-        Vector3 forward = Vector3.Scale(mainCamera.forward, new Vector3(1, 0, 1)).normalized;
-        Vector3 right = Vector3.Scale(mainCamera.right, new Vector3(1, 0, 1)).normalized;
-        return (forward * input.y + right * input.x);
+        // Nếu không có camera, đi theo trục thế giới mặc định để không bị kẹt
+        if (camFwd == Vector3.zero && camRight == Vector3.zero)
+        {
+            return new Vector3(inputDir.x, 0, inputDir.y).normalized;
+        }
+
+        Vector3 forward = Vector3.Scale(camFwd, new Vector3(1, 0, 1)).normalized;
+        Vector3 right = Vector3.Scale(camRight, new Vector3(1, 0, 1)).normalized;
+        return (forward * inputDir.y + right * inputDir.x);
     }
 
     private void OnTriggerEnter(Collider other)
@@ -648,6 +697,13 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         myInput.isSprinting = sprintInput.action.IsPressed();
         myInput.isWalking = walkInput.action.IsPressed();
 
+        // 🚨 ĐỌC VÀ GỬI HƯỚNG CAMERA LÊN SERVER
+        if (mainCamera != null)
+        {
+            myInput.camForward = mainCamera.forward;
+            myInput.camRight = mainCamera.right;
+        }
+
         myInput.isVaulting = _vaultPressed;
         myInput.isSkill = _skillPressed;
         _vaultPressed = false;
@@ -655,7 +711,6 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
 
         input.Set(myInput);
     }
-
     public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player)
     {
 
@@ -750,6 +805,10 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
 public struct MrBeastGameplayInput : INetworkInput
 {
     public Vector2 moveDirection;
+    // 🚨 THÊM 2 BIẾN NÀY ĐỂ GỬI HƯỚNG CAMERA LÊN SERVER
+    public Vector3 camForward;
+    public Vector3 camRight;
+
     public NetworkBool isSprinting;
     public NetworkBool isWalking;
     public NetworkBool isVaulting;
