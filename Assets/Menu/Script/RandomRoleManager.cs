@@ -192,23 +192,41 @@ public class RandomRoleManager : NetworkBehaviour
         }
     }
 
+    // Thêm biến này ở đầu script để tránh gọi Loading liên tục
+    private bool _isLoadingShown = false;
+
     private void Update()
     {
         if (Object == null || !Object.IsValid) return;
 
         // Xử lý UI và tiếng TÍP đếm ngược
-        if (IsRoleAssigned && TransitionTimer.IsRunning && statusText != null)
+        if (IsRoleAssigned && TransitionTimer.IsRunning)
         {
-            int timeLeft = Mathf.CeilToInt(TransitionTimer.RemainingTime(Runner) ?? 0);
-            statusText.text = $"Vào phòng chốt nhân vật sau: {timeLeft}s";
+            float remainingTime = TransitionTimer.RemainingTime(Runner) ?? 0f;
+            int timeLeft = Mathf.CeilToInt(remainingTime);
 
-            // 🎵 PHÁT ÂM THANH ĐẾM NGƯỢC (Mỗi giây kêu 1 lần)
+            if (statusText != null)
+            {
+                statusText.text = $"Vào phòng chốt nhân vật sau: {timeLeft}s";
+            }
+
+            // 🎵 PHÁT ÂM THANH ĐẾM NGƯỢC
             if (timeLeft != lastTickSecond && timeLeft <= 10 && timeLeft > 0)
             {
                 lastTickSecond = timeLeft;
                 if (audioSource != null && tickSound != null)
                 {
                     audioSource.PlayOneShot(tickSound, 0.7f);
+                }
+            }
+
+            // 🚨 BÍ QUYẾT TỐI ƯU: Bật Loading sớm trước 0.5 giây
+            if (remainingTime <= 0.5f && !_isLoadingShown)
+            {
+                _isLoadingShown = true;
+                if (LoadingManager.Instance != null)
+                {
+                    LoadingManager.Instance.ShowLoading();
                 }
             }
         }

@@ -136,4 +136,29 @@ public class RoomPlayer : NetworkBehaviour
             RoomUI.Instance.RemovePlayer(PlayerName.ToString());
         }
     }
+    // =========================================================
+    // 4. HÀM CHUYỂN SCENE CHO CẢ PHÒNG (Sử dụng bởi Host)
+    // =========================================================
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_ShowLoadingAndTransition()
+    {
+        // 1. Máy nào cũng bật Loading lên
+        if (LoadingManager.Instance != null)
+        {
+            LoadingManager.Instance.ShowLoading();
+        }
+
+        // 2. Chỉ riêng máy Host (Server) mới chạy bộ đếm lùi để load Scene
+        if (Runner.IsServer)
+        {
+            StartCoroutine(DelayLoadRoutine());
+        }
+    }
+
+    private System.Collections.IEnumerator DelayLoadRoutine()
+    {
+        yield return new WaitForSeconds(0.2f);
+        // Chuyển sang Scene 2 (Quay tướng)
+        Runner.LoadScene(SceneRef.FromIndex(2));
+    }
 }

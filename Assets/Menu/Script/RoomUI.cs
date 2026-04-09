@@ -1,7 +1,7 @@
 using Fusion;
 using UnityEngine;
 using TMPro;
-using UnityEngine.UI; 
+using UnityEngine.UI;
 using System.Collections;
 using System.Linq; // Thêm thư viện này để đếm số người
 
@@ -20,7 +20,7 @@ public class RoomUI : MonoBehaviour
 
     // 🚨 THÊM MỚI: Text cảnh báo thiếu người
     [Header("UI Cảnh Báo")]
-    public TextMeshProUGUI warningText; 
+    public TextMeshProUGUI warningText;
 
     [Header("Player List")]
     public Transform playerListContainer;
@@ -52,7 +52,7 @@ public class RoomUI : MonoBehaviour
     {
         while (_runner == null || _runner.SessionInfo == null || !_runner.SessionInfo.IsValid)
         {
-            yield return null; 
+            yield return null;
         }
 
         if (playerListContainer != null)
@@ -64,8 +64,8 @@ public class RoomUI : MonoBehaviour
         }
 
         string idPhong = _runner.SessionInfo.Name;
-        
-        if (roomIDText != null) 
+
+        if (roomIDText != null)
         {
             roomIDText.text = "" + idPhong;
         }
@@ -126,17 +126,18 @@ public class RoomUI : MonoBehaviour
     {
         if (_runner.IsServer)
         {
-            // Kiểm tra số lượng người đang có trong phòng
             int currentPlayerCount = _runner.SessionInfo.PlayerCount;
 
             if (currentPlayerCount >= requiredPlayers)
             {
-                // Đủ người -> Chuyển sang Scene 2 (Quay xổ số)
-                _runner.LoadScene(SceneRef.FromIndex(2));
+                // 🚨 ĐÃ SỬA: Dùng RoomPlayer của chính Host để phát lệnh RPC cho cả phòng
+                if (RoomPlayer.Local != null)
+                {
+                    RoomPlayer.Local.RPC_ShowLoadingAndTransition();
+                }
             }
             else
             {
-                // Chưa đủ người -> Bật cảnh báo
                 if (warningText != null)
                 {
                     warningText.text = $"Chưa đủ người! Cần {requiredPlayers} người để bắt đầu (Hiện tại: {currentPlayerCount}).";

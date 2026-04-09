@@ -70,8 +70,19 @@ public class MainMenuManager : MonoBehaviour
     public void CloseOptionPanel() => OptionPanel.SetActive(false);
 
     // --- LOGIC KẾT NỐI FUSION ---
+    // 🚨 Chú ý chữ async ở đây nhé
     public async void StartGame(GameMode mode, string sessionID)
     {
+        // 1. Bật Loading lên trước
+        if (LoadingManager.Instance != null)
+        {
+            LoadingManager.Instance.ShowLoading();
+        }
+
+        // 2. 🚨 THÊM DÒNG NÀY: Dừng lại 0.2 giây (200 milliseconds) để nhường luồng chính cho icon Loading kịp xoay mượt mà, sau đó mới dồn sức load mạng.
+        await System.Threading.Tasks.Task.Delay(200);
+
+        // 3. Khởi tạo mạng và load Scene
         var runner = Instantiate(runnerPrefab);
         DontDestroyOnLoad(runner);
 
@@ -87,9 +98,9 @@ public class MainMenuManager : MonoBehaviour
         await runner.StartGame(new StartGameArgs()
         {
             GameMode = mode,
-            SessionName = sessionID, // Đây là ID (Ví dụ: 12345)
-            SessionProperties = customProps, // Đây là nơi giữ tên "Hoài Bảo"
-            Scene = SceneRef.FromIndex(1),
+            SessionName = sessionID,
+            SessionProperties = customProps,
+            Scene = SceneRef.FromIndex(1), // <--- Tác vụ nặng nằm ở đây
             PlayerCount = 5,
             SceneManager = runner.gameObject.AddComponent<NetworkSceneManagerDefault>()
         });
