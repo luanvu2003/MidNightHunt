@@ -123,6 +123,7 @@ MonoBehaviour:
   hardLandingThreshold: -20
   landSlowMult: 0.2
   landSlowDuration: 1.5
+  _AnimSpeedValue: 0
 --- !u!114 &7478536259884448233
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -235,7 +236,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   headBoneName: Head
-  myEyeOffset: {x: 0, y: 0.2, z: 0.3}
+  myEyeOffset: {x: 0, y: 0.2, z: 0.5}
 --- !u!114 &2658514166855154901
 MonoBehaviour:
   m_ObjectHideFlags: 0

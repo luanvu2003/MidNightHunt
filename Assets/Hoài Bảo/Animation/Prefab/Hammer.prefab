@@ -17,7 +17,7 @@ GameObject:
   - component: {fileID: 2034068707755372228}
   m_Layer: 0
   m_Name: Hammer
-  m_TagString: Untagged
+  m_TagString: HuntetHit
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 2147483647
