@@ -30,11 +30,11 @@ public class RoomSpawner : SimulationBehaviour, IPlayerJoined, IPlayerLeft
         if (Runner.IsServer && roomPlayerPrefab.IsValid)
         {
             var roomObj = Runner.Spawn(roomPlayerPrefab, Vector3.zero, Quaternion.identity, player);
-            
+
             // 🚨 BÙA CHỐNG RÁC: Thay vì dùng .Add, ta dùng dấu [ ] = để GHI ĐÈ. 
             // Nếu có rác của ván trước thì xóa luôn đè cái mới vào!
             SpawnedRoomPlayers[player] = roomObj;
-            
+
             Debug.Log($"🏠 Đã spawn RoomPlayer cho Player {player.PlayerId} tại phòng chờ.");
         }
     }
@@ -47,12 +47,5 @@ public class RoomSpawner : SimulationBehaviour, IPlayerJoined, IPlayerLeft
             SpawnedRoomPlayers.Remove(player);
         }
     }
-
-    public void StartRandomRoleSequence()
-    {
-        if (Runner.IsServer)
-        {
-            Runner.LoadScene(SceneRef.FromIndex(2)); 
-        }
-    }
+   
 }

@@ -446,7 +446,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   headBoneName: mixamorig:Head
-  myFpsEyeOffset: {x: 0, y: 0.1, z: 0.2}
+  myFpsEyeOffset: {x: 0, y: 0.1, z: 0.4}
   myTpsOffset: {x: 0.5, y: 1.5, z: -3}
 --- !u!1 &5496359086038836481
 GameObject:

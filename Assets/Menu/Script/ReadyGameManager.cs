@@ -108,25 +108,45 @@ public class ReadyGameManager : NetworkBehaviour
         yield return new WaitForSeconds(3f);
         if (warningText != null) warningText.gameObject.SetActive(false);
     }
+    // 🚨 1. Thêm cái hàm RPC này để Host ra lệnh cho cả phòng bật Loading
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowLoadingScreen()
+    {
+        if (LoadingManager.Instance != null)
+        {
+            LoadingManager.Instance.ShowLoading();
+        }
+    }
 
+    // 2. Sửa lại hàm FixedUpdateNetwork của bạn
     public override void FixedUpdateNetwork()
     {
         if (!Runner.IsServer) return;
 
         var allPlayers = FindObjectsOfType<RoomPlayer>().ToList();
-
         bool isAllReady = allPlayers.Count > 0 && allPlayers.All(p => p.IsReady);
 
         if ((isAllReady || SelectionTimer.Expired(Runner)) && !_isTransitioning)
         {
-            if (Runner.IsServer) // Đảm bảo chỉ Host mới ra lệnh load
+            if (Runner.IsServer)
             {
-                _isTransitioning = true; // Khóa lại ngay lập tức
-                SelectionTimer = TickTimer.None; // Xóa timer để chắc chắn
+                _isTransitioning = true;
+                SelectionTimer = TickTimer.None;
 
-                Debug.Log("🚀 Bắt đầu chuyển cảnh sang HBao_Map...");
-                Runner.LoadScene(SceneRef.FromIndex(4));
+                // 🚨 BƯỚC 1: Báo mọi người bật Loading lên trước
+                RPC_ShowLoadingScreen();
+
+                // 🚨 BƯỚC 2: Delay 0.2s để UI xoay được 1 chút rồi mới Load Scene
+                StartCoroutine(DelayLoadSceneRoutine());
             }
         }
+    }
+
+    // 🚨 3. Thêm Coroutine Delay
+    private IEnumerator DelayLoadSceneRoutine()
+    {
+        yield return new WaitForSeconds(0.2f);
+        Debug.Log("🚀 Bắt đầu chuyển cảnh sang HBao_Map...");
+        Runner.LoadScene(SceneRef.FromIndex(4));
     }
 }
