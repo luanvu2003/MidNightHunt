@@ -292,6 +292,8 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     [Networked] private Vector3 VaultStartPos { get; set; }
     [Networked] private Vector3 VaultTargetPos { get; set; }
     [Networked] public NetworkBool IsGameStarted { get; set; } = false;
+    [Networked] public float AnimSpeedValue { get; set; }
+    [Networked] private float velocityY { get; set; }
 
     public override void Spawned()
     {
@@ -384,6 +386,11 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         animator.SetBool(hookedAnimationBool, IsHooked);
         animator.SetBool(revivingAnimBool, IsReviving);
 
+        // 🚨 ĐÃ FIX: Chạy Lerp Animation bằng Time.deltaTime ở hàm Render. 
+        // Đảm bảo 100% mượt mà và không bao giờ bị giật khung hình.
+        float currentAnimSpeed = animator.GetFloat("Speed");
+        animator.SetFloat("Speed", Mathf.Lerp(currentAnimSpeed, AnimSpeedValue, Time.deltaTime * 15f));
+
         if (Object.HasInputAuthority)
         {
             UpdateSkillUI();
@@ -408,33 +415,49 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
 
     private void HandleMovement(IShowSpeedGameplayInput input)
     {
-        // 🚨 SỬ DỤNG HƯỚNG CAMERA TỪ MẠNG (input) THAY VÌ mainCamera
+        _characterController.enabled = false;
+        _characterController.enabled = true;
         Vector3 direction = CalculateDirection(input.moveDirection, input.camForward, input.camRight);
 
+        // 🚨 CHUẨN HÓA: Chống lỗi đi chéo bị nhân đôi tốc độ (X2 Speed)
+        if (direction.magnitude > 1f) direction.Normalize();
+
         float speed = mediumRunSpeed;
-        float animSpeed = 0.5f;
+        float targetAnimSpeed = 0.5f;
         bool skillActive = !SkillDurationTimer.ExpiredOrNotRunning(Runner);
 
         if (skillActive)
         {
             speed = sprintSpeed + skillSpeedBonus;
-            animSpeed = 1f;
+            targetAnimSpeed = 1f;
         }
         else
         {
-            if (input.isWalking) { speed = slowWalkSpeed; animSpeed = 0.2f; }
-            else if (input.isSprinting) { speed = sprintSpeed; animSpeed = 1f; }
+            if (input.isWalking) { speed = slowWalkSpeed; targetAnimSpeed = 0.2f; }
+            else if (input.isSprinting) { speed = sprintSpeed; targetAnimSpeed = 1f; }
         }
 
-        if (direction.magnitude == 0) animSpeed = 0f;
+        if (direction.magnitude == 0) targetAnimSpeed = 0f;
+
+        // 🚨 THÊM TRỌNG LỰC: Ép nhân vật dính sát đất để Host và Client tính toán chính xác 100%
+        if (_characterController.isGrounded && velocityY < 0) velocityY = -2f;
+        velocityY += -9.81f * Runner.DeltaTime;
 
         if (direction.magnitude >= 0.1f)
         {
-            _characterController.Move(direction * speed * Runner.DeltaTime);
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), rotationSpeed * Runner.DeltaTime);
+            Vector3 moveVelocity = direction * speed;
+            moveVelocity.y = velocityY; // Gắn trọng lực vào
+
+            _characterController.Move(moveVelocity * Runner.DeltaTime);
+            transform.rotation = Quaternion.LookRotation(direction);
+        }
+        else
+        {
+            // Vẫn phải rớt xuống đất kể cả khi đứng im
+            _characterController.Move(new Vector3(0, velocityY, 0) * Runner.DeltaTime);
         }
 
-        animator.SetFloat("Speed", Mathf.Lerp(animator.GetFloat("Speed"), animSpeed, Runner.DeltaTime * 10f));
+        AnimSpeedValue = targetAnimSpeed;
     }
 
     private void HandleVaultingMovement()

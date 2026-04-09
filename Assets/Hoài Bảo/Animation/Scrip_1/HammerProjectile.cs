@@ -94,33 +94,33 @@
 // }
 
 using UnityEngine;
-using UnityEngine.VFX; 
-using Fusion; 
+using UnityEngine.VFX;
+using Fusion;
 
 [RequireComponent(typeof(Rigidbody))]
-public class HammerProjectile : NetworkBehaviour 
+public class HammerProjectile : NetworkBehaviour
 {
     [Header("Cài Đặt Vật Lý")]
-    public float throwForce = 20f; 
-    public float lifeTime = 20f;    
+    public float throwForce = 20f;
+    public float lifeTime = 20f;
 
     [Header("Hiệu Ứng Particle/VFX (Prefabs)")]
-    public GameObject flyingVFXPrefab; 
-    public GameObject impactParticlePrefab; 
+    public GameObject flyingVFXPrefab;
+    public GameObject impactParticlePrefab;
 
     private Rigidbody rb;
-    
-    [Networked] private NetworkBool hasExploded { get; set; } 
+
+    [Networked] private NetworkBool hasExploded { get; set; }
     [Networked] private TickTimer lifeTimer { get; set; }
     [Networked] private TickTimer safeTimer { get; set; }
 
-    private GameObject activeFlyingVFX; 
-    private bool isReady = false; 
+    private GameObject activeFlyingVFX;
+    private bool isReady = false;
 
-    public override void Spawned() 
+    public override void Spawned()
     {
         rb = GetComponent<Rigidbody>();
-        
+
         if (Object.HasStateAuthority)
         {
             rb.linearVelocity = transform.forward * throwForce;
@@ -136,10 +136,10 @@ public class HammerProjectile : NetworkBehaviour
             activeFlyingVFX = Instantiate(flyingVFXPrefab, transform.position, transform.rotation);
         }
 
-        isReady = true; 
+        isReady = true;
     }
 
-    public override void FixedUpdateNetwork() 
+    public override void FixedUpdateNetwork()
     {
         if (!Object.HasStateAuthority || hasExploded) return;
 
@@ -147,7 +147,7 @@ public class HammerProjectile : NetworkBehaviour
         {
             ExplodeAndDestroy();
         }
-        
+
         // Đồng bộ vị trí VFX trong nhịp mạng
         SyncVFXPosition();
     }
@@ -188,29 +188,36 @@ public class HammerProjectile : NetworkBehaviour
         ExplodeAndDestroy();
     }
 
+    // 1. Sửa hàm ExplodeAndDestroy (Bỏ gọi RPC đi)
     private void ExplodeAndDestroy()
     {
         if (hasExploded) return;
         hasExploded = true;
 
-        Rpc_PlayExplosionAndCleanUp();
-        
+        // CHỈ CẦN DESPAWN. BỎ GỌI RPC_... Ở ĐÂY!
         if (Runner != null && Object != null)
             Runner.Despawn(Object);
     }
 
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void Rpc_PlayExplosionAndCleanUp()
+    // 2. Chuyển toàn bộ logic tạo lửa/xóa khói vào hàm tự động Despawned (Chạy trên mọi máy)
+    public override void Despawned(NetworkRunner runner, bool hasState)
     {
         if (impactParticlePrefab != null)
         {
             GameObject impactVFX = Instantiate(impactParticlePrefab, transform.position, transform.rotation);
-            Destroy(impactVFX, 1.5f); 
+            Destroy(impactVFX, 1.5f);
         }
 
         if (activeFlyingVFX != null)
         {
-            // Ngắt các nguồn phát hạt để khói tan từ từ
+            // 🚨 TẮT NGAY LẬP TỨC ẢNH 3D CỦA BÚA ĐỂ KHÔNG KẸT TRÊN KHÔNG
+            var renderers = activeFlyingVFX.GetComponentsInChildren<Renderer>();
+            foreach (var r in renderers)
+            {
+                if (!(r is ParticleSystemRenderer)) r.enabled = false;
+            }
+
+            // Tắt bộ phát hạt để khói tan tự nhiên
             var particles = activeFlyingVFX.GetComponentsInChildren<ParticleSystem>();
             foreach (var ps in particles) ps.Stop();
 
@@ -218,7 +225,7 @@ public class HammerProjectile : NetworkBehaviour
             foreach (var vfx in vfxs) vfx.Stop();
 
             Destroy(activeFlyingVFX, 1.5f);
-            activeFlyingVFX = null; 
+            activeFlyingVFX = null;
         }
     }
 }

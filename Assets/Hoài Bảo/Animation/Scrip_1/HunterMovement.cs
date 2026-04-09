@@ -133,6 +133,7 @@ public class HunterMovement : NetworkBehaviour // 2. Đổi thành NetworkBehavi
 
     // Thay thế Invoke bằng TickTimer của Fusion
     [Networked] private TickTimer slowTimer { get; set; }
+    [Networked] public float AnimSpeedValue { get; set; }
 
     private readonly int animSpeed = Animator.StringToHash("Speed");
 
@@ -161,16 +162,26 @@ public class HunterMovement : NetworkBehaviour // 2. Đổi thành NetworkBehavi
         controller.enabled = false;
         yield return new WaitForFixedUpdate();
         yield return new WaitForFixedUpdate();
-        controller.enabled = true;
+
+        // 🚨 CHỈ BẬT LẠI NẾU BẠN LÀ HOST HOẶC NGƯỜI ĐIỀU KHIỂN HUNTER. 
+        // (Tắt vĩnh viễn trên màn hình của người khác để không bị giật)
+        if (Object.HasStateAuthority || Object.HasInputAuthority)
+        {
+            controller.enabled = true;
+        }
     }
 
     // Thêm tham số camYaw vào đây
     public void HandleMove(Vector2 input, float camYaw)
     {
+
         if (controller == null || !controller.enabled) return;
 
-        transform.rotation = Quaternion.Euler(0, camYaw, 0);
+        // 🚨 FIX X2 SPEED CHO HUNTER
+        controller.enabled = false;
+        controller.enabled = true;
 
+        transform.rotation = Quaternion.Euler(0, camYaw, 0);
         if (slowTimer.Expired(Runner))
         {
             ResetSlow();
@@ -198,16 +209,23 @@ public class HunterMovement : NetworkBehaviour // 2. Đổi thành NetworkBehavi
 
         controller.Move(move * (currentSpeed * Runner.DeltaTime) + new Vector3(0, velocityY, 0) * Runner.DeltaTime);
 
-        // 🚨 ĐÃ FIX: Chỉ Lerp giá trị của Animator để chuyển động chân tay nhìn mượt mà
+        // 🚨 CHỈ TÍNH TOÁN TARGET SPEED, KHÔNG DÙNG LERP Ở ĐÂY
         float fakeSpeedForAnimator = currentSpeed;
         if (currentSpeedMultiplier > 0f) fakeSpeedForAnimator = currentSpeed / currentSpeedMultiplier;
 
         float targetAnimValue = fakeSpeedForAnimator / walkStraight;
         if (input.y < 0) targetAnimValue = -targetAnimValue;
 
-        // Lerp cục bộ giá trị Float truyền vào Animator
+        // Gán vào biến mạng
+        AnimSpeedValue = targetAnimValue;
+    }
+    public override void Render()
+    {
+        if (animator == null) return;
+
         float currentAnimValue = animator.GetFloat(animSpeed);
-        animator.SetFloat(animSpeed, Mathf.Lerp(currentAnimValue, targetAnimValue, Runner.DeltaTime * 15f));
+        // Nội suy mượt mà dựa trên Time.deltaTime theo khung hình màn hình
+        animator.SetFloat(animSpeed, Mathf.Lerp(currentAnimValue, AnimSpeedValue, Time.deltaTime * 15f));
     }
 
     private void TriggerHardLanding()
