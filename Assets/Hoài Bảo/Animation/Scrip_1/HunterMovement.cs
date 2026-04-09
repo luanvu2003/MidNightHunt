@@ -104,9 +104,9 @@ using UnityEngine;
 using Fusion; // 1. Thêm thư viện Fusion
 using System.Collections;
 
-[RequireComponent(typeof(CharacterController), typeof(Animator))]
 public class HunterMovement : NetworkBehaviour // 2. Đổi thành NetworkBehaviour
 {
+    public Animator animator;
     [Header("Cài Đặt Tốc Độ")]
     public float walkStraight = 5f;
     public float walkBackward = 4f;
@@ -125,7 +125,6 @@ public class HunterMovement : NetworkBehaviour // 2. Đổi thành NetworkBehavi
     public float landSlowDuration = 1.5f;
 
     private CharacterController controller;
-    private Animator animator;
 
     // 3. Các biến vật lý phải là [Networked] để Fusion dự đoán (Prediction)
     [Networked] private float velocityY { get; set; }
@@ -137,13 +136,15 @@ public class HunterMovement : NetworkBehaviour // 2. Đổi thành NetworkBehavi
 
     private readonly int animSpeed = Animator.StringToHash("Speed");
 
-    public override void Spawned() // Thay Awake/Start bằng Spawned
+    public override void Spawned()
     {
         controller = GetComponent<CharacterController>();
-        animator = GetComponent<Animator>();
+
+        // 🚨 SỬA Ở ĐÂY: Tìm Animator ở cục con (Visuals)
+        animator = GetComponentInChildren<Animator>();
+
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
 
-        // 🚨 FIX DỰT DỰT: Reset vật lý khi vừa đẻ ra
         if (controller != null)
         {
             StartCoroutine(LocalCCReset());
@@ -163,16 +164,12 @@ public class HunterMovement : NetworkBehaviour // 2. Đổi thành NetworkBehavi
         controller.enabled = true;
     }
 
-    public void HandleMove(Vector2 input)
+    // Thêm tham số camYaw vào đây
+    public void HandleMove(Vector2 input, float camYaw)
     {
         if (controller == null || !controller.enabled) return;
 
-        // 🚨 FIX LỖI XOAY CAMERA: Ép thân xoay theo Camera ngay trong nhịp đập của mạng
-        if (Object.HasInputAuthority && Camera.main != null)
-        {
-            float camYaw = Camera.main.transform.eulerAngles.y;
-            transform.rotation = Quaternion.Euler(0, camYaw, 0);
-        }
+        transform.rotation = Quaternion.Euler(0, camYaw, 0);
 
         if (slowTimer.Expired(Runner))
         {
@@ -187,7 +184,6 @@ public class HunterMovement : NetworkBehaviour // 2. Đổi thành NetworkBehavi
 
         wasGrounded = controller.isGrounded;
 
-        // Đi hướng nào là do cái transform.forward quyết định (Vừa được xoay ở trên xong)
         Vector3 move = (transform.forward * input.y + transform.right * input.x).normalized;
 
         float targetSpeed = 0f;
@@ -197,14 +193,21 @@ public class HunterMovement : NetworkBehaviour // 2. Đổi thành NetworkBehavi
         if (controller.isGrounded && velocityY < 0) velocityY = -2f;
         velocityY += -9.81f * Runner.DeltaTime;
 
-        currentSpeed = Mathf.Lerp(currentSpeed, targetSpeed, Runner.DeltaTime * 15f);
+        // 🚨 ĐÃ FIX: Khôn dùng Lerp cho vật lý mạng. Gán thẳng tốc độ để Server và Client đồng bộ chính xác 100%
+        currentSpeed = targetSpeed;
+
         controller.Move(move * (currentSpeed * Runner.DeltaTime) + new Vector3(0, velocityY, 0) * Runner.DeltaTime);
 
+        // 🚨 ĐÃ FIX: Chỉ Lerp giá trị của Animator để chuyển động chân tay nhìn mượt mà
         float fakeSpeedForAnimator = currentSpeed;
         if (currentSpeedMultiplier > 0f) fakeSpeedForAnimator = currentSpeed / currentSpeedMultiplier;
-        float animValue = fakeSpeedForAnimator / walkStraight;
-        if (input.y < 0) animValue = -animValue;
-        animator.SetFloat(animSpeed, animValue);
+
+        float targetAnimValue = fakeSpeedForAnimator / walkStraight;
+        if (input.y < 0) targetAnimValue = -targetAnimValue;
+
+        // Lerp cục bộ giá trị Float truyền vào Animator
+        float currentAnimValue = animator.GetFloat(animSpeed);
+        animator.SetFloat(animSpeed, Mathf.Lerp(currentAnimValue, targetAnimValue, Runner.DeltaTime * 15f));
     }
 
     private void TriggerHardLanding()

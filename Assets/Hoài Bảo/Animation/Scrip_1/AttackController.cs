@@ -40,7 +40,7 @@
 //     public string uiContainerName = "KhungUI_Hunter";
 //     public string ammoTextName = "TxtAmmo"; 
 //     public string cooldownImageName = "ImgCooldown"; 
-    
+
 //     // 🚨 THÊM MỚI: Tên của 3 Image đại diện cho 3 Hunter
 //     [Header("Tên UI Image Từng Hunter")]
 //     public string imgHunter1Name = "ImgHunter1";
@@ -50,7 +50,7 @@
 //     [HideInInspector] public GameObject uiContainer;
 //     [HideInInspector] public TextMeshProUGUI ammoText;
 //     [HideInInspector] public Image cooldownImage;
-    
+
 //     // 🚨 THÊM MỚI: Biến lưu trữ 3 cục Object Image
 //     [HideInInspector] public GameObject imgHunter1;
 //     [HideInInspector] public GameObject imgHunter2;
@@ -79,7 +79,7 @@
 //     // ==========================================
 //     [Header("== SETTING HUNTER 3 (Ói Độc) ==")]
 //     public GameObject vomitPrefab; 
-    
+
 //     [Tooltip("Nhập tên của Object làm điểm ói (VD: VomitSpawnPoint)")]
 //     public string mouthPointName = "VomitSpawnPoint"; 
 //     [HideInInspector] public Transform mouthPoint; // Đã ẩn đi, tự động tìm
@@ -120,7 +120,7 @@
 //         AutoFindUI();
 //         AutoFindMouthPoint(); // 🚨 Gọi hàm tự động tìm điểm ói
 //     }
-    
+
 //     // 🚨 HÀM MỚI: Tự động tìm Mouth Point bằng Tên
 //     private void AutoFindMouthPoint()
 //     {
@@ -532,7 +532,7 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 using System.Collections;
-using Fusion; 
+using Fusion;
 
 public enum HunterType
 {
@@ -541,7 +541,7 @@ public enum HunterType
     Hunter3_OiDoc
 }
 
-public class AttackController : NetworkBehaviour 
+public class AttackController : NetworkBehaviour
 {
     private HunterMovement movementScript;
     private HunterInteraction interactionScript;
@@ -569,9 +569,9 @@ public class AttackController : NetworkBehaviour
 
     [Header("== UI CHUNG (Tự Động Tìm) ==")]
     public string uiContainerName = "KhungUI_Hunter";
-    public string ammoTextName = "TxtAmmo"; 
-    public string cooldownImageName = "ImgCooldown"; 
-    
+    public string ammoTextName = "TxtAmmo";
+    public string cooldownImageName = "ImgCooldown";
+
     [Header("Tên UI Image Từng Hunter")]
     public string imgHunter1Name = "ImgHunter1";
     public string imgHunter2Name = "ImgHunter2";
@@ -580,7 +580,7 @@ public class AttackController : NetworkBehaviour
     [HideInInspector] public GameObject uiContainer;
     [HideInInspector] public TextMeshProUGUI ammoText;
     [HideInInspector] public Image cooldownImage;
-    
+
     [HideInInspector] public GameObject imgHunter1;
     [HideInInspector] public GameObject imgHunter2;
     [HideInInspector] public GameObject imgHunter3;
@@ -599,32 +599,32 @@ public class AttackController : NetworkBehaviour
     public int maxTrap = 10;
     [Networked, OnChangedRender(nameof(UpdateAmmoUI))] public int currentTrap { get; set; }
     public GameObject trapPrefab;
-    
+
     // 🚨 ĐỔI THÀNH PREFAB ĐỂ DÙNG TRÊN MẠNG
     [Tooltip("Kéo PREFAB của bẫy mờ (Trap Fake) vào đây")]
-    public GameObject trapPreviewPrefab; 
+    public GameObject trapPreviewPrefab;
     private GameObject trapPreviewInstance; // Bản sao dùng riêng cho máy này
-    
+
     public float placeRange = 6.5f;
     public LayerMask groundLayer;
     [Networked] public NetworkBool isAimingTrap { get; set; }
 
     [Header("== SETTING HUNTER 3 (Ói Độc) ==")]
-    public GameObject vomitPrefab; 
-    public string mouthPointName = "VomitSpawnPoint"; 
-    [HideInInspector] public Transform mouthPoint; 
+    public GameObject vomitPrefab;
+    public string mouthPointName = "VomitSpawnPoint";
+    [HideInInspector] public Transform mouthPoint;
 
     public float vomitDuration = 2.5f;
-    public float skillRechargeTime = 10f; 
+    public float skillRechargeTime = 10f;
 
-    [Range(0f, 1f)] public float vomitMoveSpeedMult = 0.5f; 
+    [Range(0f, 1f)] public float vomitMoveSpeedMult = 0.5f;
 
-    public AudioClip clipVomitStart; 
-    public AudioClip clipVomitingLoop; 
+    public AudioClip clipVomitStart;
+    public AudioClip clipVomitingLoop;
 
-    [Networked] private float currentSkillEnergy { get; set; } 
+    [Networked] private float currentSkillEnergy { get; set; }
     [Networked] private NetworkBool isVomiting { get; set; }
-    private GameObject currentVomitInstance; 
+    private GameObject currentVomitInstance;
 
     [Header("Hiệu ứng Làm chậm khi Chém thường")]
     [Range(0f, 1f)] public float slowMultiplier = 0.1f;
@@ -635,7 +635,8 @@ public class AttackController : NetworkBehaviour
 
     private void Awake()
     {
-        ani = GetComponent<Animator>();
+        ani = GetComponentInChildren<Animator>();
+
         movementScript = GetComponent<HunterMovement>();
         interactionScript = GetComponent<HunterInteraction>();
         if (Camera.main != null) fpsCameraScript = Camera.main.GetComponent<FPSCamera>();
@@ -644,7 +645,7 @@ public class AttackController : NetworkBehaviour
         AutoFindUI();
         AutoFindMouthPoint();
     }
-    
+
     private void AutoFindMouthPoint()
     {
         if (typeOfHunter != HunterType.Hunter3_OiDoc) return;
@@ -663,7 +664,7 @@ public class AttackController : NetworkBehaviour
         if (globalMouth != null) mouthPoint = globalMouth.transform;
     }
 
-    public override void Spawned() 
+    public override void Spawned()
     {
         if (Object.HasInputAuthority)
         {
@@ -672,7 +673,7 @@ public class AttackController : NetworkBehaviour
             if (imgHunter3 != null) imgHunter3.SetActive(false);
 
             // 🚨 TẮT COOLDOWN BAN ĐẦU CHO H1 VÀ H2
-            if (cooldownImage != null && typeOfHunter != HunterType.Hunter3_OiDoc) 
+            if (cooldownImage != null && typeOfHunter != HunterType.Hunter3_OiDoc)
             {
                 cooldownImage.gameObject.SetActive(false);
                 cooldownImage.fillAmount = 0f;
@@ -681,25 +682,25 @@ public class AttackController : NetworkBehaviour
             switch (typeOfHunter)
             {
                 case HunterType.Hunter1_NemBua:
-                    if (imgHunter1 != null) imgHunter1.SetActive(true); 
+                    if (imgHunter1 != null) imgHunter1.SetActive(true);
                     break;
                 case HunterType.Hunter2_DatTrap:
-                    if (imgHunter2 != null) imgHunter2.SetActive(true); 
-                    
+                    if (imgHunter2 != null) imgHunter2.SetActive(true);
+
                     // 🚨 TỰ ĐỘNG TẠO TRAP FAKE TỪ PREFAB
                     if (trapPreviewPrefab != null)
                     {
                         trapPreviewInstance = Instantiate(trapPreviewPrefab);
                         trapPreviewInstance.SetActive(false);
-                        
+
                         // Tắt Collider của Trap Fake để tránh đụng chạm vật lý
-                        foreach(Collider col in trapPreviewInstance.GetComponentsInChildren<Collider>()) 
+                        foreach (Collider col in trapPreviewInstance.GetComponentsInChildren<Collider>())
                             col.enabled = false;
                     }
                     break;
                 case HunterType.Hunter3_OiDoc:
                     UpdateSkillUI();
-                    if (imgHunter3 != null) imgHunter3.SetActive(true); 
+                    if (imgHunter3 != null) imgHunter3.SetActive(true);
                     break;
             }
         }
@@ -714,7 +715,7 @@ public class AttackController : NetworkBehaviour
                 case HunterType.Hunter3_OiDoc: currentSkillEnergy = 0f; break;
             }
         }
-        
+
         UpdateAmmoUI();
     }
 
@@ -729,10 +730,10 @@ public class AttackController : NetworkBehaviour
         if (Object.HasStateAuthority)
         {
             // 🚨 Cả H1 và H2 đều dùng chung hệ thống nạp lại đạn/bẫy
-            if (typeOfHunter == HunterType.Hunter1_NemBua || typeOfHunter == HunterType.Hunter2_DatTrap) 
+            if (typeOfHunter == HunterType.Hunter1_NemBua || typeOfHunter == HunterType.Hunter2_DatTrap)
                 HandleReloadSystem();
-                
-            if (typeOfHunter == HunterType.Hunter3_OiDoc) 
+
+            if (typeOfHunter == HunterType.Hunter3_OiDoc)
                 HandleSkillRecharge();
         }
     }
@@ -763,7 +764,7 @@ public class AttackController : NetworkBehaviour
             UpdateSkillUI();
         }
 
-        if (typeOfHunter == HunterType.Hunter2_DatTrap) 
+        if (typeOfHunter == HunterType.Hunter2_DatTrap)
         {
             UpdateTrapPreview();
         }
@@ -892,7 +893,7 @@ public class AttackController : NetworkBehaviour
 
             currentTrap--;
             Rpc_PlayReleaseSound();
-            
+
             // 🚨 HẾT BẪY -> BẮT ĐẦU CHẠY COOLDOWN NẠP LẠI
             if (currentTrap <= 0) StartReload();
         }
@@ -976,11 +977,11 @@ public class AttackController : NetworkBehaviour
 
         while (timer < vomitDuration && isVomiting)
         {
-            timer += Runner.DeltaTime; 
+            timer += Runner.DeltaTime;
             currentSkillEnergy = Mathf.Lerp(startEnergy, 1f, timer / vomitDuration);
             yield return null;
         }
-        currentSkillEnergy = 1f; 
+        currentSkillEnergy = 1f;
     }
 
     // =========================================================
@@ -1011,7 +1012,7 @@ public class AttackController : NetworkBehaviour
                 lockedTrapPos = trapPreviewInstance.transform.position;
                 lockedTrapRot = trapPreviewInstance.transform.rotation;
                 trapPreviewInstance.SetActive(false);
-                isSpecialActionLocked = true; 
+                isSpecialActionLocked = true;
                 break;
 
             case HunterType.Hunter3_OiDoc:
@@ -1073,7 +1074,7 @@ public class AttackController : NetworkBehaviour
         if (Object.HasInputAuthority && fpsCameraScript != null) fpsCameraScript.isCameraLockedForAnim = false;
         if (typeOfHunter == HunterType.Hunter1_NemBua && leftHandHammer != null && currentAmmo > 0) leftHandHammer.SetActive(true);
 
-        RestoreSpeed(); 
+        RestoreSpeed();
     }
 
     private void ForceResetAttack() { if (isAttacking) ResetAttack(); }
@@ -1081,7 +1082,7 @@ public class AttackController : NetworkBehaviour
     public void UpdateAmmoUI()
     {
         if (ammoText == null || !Object.HasInputAuthority) return;
-        
+
         if (typeOfHunter == HunterType.Hunter1_NemBua) ammoText.text = currentAmmo.ToString();
         else if (typeOfHunter == HunterType.Hunter2_DatTrap) ammoText.text = currentTrap.ToString();
         else if (typeOfHunter == HunterType.Hunter3_OiDoc) ammoText.text = "";

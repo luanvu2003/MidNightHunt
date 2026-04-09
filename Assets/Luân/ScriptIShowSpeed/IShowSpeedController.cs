@@ -1,12 +1,11 @@
 // using UnityEngine;
 // using UnityEngine.InputSystem;
+// using Fusion;
 // using Unity.Mathematics;
 // using System.Collections;
-// using UnityEngine.UI;
-// using TMPro;
 
 // [RequireComponent(typeof(CharacterController))]
-// public class IShowSpeedController : MonoBehaviour
+// public class NurseController : MonoBehaviour
 // {
 //     [Header("Animator Settings")]
 //     public Animator animator;
@@ -21,48 +20,22 @@
 //     public InputActionReference moveInput;
 //     public InputActionReference sprintInput;
 //     public InputActionReference walkInput;
-//     [Tooltip("Nút để nhảy qua cửa sổ (Ví dụ: Space hoặc E)")]
-//     public InputActionReference vaultInput; // Đổi tên từ jumpInput để tránh nhầm lẫn
-//     public InputActionReference skillInput;
+//     public InputActionReference jumpInput;
 
 //     [Header("Window Vaulting Settings")]
 //     public GameObject interactUI;
 //     public string vaultAnimationTrigger = "Vault";
 //     public float vaultDuration = 1.5f;
-//     public float vaultDistance = 2.5f;
-
-//     [Header("Speed Skill Settings")]
-//     public float skillSpeedBonus = 3f;
-//     public float skillDuration = 10f;
-//     public float skillCooldown = 30f;
-
-//     [Header("Skill UI References")]
-//     public Slider durationSlider;
-//     public Image cooldownImage;
-//     public TextMeshProUGUI cooldownText;
-
-//     [Header("Health & States")]
-//     public string hitAnimationTrigger = "AnHit";
-//     public string downedAnimationBool = "BiGuc";
-//     public string hookedAnimationBool = "BiTreo";
-//     public float sacrificeTime = 90f;
-
-//     [Header("Hook UI")]
-//     public Slider hookSlider;
+//     [Tooltip("Khoảng cách trượt qua cửa sổ")]
+//     public float vaultDistance = 2.5f; // Đã thêm biến khoảng cách
 
 //     [Header("Camera Reference")]
 //     public Transform mainCamera;
 
 //     private CharacterController characterController;
+
 //     private bool isNearWindow = false;
 //     private bool isVaulting = false;
-//     private bool isSkillActive = false;
-//     private bool isSkillOnCooldown = false;
-
-//     private int currentHits = 0;
-//     private float hitDecayTimer = 0f;
-//     public bool isDowned = false;
-//     public bool isHooked = false;
 
 //     private void Awake()
 //     {
@@ -70,16 +43,6 @@
 //         animator = GetComponentInChildren<Animator>();
 
 //         if (interactUI != null) interactUI.SetActive(false);
-//         if (durationSlider != null) durationSlider.gameObject.SetActive(false);
-//         if (cooldownImage != null) cooldownImage.gameObject.SetActive(false);
-
-//         if (cooldownText != null)
-//         {
-//             cooldownText.text = "";
-//             cooldownText.gameObject.SetActive(false); // Đảm bảo text tắt lúc đầu
-//         }
-
-//         if (hookSlider != null) hookSlider.gameObject.SetActive(false);
 //     }
 
 //     private void OnEnable()
@@ -87,8 +50,7 @@
 //         moveInput.action.Enable();
 //         sprintInput.action.Enable();
 //         walkInput.action.Enable();
-//         if (vaultInput != null) vaultInput.action.Enable();
-//         if (skillInput != null) skillInput.action.Enable();
+//         if (jumpInput != null) jumpInput.action.Enable();
 //     }
 
 //     private void OnDisable()
@@ -96,193 +58,80 @@
 //         moveInput.action.Disable();
 //         sprintInput.action.Disable();
 //         walkInput.action.Disable();
-//         if (vaultInput != null) vaultInput.action.Disable();
-//         if (skillInput != null) skillInput.action.Disable();
+//         if (jumpInput != null) jumpInput.action.Disable();
 //     }
 
 //     public void Update()
 //     {
-//         if (mainCamera == null || characterController == null) return;
+//         if (mainCamera == null) return;
 
-//         HandleHitDecay();
+//         // Cập nhật: Chỉ return nếu không có CC, không block nếu CC bị tắt (để xử lý vụ trượt cửa sổ)
+//         if (characterController == null) return;
 
-//         if (isDowned || isHooked) return;
-
-//         HandleSkillInput();
-
+//         // Chặn di chuyển tự do khi đang chạy animation đu cửa sổ
 //         if (isVaulting) return;
 
 //         HandleMovement();
-//         HandleWindowInteraction(); // Chỉ thực hiện nhảy khi gặp cửa sổ
-//     }
-
-//     private void HandleHitDecay()
-//     {
-//         if (currentHits == 0 || isDowned || isHooked) return;
-
-//         hitDecayTimer -= Time.deltaTime;
-//         if (hitDecayTimer <= 0)
-//         {
-//             currentHits = 0;
-//             hitDecayTimer = 0f;
-//         }
-//     }
-
-//     public void TakeHit()
-//     {
-//         if (isDowned || isHooked) return;
-
-//         currentHits++;
-//         if (currentHits == 1)
-//         {
-//             if (animator != null) animator.SetTrigger(hitAnimationTrigger);
-//             hitDecayTimer = 10f;
-//         }
-//         else if (currentHits == 2)
-//         {
-//             if (animator != null) animator.SetTrigger(hitAnimationTrigger);
-//             hitDecayTimer = 20f;
-//         }
-//         else if (currentHits >= 3)
-//         {
-//             isDowned = true;
-//             if (animator != null) animator.SetBool(downedAnimationBool, true);
-//             characterController.enabled = false;
-//         }
-//     }
-
-//     public void GetHooked(Vector3 hookPos)
-//     {
-//         if (isHooked) return;
-
-//         isHooked = true;
-//         isDowned = false;
-
-//         transform.position = hookPos;
-
-//         if (animator != null)
-//         {
-//             animator.SetBool(downedAnimationBool, false);
-//             animator.SetBool(hookedAnimationBool, true);
-//         }
-
-//         characterController.enabled = false;
-//         StartCoroutine(SacrificeRoutine());
-//     }
-
-//     private IEnumerator SacrificeRoutine()
-//     {
-//         if (hookSlider != null)
-//         {
-//             hookSlider.gameObject.SetActive(true);
-//             hookSlider.maxValue = sacrificeTime;
-//             hookSlider.value = sacrificeTime;
-//         }
-
-//         float timer = sacrificeTime;
-//         while (timer > 0 && isHooked)
-//         {
-//             timer -= Time.deltaTime;
-//             if (hookSlider != null) hookSlider.value = timer;
-//             yield return null;
-//         }
-
-//         if (timer <= 0)
-//         {
-//             Destroy(gameObject);
-//         }
-//     }
-
-//     private void HandleSkillInput()
-//     {
-//         if (skillInput != null && skillInput.action.triggered && !isSkillActive && !isSkillOnCooldown)
-//         {
-//             StartCoroutine(SpeedSkillRoutine());
-//         }
-//     }
-
-//     private IEnumerator SpeedSkillRoutine()
-//     {
-//         isSkillActive = true;
-//         if (durationSlider != null)
-//         {
-//             durationSlider.gameObject.SetActive(true);
-//             durationSlider.maxValue = skillDuration;
-//             durationSlider.value = skillDuration;
-//         }
-//         if (cooldownImage != null) { cooldownImage.gameObject.SetActive(true); cooldownImage.fillAmount = 1f; }
-
-//         float timeLeft = skillDuration;
-//         while (timeLeft > 0 && !isDowned && !isHooked)
-//         {
-//             timeLeft -= Time.deltaTime;
-//             if (durationSlider != null) durationSlider.value = timeLeft;
-//             yield return null;
-//         }
-
-//         isSkillActive = false;
-//         isSkillOnCooldown = true;
-//         if (durationSlider != null) durationSlider.gameObject.SetActive(false);
-
-//         // HIỆN TEXT KHI BẮT ĐẦU COOLDOWN
-//         if (cooldownText != null) cooldownText.gameObject.SetActive(true);
-
-//         timeLeft = skillCooldown;
-//         while (timeLeft > 0)
-//         {
-//             timeLeft -= Time.deltaTime;
-//             if (cooldownImage != null) cooldownImage.fillAmount = timeLeft / skillCooldown;
-//             if (cooldownText != null) cooldownText.text = Mathf.Ceil(timeLeft).ToString();
-//             yield return null;
-//         }
-//         isSkillOnCooldown = false;
-//         if (cooldownImage != null) cooldownImage.gameObject.SetActive(false);
-//         if (cooldownText != null)
-//         {
-//             cooldownText.text = "";
-//             cooldownText.gameObject.SetActive(false); // Tắt text khi xong
-//         }
+//         HandleWindowInteraction();
 //     }
 
 //     private void HandleMovement()
 //     {
+//         // Chặn di chuyển nếu CharacterController đang tắt
 //         if (!characterController.enabled) return;
 
 //         Vector2 moveInputValue = moveInput.action.ReadValue<Vector2>();
-//         Vector3 camForward = Vector3.Scale(mainCamera.forward, new Vector3(1, 0, 1)).normalized;
-//         Vector3 camRight = Vector3.Scale(mainCamera.right, new Vector3(1, 0, 1)).normalized;
+
+//         Vector3 camForward = mainCamera.forward;
+//         Vector3 camRight = mainCamera.right;
+
+//         camForward.y = 0f;
+//         camRight.y = 0f;
+//         camForward.Normalize();
+//         camRight.Normalize();
+
 //         Vector3 moveDirection = (camForward * moveInputValue.y) + (camRight * moveInputValue.x);
+
+//         bool isSprinting = sprintInput.action.IsPressed();
+//         bool isWalking = walkInput.action.IsPressed();
 
 //         float currentMoveSpeed = mediumRunSpeed;
 //         float targetAnimSpeed = 0.5f;
 
-//         if (isSkillActive)
+//         if (isWalking)
 //         {
-//             currentMoveSpeed = sprintSpeed + skillSpeedBonus;
+//             currentMoveSpeed = slowWalkSpeed;
+//             targetAnimSpeed = 0.2f;
+//         }
+//         else if (isSprinting)
+//         {
+//             currentMoveSpeed = sprintSpeed;
 //             targetAnimSpeed = 1f;
 //         }
-//         else
-//         {
-//             if (walkInput.action.IsPressed()) { currentMoveSpeed = slowWalkSpeed; targetAnimSpeed = 0.2f; }
-//             else if (sprintInput.action.IsPressed()) { currentMoveSpeed = sprintSpeed; targetAnimSpeed = 1f; }
-//         }
 
-//         if (moveDirection.magnitude == 0) targetAnimSpeed = 0f;
+//         if (moveDirection.magnitude == 0)
+//         {
+//             targetAnimSpeed = 0f;
+//         }
 
 //         if (moveDirection.magnitude >= 0.1f)
 //         {
-//             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(moveDirection), rotationSpeed * Time.deltaTime);
+//             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+//             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+
 //             characterController.Move(moveDirection * currentMoveSpeed * Time.deltaTime);
 //         }
 
 //         if (animator != null)
-//             animator.SetFloat("Speed", Mathf.Lerp(animator.GetFloat("Speed"), targetAnimSpeed, Time.deltaTime * 10f));
+//         {
+//             float currentAnimSpeed = animator.GetFloat("Speed");
+//             animator.SetFloat("Speed", Mathf.Lerp(currentAnimSpeed, targetAnimSpeed, Time.deltaTime * 10f));
+//         }
 //     }
 
 //     private void HandleWindowInteraction()
 //     {
-//         // BUG FIX: Chỉ cho phép nhấn nút khi đang ở gần cửa sổ
-//         if (isNearWindow && vaultInput != null && vaultInput.action.triggered)
+//         if (isNearWindow && jumpInput != null && jumpInput.action.triggered)
 //         {
 //             StartCoroutine(VaultWindowRoutine());
 //         }
@@ -292,39 +141,37 @@
 //     {
 //         isVaulting = true;
 
-//         // BUG FIX: Ép biến này về false ngay lập tức khi bắt đầu nhảy
-//         // Để tránh việc sau khi nhảy xong máy vẫn tưởng mình đang ở gần cửa sổ.
-//         isNearWindow = false;
-
 //         if (interactUI != null) interactUI.SetActive(false);
+
 //         if (animator != null) animator.SetTrigger(vaultAnimationTrigger);
 
+//         // QUAN TRỌNG: Tắt CharacterController để không bị kẹt vào tường/cửa sổ khi trượt
 //         characterController.enabled = false;
 
-//         Vector3 startPos = transform.position;
-//         Vector3 targetPos = transform.position + (transform.forward * vaultDistance);
+//         // Lưu lại vị trí xuất phát và tính điểm rơi
+//         Vector3 startPosition = transform.position;
+//         Vector3 targetPosition = transform.position + (transform.forward * vaultDistance);
 
 //         float elapsedTime = 0f;
+
+//         // Vòng lặp trượt nhân vật mượt mà
 //         while (elapsedTime < vaultDuration)
 //         {
 //             float t = elapsedTime / vaultDuration;
-//             t = Mathf.SmoothStep(0f, 1f, t);
+//             t = Mathf.SmoothStep(0f, 1f, t); // Làm mượt gia tốc
 
-//             transform.position = Vector3.Lerp(startPos, targetPos, t);
+//             transform.position = Vector3.Lerp(startPosition, targetPosition, t);
 
 //             elapsedTime += Time.deltaTime;
 //             yield return null;
 //         }
 
-//         transform.position = targetPos;
+//         // Đảm bảo đáp xuống đúng vị trí
+//         transform.position = targetPosition;
 
-//         // Sau khi nhảy xong mới bật lại va chạm
+//         // Bật lại CharacterController để đi lại bình thường
 //         characterController.enabled = true;
 //         isVaulting = false;
-
-//         // Cẩn thận hơn: Kiểm tra lại một lần nữa xem có thực sự thoát khỏi Trigger chưa
-//         // (Dòng này giúp reset UI nếu bạn vô tình nhảy nhưng vẫn còn dính collider)
-//         if (interactUI != null) interactUI.SetActive(false);
 //     }
 
 //     private void OnTriggerEnter(Collider other)
@@ -332,15 +179,10 @@
 //         if (other.CompareTag("Cuaso"))
 //         {
 //             isNearWindow = true;
-//             if (interactUI != null && !isVaulting && !isDowned && !isHooked) interactUI.SetActive(true);
-//         }
-//         else if (other.CompareTag("HunterHit"))
-//         {
-//             TakeHit();
-//         }
-//         else if (other.CompareTag("Moc") && isDowned)
-//         {
-//             GetHooked(other.transform.position);
+//             if (interactUI != null && !isVaulting)
+//             {
+//                 interactUI.SetActive(true);
+//             }
 //         }
 //     }
 
@@ -349,20 +191,26 @@
 //         if (other.CompareTag("Cuaso"))
 //         {
 //             isNearWindow = false;
-//             if (interactUI != null) interactUI.SetActive(false);
+//             if (interactUI != null)
+//             {
+//                 interactUI.SetActive(false);
+//             }
 //         }
 //     }
 // }
-
 
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Fusion; // Thư viện Fusion
 using UnityEngine.UI;
 using TMPro;
+using System; // 🚨 Đã thêm
+using System.Collections.Generic;
+using Fusion.Sockets; // 🚨 Đã thêm
 
 [RequireComponent(typeof(CharacterController))]
-public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoBehaviour
+// 🚨 Đã thêm INetworkRunnerCallbacks vào đây
+public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
 {
     [Header("Animator Settings")]
     public Animator animator;
@@ -379,6 +227,8 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
     public InputActionReference walkInput;
     public InputActionReference vaultInput;
     public InputActionReference skillInput;
+    private bool _vaultPressed;
+    private bool _skillPressed;
 
     [Header("Window Vaulting Settings")]
     public string vaultAnimationTrigger = "Vault";
@@ -389,6 +239,7 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
     public float skillSpeedBonus = 3f;
     public float skillDuration = 10f;
     public float skillCooldown = 30f;
+
     [Header("Health & States")]
     public string hitAnimationTrigger = "AnHit";
     public string downedAnimationBool = "BiGuc";
@@ -404,24 +255,26 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
 
     [Header("Camera Reference")]
     public Transform mainCamera;
+
     [Header("PLayer State")]
     public GameObject PlayerDeadthBox;
 
     [Header("Revive Settings")]
-    public float reviveTime = 90f; // Đặt là 90s theo yêu cầu
-    public string revivingAnimBool = "IsReviving"; // Tên parameter trong Animator
+    public float reviveTime = 90f;
+    public string revivingAnimBool = "IsReviving";
     private IShowSpeedController_Fusion _targetToRevive;
-    public InputActionReference interactInput; // Gán phím E vào đây
-    public GameObject revivePrompt; // Cái Text hoặc Icon hiện chữ "Nhấn E để cứu"
-    public Slider reviveSlider;     // Thanh Slider chạy từ 0 đến 1
+    public InputActionReference interactInput;
+    public GameObject revivePrompt;
+    public Slider reviveSlider;
 
-    [Networked] public NetworkBool IsBeingRevived { get; set; } // Đang được cứu
-    [Networked] public NetworkBool IsReviving { get; set; } // Đang đi cứu người khác
+    [Networked] public NetworkBool IsBeingRevived { get; set; }
+    [Networked] public NetworkBool IsReviving { get; set; }
     [Networked] private TickTimer ReviveTimer { get; set; }
-    [Networked] private NetworkObject ReviverObject { get; set; } // Lưu thông tin người đang cứu mình
+    [Networked] private NetworkObject ReviverObject { get; set; }
 
     private CharacterController _characterController;
     private bool _isNearWindow = false;
+
     // --- CÁC BIẾN ĐỒNG BỘ MẠNG (NETWORKED) ---
     [Networked] public NetworkBool IsDowned { get; set; }
     [Networked] public NetworkBool IsHooked { get; set; }
@@ -438,18 +291,64 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
     // Lưu vị trí nhảy để đồng bộ mượt mà
     [Networked] private Vector3 VaultStartPos { get; set; }
     [Networked] private Vector3 VaultTargetPos { get; set; }
+    [Networked] public NetworkBool IsGameStarted { get; set; } = false;
 
     public override void Spawned()
     {
         _characterController = GetComponent<CharacterController>();
         animator = GetComponentInChildren<Animator>();
 
-        // Chỉ bật UI và Camera cho chính chủ (máy của người chơi này)
+        // TẮT NGAY LẬP TỨC ĐỂ TRÁNH XUNG ĐỘT
+        if (_characterController != null) _characterController.enabled = false;
+
         if (Object.HasInputAuthority)
         {
-            if (mainCamera == null) mainCamera = Camera.main?.transform;
+            if (mainCamera == null)
+            {
+                if (Camera.main != null) mainCamera = Camera.main.transform;
+                else Debug.LogWarning("Không tìm thấy Camera.main! Di chuyển sẽ dùng World Space mặc định.");
+            }
             InitUI();
+
+            if (moveInput) moveInput.action.Enable();
+            if (sprintInput) sprintInput.action.Enable();
+            if (walkInput) walkInput.action.Enable();
+            if (vaultInput) vaultInput.action.Enable();
+            if (skillInput) skillInput.action.Enable();
+            if (interactInput) interactInput.action.Enable();
+
+            Runner.AddCallbacks(this);
         }
+
+        // 🚨 QUAN TRỌNG NHẤT LÀ ĐOẠN NÀY:
+        // Chỉ bật lại CharacterController nếu bạn là Host HOẶC bạn là chủ của nhân vật này.
+        // Còn nếu bạn đang nhìn nhân vật của người khác (Proxy), thì CC PHẢI BỊ TẮT!
+        if (Object.HasStateAuthority || Object.HasInputAuthority)
+        {
+            StartCoroutine(EnableCharacterControllerRoutine());
+        }
+
+        if (Runner.IsServer) IsGameStarted = true;
+    }
+
+    private System.Collections.IEnumerator EnableCharacterControllerRoutine()
+    {
+        yield return null; // Đợi 1 frame cho vị trí mạng đồng bộ xong
+        if (_characterController != null) _characterController.enabled = true;
+    }
+
+
+
+    public override void Despawned(NetworkRunner runner, bool hasState)
+    {
+        if (Object.HasInputAuthority) Runner.RemoveCallbacks(this);
+    }
+
+    private void Update()
+    {
+        if (!Object.HasInputAuthority) return;
+        if (vaultInput.action.triggered) _vaultPressed = true;
+        if (skillInput.action.triggered) _skillPressed = true;
     }
 
     private void InitUI()
@@ -460,47 +359,29 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
         if (cooldownText) { cooldownText.text = ""; cooldownText.gameObject.SetActive(false); }
         if (hookSlider) hookSlider.gameObject.SetActive(false);
     }
-    // FixedUpdateNetwork là Update của Fusion (Đồng bộ mọi máy)
+
     public override void FixedUpdateNetwork()
     {
-        // 1. Logic hồi phục Hit ngầm
-        if (CurrentHits > 0 && HitDecayTimer.Expired(Runner))
-        {
-            CurrentHits = 0;
-        }
-
-        // 2. Chết (Destroy) khi hết thời gian trên móc
-        if (IsHooked && SacrificeTimer.Expired(Runner))
-        {
-            Runner.Despawn(Object);
-            return;
-        }
-
-        // 3. Khóa di chuyển nếu Gục hoặc Treo
+        if (!IsGameStarted) return;
+        if (CurrentHits > 0 && HitDecayTimer.Expired(Runner)) CurrentHits = 0;
+        if (IsHooked && SacrificeTimer.Expired(Runner)) { Runner.Despawn(Object); return; }
         if (IsDowned || IsHooked) return;
+        if (IsVaulting) { HandleVaultingMovement(); return; }
 
-        // 4. Xử lý nhảy cửa sổ (Priority cao)
-        if (IsVaulting)
+        if (GetInput(out IShowSpeedGameplayInput input))
         {
-            HandleVaultingMovement();
-            return;
+            HandleSkillInput(input);
+            HandleMovement(input); // Chuyền input vào đây
+            HandleWindowInput(input);
         }
 
-        // 5. Input và di chuyển bình thường
-        HandleSkillInput();
-        HandleMovement();
-        HandleWindowInput();
         HandleReviveLogic();
     }
 
-    // Render dùng để cập nhật UI và Animator mượt mà (chạy theo FPS máy khách)
     public override void Render()
     {
-        // Các dòng code cũ của bạn...
         animator.SetBool(downedAnimationBool, IsDowned);
         animator.SetBool(hookedAnimationBool, IsHooked);
-
-        // Thêm dòng này để chạy animation cứu người (dạng bool)
         animator.SetBool(revivingAnimBool, IsReviving);
 
         if (Object.HasInputAuthority)
@@ -508,17 +389,13 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
             UpdateSkillUI();
             UpdateHookUI();
 
-            // --- PHẦN 1: HIỆN NÚT E ---
-            // Nút E hiện lên khi: Bạn còn sống VÀ ở gần xác đồng đội VÀ chưa bắt đầu cứu
             bool canShowE = !IsDowned && IsNearDeadBody() && !IsReviving;
             if (revivePrompt) revivePrompt.SetActive(canShowE);
 
-            // --- PHẦN 2: HIỆN THANH TIẾN TRÌNH SLIDER ---
             UpdateReviveProgressUI();
         }
     }
 
-    // Hàm hỗ trợ kiểm tra xem có xác người chơi nào ở gần không để hiện UI
     private bool IsNearDeadBody()
     {
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, 2f);
@@ -529,16 +406,13 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
         return false;
     }
 
-    private void HandleMovement()
+    private void HandleMovement(IShowSpeedGameplayInput input)
     {
-        if (mainCamera == null) return;
-
-        Vector2 moveVal = moveInput.action.ReadValue<Vector2>();
-        Vector3 direction = CalculateDirection(moveVal);
+        // 🚨 SỬ DỤNG HƯỚNG CAMERA TỪ MẠNG (input) THAY VÌ mainCamera
+        Vector3 direction = CalculateDirection(input.moveDirection, input.camForward, input.camRight);
 
         float speed = mediumRunSpeed;
         float animSpeed = 0.5f;
-
         bool skillActive = !SkillDurationTimer.ExpiredOrNotRunning(Runner);
 
         if (skillActive)
@@ -548,8 +422,8 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
         }
         else
         {
-            if (walkInput.action.IsPressed()) { speed = slowWalkSpeed; animSpeed = 0.2f; }
-            else if (sprintInput.action.IsPressed()) { speed = sprintSpeed; animSpeed = 1f; }
+            if (input.isWalking) { speed = slowWalkSpeed; animSpeed = 0.2f; }
+            else if (input.isSprinting) { speed = sprintSpeed; animSpeed = 1f; }
         }
 
         if (direction.magnitude == 0) animSpeed = 0f;
@@ -561,21 +435,6 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
         }
 
         animator.SetFloat("Speed", Mathf.Lerp(animator.GetFloat("Speed"), animSpeed, Runner.DeltaTime * 10f));
-    }
-
-    private void HandleWindowInput()
-    {
-        if (_isNearWindow && vaultInput.action.triggered)
-        {
-            IsVaulting = true;
-            _isNearWindow = false;
-            VaultStartPos = transform.position;
-            VaultTargetPos = transform.position + (transform.forward * vaultDistance);
-            VaultTimer = TickTimer.CreateFromSeconds(Runner, vaultDuration);
-
-            // Trigger animation qua mạng
-            RPC_PlayVaultAnim();
-        }
     }
 
     private void HandleVaultingMovement()
@@ -593,9 +452,22 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
         transform.position = Vector3.Lerp(VaultStartPos, VaultTargetPos, t);
     }
 
-    private void HandleSkillInput()
+    private void HandleWindowInput(IShowSpeedGameplayInput input)
     {
-        if (skillInput.action.triggered && SkillCooldownTimer.ExpiredOrNotRunning(Runner))
+        if (_isNearWindow && input.isVaulting)
+        {
+            IsVaulting = true;
+            _isNearWindow = false;
+            VaultStartPos = transform.position;
+            VaultTargetPos = transform.position + (transform.forward * vaultDistance);
+            VaultTimer = TickTimer.CreateFromSeconds(Runner, vaultDuration);
+            RPC_PlayVaultAnim();
+        }
+    }
+
+    private void HandleSkillInput(IShowSpeedGameplayInput input)
+    {
+        if (input.isSkill && SkillCooldownTimer.ExpiredOrNotRunning(Runner))
         {
             SkillDurationTimer = TickTimer.CreateFromSeconds(Runner, skillDuration);
             SkillCooldownTimer = TickTimer.CreateFromSeconds(Runner, skillDuration + skillCooldown);
@@ -604,18 +476,12 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
 
     public void TakeHit()
     {
-        // Chỉ StateAuthority (Host) mới được xử lý máu
         if (IsDowned || IsHooked || !Object.HasStateAuthority) return;
 
         CurrentHits++;
-
-        // Kiểm tra xem nhân vật có đang di chuyển hay không (vận tốc > 0.1)
         bool isMoving = _characterController.velocity.magnitude > 0.1f;
-
-        // Truyền trạng thái di chuyển sang RPC để đồng bộ animation cho mọi máy
         RPC_PlayHitAnim(isMoving);
 
-        // Logic thời gian phục hồi hit ngầm
         if (CurrentHits == 1) HitDecayTimer = TickTimer.CreateFromSeconds(Runner, 10f);
         else if (CurrentHits == 2) HitDecayTimer = TickTimer.CreateFromSeconds(Runner, 20f);
         else if (CurrentHits >= 3)
@@ -626,14 +492,13 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
         }
     }
 
-    // Thay đổi RPC: Thêm tham số NetworkBool isMoving
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_PlayHitAnim(NetworkBool isMoving)
     {
-        // Set biến IsMoving vào Animator để hệ thống tự chia Layer
         animator.SetBool("IsMoving", isMoving);
         animator.SetTrigger(hitAnimationTrigger);
     }
+
     public void GetHooked(Vector3 hookPos)
     {
         if (IsHooked || !Object.HasStateAuthority) return;
@@ -643,14 +508,9 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
         SacrificeTimer = TickTimer.CreateFromSeconds(Runner, sacrificeTime);
     }
 
-    // --- RPCs (Gửi lệnh thực thi animation cho mọi máy) ---
     [Rpc(RpcSources.All, RpcTargets.All)]
     private void RPC_PlayVaultAnim() => animator.SetTrigger(vaultAnimationTrigger);
 
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_PlayHitAnim() => animator.SetTrigger(hitAnimationTrigger);
-
-    // --- UI UPDATES (Local) ---
     private void UpdateSkillUI()
     {
         bool durationActive = !SkillDurationTimer.ExpiredOrNotRunning(Runner);
@@ -673,17 +533,21 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
         if (IsHooked) hookSlider.value = SacrificeTimer.RemainingTime(Runner) ?? 0;
     }
 
-    private Vector3 CalculateDirection(Vector2 input)
+    private Vector3 CalculateDirection(Vector2 inputDir, Vector3 camFwd, Vector3 camRight)
     {
-        Vector3 forward = Vector3.Scale(mainCamera.forward, new Vector3(1, 0, 1)).normalized;
-        Vector3 right = Vector3.Scale(mainCamera.right, new Vector3(1, 0, 1)).normalized;
-        return (forward * input.y + right * input.x);
+        // Nếu không có camera, đi theo trục thế giới mặc định để không bị kẹt
+        if (camFwd == Vector3.zero && camRight == Vector3.zero)
+        {
+            return new Vector3(inputDir.x, 0, inputDir.y).normalized;
+        }
+
+        Vector3 forward = Vector3.Scale(camFwd, new Vector3(1, 0, 1)).normalized;
+        Vector3 right = Vector3.Scale(camRight, new Vector3(1, 0, 1)).normalized;
+        return (forward * inputDir.y + right * inputDir.x);
     }
 
-    // --- VA CHẠM ---
     private void OnTriggerEnter(Collider other)
     {
-        // Chỉ Host/StateAuthority mới xử lý trừ máu/treo móc
         if (!Object.HasStateAuthority) return;
 
         if (other.CompareTag("Cuaso")) _isNearWindow = true;
@@ -696,9 +560,8 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
         if (other.CompareTag("Cuaso")) _isNearWindow = false;
         else if (Object.HasInputAuthority && other.CompareTag("Playerchet"))
         {
-            // Nếu đang cứu mà đi ra khỏi vùng box thì hủy cứu
-            if (IsReviving) RPC_SetReviveState(false, default); // Sử dụng default thay cho NetworkId.None
-            _targetToRevive = null; // Xóa mục tiêu khi đi xa
+            if (IsReviving) RPC_SetReviveState(false, default); // 🚨 Đổi default thành NetworkId.None cho chuẩn Fusion
+            _targetToRevive = null;
         }
     }
 
@@ -711,7 +574,7 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
             var target = other.GetComponentInParent<IShowSpeedController_Fusion>();
             if (target != null && target.IsDowned)
             {
-                _targetToRevive = target; // Lưu lại để lấy Slider progress ở trên
+                _targetToRevive = target;
 
                 if (interactInput.action.IsPressed())
                 {
@@ -724,10 +587,11 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
             }
         }
     }
+
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     private void RPC_SetReviveState(NetworkBool start, NetworkId targetId)
     {
-        IsReviving = start; // Bật/tắt animation người cứu
+        IsReviving = start;
 
         if (targetId.IsValid)
         {
@@ -738,14 +602,13 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
                 if (start)
                     target.ReviveTimer = TickTimer.CreateFromSeconds(Runner, reviveTime);
                 else
-                    target.ReviveTimer = TickTimer.None; // Reset timer nếu ngừng cứu
+                    target.ReviveTimer = TickTimer.None;
             }
         }
     }
 
     private void HandleReviveLogic()
     {
-        // Chỉ chạy trên Server (StateAuthority)
         if (!Object.HasStateAuthority) return;
 
         if (IsBeingRevived && ReviveTimer.Expired(Runner))
@@ -759,38 +622,157 @@ public class IShowSpeedController_Fusion : NetworkBehaviour // Đổi từ MonoB
         IsDowned = false;
         IsBeingRevived = false;
         _characterController.enabled = true;
-        PlayerDeadthBox.SetActive(false); // Ẩn box khi được cứu xong
-        CurrentHits = 1; // Cho phép hồi phục về 1 hit thay vì 0 để tránh vừa dậy đã full máu
+        PlayerDeadthBox.SetActive(false);
+        CurrentHits = 1;
     }
 
     private void UpdateReviveProgressUI()
     {
         if (reviveSlider == null) return;
 
-        // Hiển thị Slider nếu BẠN đang cứu người khác HOẶC BẠN đang được người khác cứu
         bool showingSlider = IsReviving || IsBeingRevived;
         reviveSlider.gameObject.SetActive(showingSlider);
 
         if (showingSlider)
         {
-            // Lấy thời gian còn lại từ TickTimer
-            // Vì mỗi người gục có một ReviveTimer riêng, chúng ta cần xác định đang lấy Timer của ai
             float? remainingTime = 0;
 
             if (IsBeingRevived)
-                remainingTime = ReviveTimer.RemainingTime(Runner); // Nếu mình là người bị gục
+                remainingTime = ReviveTimer.RemainingTime(Runner);
             else if (IsReviving)
-                // Nếu mình là người đi cứu, mình cần lấy Timer từ thằng đang được mình cứu
-                // (Đoạn này bạn nên lưu target player vào một biến local như _targetToRevive)
                 remainingTime = _targetToRevive != null ? _targetToRevive.ReviveTimer.RemainingTime(Runner) : 0;
 
             if (remainingTime.HasValue)
             {
-                // Tính toán giá trị Slider (0 đến 1)
-                // Công thức: 1 - (Thời gian còn lại / Tổng thời gian 90s)
                 float progress = 1f - (remainingTime.Value / reviveTime);
                 reviveSlider.value = progress;
             }
         }
     }
+
+    // --- INetworkRunnerCallbacks ---
+    public void OnInput(NetworkRunner runner, NetworkInput input)
+    {
+        var myInput = new IShowSpeedGameplayInput();
+
+        myInput.moveDirection = moveInput.action.ReadValue<Vector2>();
+        myInput.isSprinting = sprintInput.action.IsPressed();
+        myInput.isWalking = walkInput.action.IsPressed();
+
+        // 🚨 ĐỌC VÀ GỬI HƯỚNG CAMERA LÊN SERVER
+        if (mainCamera != null)
+        {
+            myInput.camForward = mainCamera.forward;
+            myInput.camRight = mainCamera.right;
+        }
+
+        myInput.isVaulting = _vaultPressed;
+        myInput.isSkill = _skillPressed;
+        _vaultPressed = false;
+        _skillPressed = false;
+
+        input.Set(myInput);
+    }
+    public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player)
+    {
+
+    }
+
+    public void OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player)
+    {
+
+    }
+
+    public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
+    {
+
+    }
+
+    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
+    {
+
+    }
+
+    public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
+    {
+
+    }
+
+    public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason)
+    {
+
+    }
+
+    public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token)
+    {
+
+    }
+
+    public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)
+    {
+
+    }
+
+    public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message)
+    {
+
+    }
+
+    public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, ArraySegment<byte> data)
+    {
+
+    }
+
+    public void OnReliableDataProgress(NetworkRunner runner, PlayerRef player, ReliableKey key, float progress)
+    {
+
+    }
+
+    public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input)
+    {
+
+    }
+
+    public void OnConnectedToServer(NetworkRunner runner)
+    {
+
+    }
+
+    public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList)
+    {
+
+    }
+
+    public void OnCustomAuthenticationResponse(NetworkRunner runner, Dictionary<string, object> data)
+    {
+
+    }
+
+    public void OnHostMigration(NetworkRunner runner, HostMigrationToken hostMigrationToken)
+    {
+
+    }
+
+    public void OnSceneLoadDone(NetworkRunner runner)
+    {
+
+    }
+
+    public void OnSceneLoadStart(NetworkRunner runner)
+    {
+
+    }
+}
+
+public struct IShowSpeedGameplayInput : INetworkInput
+{
+    public Vector2 moveDirection;
+    // 🚨 THÊM 2 BIẾN NÀY ĐỂ GỬI HƯỚNG CAMERA LÊN SERVER
+    public Vector3 camForward;
+    public Vector3 camRight;
+
+    public NetworkBool isSprinting;
+    public NetworkBool isWalking;
+    public NetworkBool isVaulting;
+    public NetworkBool isSkill;
 }
