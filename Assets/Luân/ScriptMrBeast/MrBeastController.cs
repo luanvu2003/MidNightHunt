@@ -524,11 +524,9 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
 
     public void GetHooked(Vector3 hookPos)
     {
-        // Chỉ Server/Host mới có quyền quyết định việc treo móc
         if (IsHooked || !Object.HasStateAuthority) return;
-
-        IsHooked = true;
         IsDowned = false; // Tắt trạng thái gục
+        IsHooked = true;
 
         // 🚨 QUAN TRỌNG: Gọi script kia để nhả nhân vật khỏi vai Hunter
         PlayerHookReceiver hookReceiver = GetComponent<PlayerHookReceiver>();
