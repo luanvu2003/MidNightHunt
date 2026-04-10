@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 6687851736804168781}
   - component: {fileID: 6710798148493578374}
   - component: {fileID: 355260943015300190}
+  - component: {fileID: 4756568652196434645}
   m_Layer: 0
   m_Name: RoomPlayer_Prefab
   m_TagString: Untagged
@@ -51,6 +52,7 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 355260943015300190}
+  - {fileID: 4756568652196434645}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &355260943015300190
 MonoBehaviour:
@@ -68,3 +70,27 @@ MonoBehaviour:
     _length: 0
     _data:
       Data: 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+  _IsHunter:
+    _value: 0
+  _CharacterID: 0
+  _IsReady:
+    _value: 0
+  _RoomIndex: -1
+--- !u!114 &4756568652196434645
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3318934183156630293}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7efa57e5b60beb64ebf17bbf40c8fe02, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pannelcon: {fileID: 0}
+  iconChat: {fileID: 0}
+  textDisplay: {fileID: 0}
+  inputField: {fileID: 0}
+  buttonSend: {fileID: 0}
+  scrollRect: {fileID: 0}
