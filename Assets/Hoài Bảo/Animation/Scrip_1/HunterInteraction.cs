@@ -389,7 +389,7 @@ public class HunterInteraction : NetworkBehaviour
     private Collider currentInteractTarget;
     private float currentDuration = 1f;
 
-    // Các biến đồng bộ mạng
+    // --- BIẾN ĐỒNG BỘ MẠNG (TỪ BẢN MỚI NHẤT CỦA BẠN) ---
     [Networked] private NetworkBool isInteracting { get; set; }
     [Networked] private NetworkBool isVaulting { get; set; }
     [Networked] private Vector3 syncedTargetPos { get; set; }
@@ -454,25 +454,29 @@ public class HunterInteraction : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        // Nhảy cửa sổ bằng vật lý mạng (Dùng vaultTimer riêng, không chung đụng với UI)
+        // Chỉ xử lý Vật Lý khi nhảy cửa sổ (Server/Client đồng bộ)
         if (isVaulting)
         {
             vaultTimer += Runner.DeltaTime;
-            transform.position = Vector3.Lerp(vStart, vEnd, vaultTimer / currentDuration);
+            // Tránh lỗi chia cho 0 nếu currentDuration vô tình bằng 0
+            float safeDuration = Mathf.Max(0.1f, currentDuration);
+            transform.position = Vector3.Lerp(vStart, vEnd, vaultTimer / safeDuration);
         }
     }
 
     private void Update()
     {
+        // UI thuần túy trên máy Client
         if (!Object.HasInputAuthority) return;
 
-        // UI Slider chạy mượt mà ngay trên máy Client
         if (isSliderRunning && interactionSlider != null)
         {
             sliderTimer += Time.deltaTime;
-            interactionSlider.value = sliderTimer / currentDuration;
+            float safeDuration = Mathf.Max(0.1f, currentDuration);
 
-            if (sliderTimer >= currentDuration)
+            interactionSlider.value = sliderTimer / safeDuration;
+
+            if (sliderTimer >= safeDuration)
             {
                 isSliderRunning = false;
                 interactionSlider.gameObject.SetActive(false);
@@ -484,19 +488,30 @@ public class HunterInteraction : NetworkBehaviour
 
     public void TryInteract()
     {
-        if (isInteracting) return;
-        if (currentInteractTarget == null) return;
+        // 🚨 CHỐT DEBUG: Báo lỗi lên Console nếu bấm mà không chạy
+        if (isInteracting)
+        {
+            Debug.LogWarning("❌ [Hunter UI] Hủy lệnh: Bạn đang bận làm hành động khác (isInteracting = true).");
+            return;
+        }
+        if (currentInteractTarget == null)
+        {
+            Debug.LogWarning("❌ [Hunter UI] Hủy lệnh: Không có mục tiêu (Kinematic Rigidbody đã bị trượt khỏi Trigger).");
+            return;
+        }
 
         string tag = currentInteractTarget.tag;
 
         if (isCarryingPlayer && tag != "Moc") return;
         if (tag == "Moc" && !isCarryingPlayer) return;
 
+        // BƯỚC 1: SET THỜI GIAN
         if (tag == "May") currentDuration = timeDapMay;
         else if (tag == "Moc") currentDuration = timeTreoMoc;
         else if (tag == "Playerchet") currentDuration = timeNhatPlayer;
         else if (tag == "Cuaso") currentDuration = timeTreoCUASO;
 
+        // BƯỚC 2: CHẠY UI NGAY LẬP TỨC TRÊN MÁY BẠN MÀ KHÔNG ĐỢI MẠNG
         if (Object.HasInputAuthority)
         {
             if (interactImage != null) interactImage.gameObject.SetActive(false);
@@ -504,15 +519,16 @@ public class HunterInteraction : NetworkBehaviour
             {
                 interactionSlider.gameObject.SetActive(true);
                 interactionSlider.value = 0f;
-                isSliderRunning = true;
                 sliderTimer = 0f;
+                isSliderRunning = true;
+                Debug.Log("✅ [Hunter UI] Đã bắt đầu chạy Slider cho tương tác: " + tag);
             }
         }
 
+        // BƯỚC 3: XỬ LÝ DỮ LIỆU ĐỂ GỬI LÊN SERVER (Logic mới của bạn)
         NetworkObject netObj = currentInteractTarget.GetComponentInParent<NetworkObject>();
         NetworkId idToSend = netObj != null ? netObj.Id : default;
 
-        // 🚨 TÌM ĐÚNG VỊ TRÍ MÓC ĐỂ GỬI LÊN SERVER
         Vector3 exactTargetPos = currentInteractTarget.transform.position;
         if (tag == "Moc")
         {
@@ -526,9 +542,9 @@ public class HunterInteraction : NetworkBehaviour
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     private void Rpc_RequestInteraction(string tag, Vector3 targetPosition, NetworkId targetId)
     {
-        isInteracting = true;
+        isInteracting = true; // Khóa không cho spam nút Space
         syncedTargetId = targetId;
-        syncedTargetPos = targetPosition; // 🚨 Lưu vị trí chính xác lên Server
+        syncedTargetPos = targetPosition;
         Rpc_PlayInteractionEffects(tag, targetPosition);
     }
 
@@ -550,7 +566,8 @@ public class HunterInteraction : NetworkBehaviour
         else if (tag == "Playerchet")
         {
             animator.SetTrigger("Nhacplayer");
-            // 🚨 SỬA LẠI: Lấy mục tiêu từ NetworkId để chắc chắn 100% Client/Host đều biết đang nhặt ai
+
+            // Logic mới của bạn: Đồng bộ vật phẩm được nhặt
             NetworkObject targetObj = Runner.FindObject(syncedTargetId);
             if (targetObj != null) carriedPlayerObject = targetObj.gameObject;
         }
@@ -608,7 +625,7 @@ public class HunterInteraction : NetworkBehaviour
         {
             if (Object.HasStateAuthority)
             {
-                // 🚨 GỌI ĐÚNG HÀM GetHooked TRONG SCRIPT CỦA SURVIVOR!
+                // Logic mới của bạn: Gọi sang IShowSpeedController
                 IShowSpeedController_Fusion survivor = carriedPlayerObject.GetComponent<IShowSpeedController_Fusion>();
                 if (survivor != null)
                 {
@@ -617,7 +634,6 @@ public class HunterInteraction : NetworkBehaviour
                 isCarryingPlayer = false;
             }
 
-            // Xóa tag móc trên máy của mình
             if (currentInteractTarget != null) currentInteractTarget.tag = "Untagged";
 
             if (Object.HasInputAuthority)
@@ -675,6 +691,7 @@ public class HunterInteraction : NetworkBehaviour
                 if (survivor != null && !survivor.IsDowned) return;
             }
 
+            // Chốt mục tiêu
             currentInteractTarget = other;
 
             if (Object.HasInputAuthority)
@@ -691,6 +708,7 @@ public class HunterInteraction : NetworkBehaviour
     {
         if (currentInteractTarget == other)
         {
+            // Tránh việc đang tương tác mà lỡ bước ra ngoài bị mất mục tiêu
             if (!isInteracting)
             {
                 currentInteractTarget = null;
@@ -740,8 +758,11 @@ public class HunterInteraction : NetworkBehaviour
             NetworkObject targetObj = Runner.FindObject(syncedTargetId);
             if (targetObj != null)
             {
+                // 🚨 ÉP KIỂU SANG SCRIPT FUSION MỚI
                 Generator gen = targetObj.GetComponent<Generator>();
-                if (gen != null) gen.DamageByHunter();
+
+                // Hàm DamageByHunterServer() đã tự động check xem máy có % sửa hay chưa
+                if (gen != null) gen.DamageByHunterServer();
             }
         }
     }

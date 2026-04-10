@@ -16,6 +16,22 @@ PrefabInstance:
       propertyPath: m_AnchorMax.y
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 2079249322746183399, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
+      propertyPath: Flags
+      value: 262145
+      objectReference: {fileID: 0}
+    - target: {fileID: 2079249322746183399, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
+      propertyPath: SortKey
+      value: 243703359
+      objectReference: {fileID: 0}
+    - target: {fileID: 2079249322746183399, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
+      propertyPath: NetworkedBehaviours.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2079249322746183399, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
+      propertyPath: 'NetworkedBehaviours.Array.data[0]'
+      value: 
+      objectReference: {fileID: 4521147107964859801}
     - target: {fileID: 2113860345150186153, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
       propertyPath: m_LocalPosition.x
       value: -4.808629
@@ -90,6 +106,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 4004024286328894435, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
   m_PrefabInstance: {fileID: 2564566043319792517}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &4521147107964859801 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2101347511902750236, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
+  m_PrefabInstance: {fileID: 2564566043319792517}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4a41942a3edb00498b63c2a7849a909, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &7758198910911321431 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5205461830631941842, guid: f9c7700c32a21d140a49168fd386141e, type: 3}
@@ -110,4 +137,5 @@ MonoBehaviour:
   needle: {fileID: 1442856008986738790}
   successZone: {fileID: 867788048696443874}
   rotateSpeed: 200
+  successZoneSize: 30
   exitGate: {fileID: 0}

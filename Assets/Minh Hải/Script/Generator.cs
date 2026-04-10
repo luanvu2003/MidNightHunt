@@ -1,34 +1,20 @@
 using UnityEngine;
 using UnityEngine.UI;
+using Fusion;
 
-public class Generator : MonoBehaviour
+[RequireComponent(typeof(NetworkObject))]
+public class Generator : NetworkBehaviour
 {
+    [Header("Generator Settings")]
     public float repairTime = 60f;
-    public float progress = 0f;
-
-    public int currentSkillLevel = 1;
-
-    [Header("Penalty Settings")]
-    public float stunDuration = 10f;
-    private float stunTimer = 0f;
     public float progressPenalty = 5f;
-    
-    // 🚨 BIẾN MỚI CHO HUNTER ĐẠP MÁY
-    public float hunterDamageAmount = 15f; 
-    public bool isDamagedByHunter = false; // Cờ đánh dấu máy đã bị đạp chưa
+    public float stunDuration = 5f; // Thời gian cấm sửa sau khi nổ
 
-    [Header("Player Settings")]
-    public Transform player;
-    public MonoBehaviour playerMovementScript;
+    // 🚨 BIẾN CHO HUNTER
+    public float hunterDamageAmount = 15f;
 
-    private bool playerInRange = false;
-    private int zonesOccupied = 0;
-
-    private bool isRepaired = false;
-    public bool isRepairing = false;
-
-    [Header("UI & Minigame")]
-    public SkillCheck skillCheck;
+    [Header("UI & Minigame (Local Only)")]
+    public SkillCheck skillCheck; // Nhớ sửa script SkillCheck gọi hàm LocalFailSkillCheck() thay vì Explode() cũ
     public Slider progressBar;
     public GameObject repairText;
     public ParticleSystem explosionFX;
@@ -39,220 +25,331 @@ public class Generator : MonoBehaviour
     public AudioSource explosionSound;
     public AudioSource repairSound;
 
-    void Start()
+    // ========================================================
+    // BIẾN ĐỒNG BỘ MẠNG (NETWORKED)
+    // ========================================================
+    [Networked] public float Progress { get; set; }
+    [Networked] public NetworkBool IsRepaired { get; set; }
+    [Networked] public NetworkBool IsDamagedByHunter { get; set; }
+
+    // Danh sách lưu ID của những người chơi ĐANG NGỒI SỬA CÙNG LÚC
+    [Networked, Capacity(4)] public NetworkLinkedList<NetworkId> ActiveRepairers => default;
+
+    [Networked] private TickTimer StunTimer { get; set; }
+
+    // ========================================================
+    // BIẾN CỤC BỘ (LOCAL STATE)
+    // ========================================================
+    private bool _isPlayerInRange = false;
+    private bool _isLocalPlayerRepairing = false;
+    private IShowSpeedController_Fusion _localPlayer;
+    private ChangeDetector _changeDetector;
+
+    public override void Spawned()
     {
+        _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
+
         if (progressBar != null) progressBar.gameObject.SetActive(false);
         if (repairText != null) repairText.SetActive(false);
         if (skillCheck != null) skillCheck.gameObject.SetActive(false);
         if (repairedLight != null) repairedLight.SetActive(false);
     }
 
-    void Update()
+    public override void Render()
     {
-        if (isRepaired) return;
-
-        if (stunTimer > 0)
+        // 1. Cập nhật thanh tiến trình liên tục cho tất cả mọi người thấy
+        if (progressBar != null && (_isLocalPlayerRepairing || _isPlayerInRange))
         {
-            stunTimer -= Time.deltaTime;
-            if (stunTimer <= 0 && playerInRange)
+            progressBar.value = Progress / repairTime;
+        }
+
+        // 2. Lắng nghe sự thay đổi của mạng để Cập nhật Visual (Âm thanh, Animation)
+        foreach (var change in _changeDetector.DetectChanges(this))
+        {
+            switch (change)
             {
-                if (repairText != null) repairText.SetActive(true);
+                case nameof(IsRepaired):
+                    if (IsRepaired) EnableRepairedVisuals();
+                    break;
             }
         }
 
-        // 1. NHẤN E ĐỂ BẮT ĐẦU HOẶC DỪNG SỬA
-        if (playerInRange && Input.GetKeyDown(KeyCode.E) && stunTimer <= 0)
+        // Bật tắt tiếng máy chạy dựa vào việc có ai đang sửa không
+        bool isSomeoneRepairing = ActiveRepairers.Count > 0;
+        UpdateVisuals(isSomeoneRepairing && !IsRepaired);
+    }
+
+    private void Update()
+    {
+        // Xử lý Input Cục bộ (Chỉ chạy trên máy của Player)
+        if (IsRepaired) return;
+
+        // Nếu máy đang bị Stun (Vừa nổ xong) thì giấu text
+        bool isStunned = !StunTimer.ExpiredOrNotRunning(Runner);
+
+        if (_isPlayerInRange && !isStunned && !_isLocalPlayerRepairing)
         {
-            if (isRepairing)
+            if (repairText != null) repairText.SetActive(true);
+
+            // Bấm E để BẮT ĐẦU sửa
+            if (Input.GetKeyDown(KeyCode.E) && _localPlayer != null)
             {
-                if (skillCheck.isChecking) ExplodeGenerator();
-                else StopRepairing();
-            }
-            else
-            {
-                isRepairing = true;
-                
-                // 🚨 KHI SURVIVOR QUAY LẠI SỬA: XÓA CỜ "BỊ ĐẠP"
-                isDamagedByHunter = false;
-
-                if (playerMovementScript != null) playerMovementScript.enabled = false;
-
-                if (progressBar != null) progressBar.gameObject.SetActive(true);
-                if (skillCheck != null && !skillCheck.gameObject.activeSelf)
-                    skillCheck.StartNewSkillCheck(this);
-            }
-        }
-
-        // 2. XỬ LÝ LOGIC KHI ĐANG SỬA
-        if (isRepairing && playerInRange)
-        {
-            UpdateVisuals(true);
-
-            progress += Time.deltaTime;
-            if (progressBar != null) progressBar.value = progress / repairTime;
-
-            if (progress >= repairTime)
-            {
-                FinishRepair();
+                StartLocalRepair();
             }
         }
-        else if (isRepairing && !playerInRange)
+        else if (_isLocalPlayerRepairing)
         {
-            if (skillCheck.isChecking) ExplodeGenerator();
-            else StopRepairing();
-        }
-    }
+            if (repairText != null) repairText.SetActive(false);
 
-    public void ApplyStun()
-    {
-        currentSkillLevel = 1;
-        if (explosionFX != null) explosionFX.Play();
-        if (explosionSound != null) explosionSound.Play();
-
-        AlertNearbyCrows(); 
-
-        StopRepairing();
-        stunTimer = stunDuration;
-        if (repairText != null) repairText.SetActive(false);
-    }
-
-    public void ExplodeGenerator()
-    {
-        currentSkillLevel = 1;
-        if (explosionFX != null) explosionFX.Play();
-        if (explosionSound != null) explosionSound.Play();
-
-        AlertNearbyCrows(); 
-
-        progress = Mathf.Max(0, progress - progressPenalty);
-        if (progressBar != null) progressBar.value = progress / repairTime;
-
-        StopRepairing();
-    }
-    
-    // =========================================================
-    // 🚨 HÀM MỚI: ĐƯỢC GỌI BỞI HUNTER KHI ĐẠP MÁY
-    // =========================================================
-    public void DamageByHunter()
-    {
-        // 1. Trừ 15 giây tiến trình
-        progress = Mathf.Max(0, progress - hunterDamageAmount);
-        
-        // 2. Bật cờ đánh dấu đã đạp (để Hunter không đạp được nữa)
-        isDamagedByHunter = true;
-
-        // 3. Hiệu ứng xẹt lửa, âm thanh nổ
-        if (explosionFX != null) explosionFX.Play();
-        if (explosionSound != null) explosionSound.Play();
-        
-        AlertNearbyCrows();
-        
-        // (Tùy chọn) Bắt Survivor văng ra nếu đang ngồi sửa
-        if (isRepairing) 
-        {
-            StopRepairing();
-            // Nếu muốn ác hơn thì gọi ApplyStun() ở đây luôn
-        }
-    }
-
-    // =========================================================
-    // 🚨 HÀM KIỂM TRA ĐIỀU KIỆN ĐẠP (CHO HUNTER)
-    // =========================================================
-    public bool CanBeDamagedByHunter()
-    {
-        // Hunter CHỈ ĐƯỢC đạp khi:
-        // 1. Máy chưa sửa xong
-        // 2. Tiến trình lớn hơn 0 (Đã có đứa động vào)
-        // 3. Máy chưa bị đạp (hoặc Survivor đã quay lại sửa để xóa cờ)
-        return !isRepaired && progress > 0f && !isDamagedByHunter;
-    }
-
-
-    public void StopRepairing()
-    {
-        isRepairing = false;
-        if (playerMovementScript != null) playerMovementScript.enabled = true;
-        UpdateVisuals(false);
-        if (skillCheck != null) skillCheck.gameObject.SetActive(false);
-        if (progressBar != null) progressBar.gameObject.SetActive(false);
-    }
-
-    void UpdateVisuals(bool running)
-    {
-        if (animator != null) animator.SetBool("isRunning", running);
-        if (repairSound != null)
-        {
-            if (running && !repairSound.isPlaying) repairSound.Play();
-            else if (!running && repairSound.isPlaying) repairSound.Stop();
-        }
-    }
-
-    void FinishRepair()
-    {
-        isRepaired = true;
-        isRepairing = false;
-
-        if (GameManager.Instance != null) {
-            GameManager.Instance.GeneratorFixed(); 
-        }
-
-        if (playerMovementScript != null) playerMovementScript.enabled = true;
-
-        if (progressBar != null)
-        {
-            progressBar.value = 1f;
-            progressBar.gameObject.SetActive(false);
-        }
-
-        if (repairText != null) repairText.SetActive(false);
-        if (skillCheck != null) skillCheck.gameObject.SetActive(false);
-        UpdateVisuals(false);
-
-        if (repairedLight != null) repairedLight.SetActive(true);
-
-        RepairZone[] zones = GetComponentsInChildren<RepairZone>();
-        foreach (RepairZone zone in zones)
-        {
-            Collider col = zone.GetComponent<Collider>();
-            if (col != null) col.enabled = false;
-        }
-    }
-
-    public void PlayerEnteredZone()
-    {
-        if (isRepaired) return;
-        zonesOccupied++;
-        if (zonesOccupied > 0)
-        {
-            playerInRange = true;
-            if (stunTimer <= 0)
+            // Bấm E lần nữa để DỪNG sửa
+            if (Input.GetKeyDown(KeyCode.E))
             {
-                if (repairText != null) repairText.SetActive(true);
+                StopLocalRepair();
             }
         }
-    }
-
-    public void PlayerExitedZone()
-    {
-        zonesOccupied--;
-        if (zonesOccupied <= 0)
+        else
         {
-            zonesOccupied = 0;
-            playerInRange = false;
             if (repairText != null) repairText.SetActive(false);
         }
     }
 
+    public override void FixedUpdateNetwork()
+    {
+        // LOGIC CHÍNH: Chỉ Server/Host mới tính toán tiến trình sửa
+        if (!Object.HasStateAuthority || IsRepaired) return;
+
+        if (ActiveRepairers.Count > 0)
+        {
+            // Tốc độ sửa nhân lên theo số lượng người (1 người = 1x, 2 người = 2x, 3 người = 3x)
+            float speedMultiplier = ActiveRepairers.Count;
+            Progress += Runner.DeltaTime * speedMultiplier;
+
+            if (Progress >= repairTime)
+            {
+                FinishRepairServer();
+            }
+        }
+    }
+
+    // ========================================================
+    // QUẢN LÝ TRẠNG THÁI LOCAL (UI CỦA NGƯỜI CHƠI)
+    // ========================================================
+    private void StartLocalRepair()
+    {
+        _isLocalPlayerRepairing = true;
+
+        if (progressBar != null) progressBar.gameObject.SetActive(true);
+        if (skillCheck != null) skillCheck.StartNewSkillCheck(this); // Kích hoạt SkillCheck vòng quay
+
+        // Gửi lệnh lên Server báo: "Tôi bắt đầu sửa"
+        RPC_ChangeRepairState(_localPlayer.Object.Id, true);
+    }
+
+    private void StopLocalRepair()
+    {
+        _isLocalPlayerRepairing = false;
+
+        if (progressBar != null) progressBar.gameObject.SetActive(false);
+        if (skillCheck != null) skillCheck.gameObject.SetActive(false);
+
+        // Gửi lệnh lên Server báo: "Tôi ngừng sửa"
+        if (_localPlayer != null)
+        {
+            RPC_ChangeRepairState(_localPlayer.Object.Id, false);
+        }
+    }
+
+    // SkillCheck sẽ gọi hàm này nếu bấm trượt
+    public void LocalFailSkillCheck()
+    {
+        StopLocalRepair();
+        RPC_ExplodeGenerator(); // Báo lên Server là tôi làm nổ máy
+    }
+
+    // ========================================================
+    // SERVER RPCs (LỆNH GỬI TỪ CLIENT LÊN SERVER)
+    // ========================================================
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_ChangeRepairState(NetworkId playerId, NetworkBool isStarting)
+    {
+        if (IsRepaired) return;
+
+        if (isStarting)
+        {
+            if (!ActiveRepairers.Contains(playerId)) ActiveRepairers.Add(playerId);
+            IsDamagedByHunter = false; // Survivor chạm vào là mất cờ bị đạp
+        }
+        else
+        {
+            ActiveRepairers.Remove(playerId);
+        }
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_ExplodeGenerator()
+    {
+        if (IsRepaired) return;
+
+        // 1. Trừ tiến trình
+        Progress = Mathf.Max(0, Progress - progressPenalty);
+        StunTimer = TickTimer.CreateFromSeconds(Runner, stunDuration);
+
+        // 2. Phạt Dính Hit TẤT CẢ những ai đang ngồi chung cái máy này
+        foreach (var playerId in ActiveRepairers)
+        {
+            var playerObj = Runner.FindObject(playerId);
+            if (playerObj != null)
+            {
+                var playerScript = playerObj.GetComponent<IShowSpeedController_Fusion>();
+                if (playerScript != null)
+                {
+                    playerScript.TakeHit(); // Cắn 1 hit vì làm nổ máy
+                }
+            }
+        }
+
+        // 3. Đuổi tất cả ra khỏi máy
+        ActiveRepairers.Clear();
+
+        // 4. Phát tín hiệu hình ảnh/âm thanh nổ cho tất cả client
+        RPC_PlayExplosionEffects();
+    }
+
+    private void FinishRepairServer()
+    {
+        Progress = repairTime;
+        IsRepaired = true;
+        ActiveRepairers.Clear();
+        // Gọi cho GameManager nếu có: GameManager.Instance.GeneratorFixed();
+    }
+
+    // ========================================================
+    // ALL RPCs (LỆNH TỪ SERVER PHÁT XUỐNG TẤT CẢ CLIENT)
+    // ========================================================
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlayExplosionEffects()
+    {
+        if (explosionFX != null) explosionFX.Play();
+        if (explosionSound != null) explosionSound.Play();
+
+        AlertNearbyCrows();
+
+        // Ép văng UI ra nếu đang ngồi sửa (Vì bị kick)
+        if (_isLocalPlayerRepairing)
+        {
+            StopLocalRepair();
+        }
+    }
+
+    // ========================================================
+    // HÀM CHO HUNTER ĐẠP MÁY (Gọi trên Server)
+    // ========================================================
+    public void DamageByHunterServer()
+    {
+        if (!Object.HasStateAuthority || !CanBeDamagedByHunter()) return;
+
+        Progress = Mathf.Max(0, Progress - hunterDamageAmount);
+        IsDamagedByHunter = true;
+
+        RPC_PlayExplosionEffects();
+    }
+
+    public bool CanBeDamagedByHunter()
+    {
+        return !IsRepaired && Progress > 0f && !IsDamagedByHunter && ActiveRepairers.Count == 0;
+    }
+
+    // ========================================================
+    // TRIGGER (PHÁT HIỆN LOCAL PLAYER TỚI GẦN)
+    // ========================================================
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            var player = other.GetComponent<IShowSpeedController_Fusion>();
+            // CHỈ BẬT UI cho nhân vật MÀ MÌNH ĐIỀU KHIỂN (Tránh vụ thằng khác đi tới máy thì màn hình mình lại hiện chữ E)
+            if (player != null && player.Object.HasInputAuthority)
+            {
+                _isPlayerInRange = true;
+                _localPlayer = player;
+            }
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            var player = other.GetComponent<IShowSpeedController_Fusion>();
+            if (player != null && player.Object.HasInputAuthority)
+            {
+                _isPlayerInRange = false;
+                if (_isLocalPlayerRepairing) StopLocalRepair();
+                _localPlayer = null;
+            }
+        }
+    }
+
+    // ========================================================
+    // VISUALS & UTILITIES
+    // ========================================================
+    private void UpdateVisuals(bool isRunning)
+    {
+        if (animator != null) animator.SetBool("isRunning", isRunning);
+        if (repairSound != null)
+        {
+            if (isRunning && !repairSound.isPlaying) repairSound.Play();
+            else if (!isRunning && repairSound.isPlaying) repairSound.Stop();
+        }
+    }
+
+    private void EnableRepairedVisuals()
+    {
+        if (repairedLight != null) repairedLight.SetActive(true);
+        if (progressBar != null) progressBar.gameObject.SetActive(false);
+        if (repairText != null) repairText.SetActive(false);
+        UpdateVisuals(false);
+    }
+
     private void AlertNearbyCrows()
     {
-        float noiseRadius = 20f; 
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, noiseRadius);
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, 20f);
         foreach (var hitCollider in hitColliders)
         {
-            CrowAI crow = hitCollider.GetComponent<CrowAI>();
-            if (crow != null)
+            var crow = hitCollider.GetComponent<CrowAI>(); // Nhớ dùng script Quạ Fusion mới nhé
+            if (crow != null) crow.OnGeneratorExplosion();
+        }
+    }
+    // ========================================================
+    // TRIGGER TỪ CÁC REPAIR ZONE GỬI VỀ
+    // ========================================================
+    public void PlayerEnteredZone(Collider other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            var player = other.GetComponent<IShowSpeedController_Fusion>();
+
+            // CHỈ BẬT UI cho nhân vật MÀ MÌNH ĐIỀU KHIỂN
+            if (player != null && player.Object.HasInputAuthority)
             {
-                crow.OnGeneratorExplosion();
+                _isPlayerInRange = true;
+                _localPlayer = player;
+            }
+        }
+    }
+
+    public void PlayerExitedZone(Collider other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            var player = other.GetComponent<IShowSpeedController_Fusion>();
+
+            // Nếu chính mình đi ra khỏi vùng thì mới tắt UI và ngừng sửa
+            if (player != null && player.Object.HasInputAuthority)
+            {
+                _isPlayerInRange = false;
+                if (_isLocalPlayerRepairing) StopLocalRepair();
+                _localPlayer = null;
             }
         }
     }
