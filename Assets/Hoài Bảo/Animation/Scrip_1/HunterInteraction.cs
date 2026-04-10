@@ -392,6 +392,7 @@ public class HunterInteraction : NetworkBehaviour
     // Các biến đồng bộ mạng
     [Networked] private NetworkBool isInteracting { get; set; }
     [Networked] private NetworkBool isVaulting { get; set; }
+    [Networked] private Vector3 syncedTargetPos { get; set; }
 
     // Tách riêng timer để không bị đụng chạm giữa UI và Vật Lý
     private bool isSliderRunning = false;
@@ -483,24 +484,14 @@ public class HunterInteraction : NetworkBehaviour
 
     public void TryInteract()
     {
-        // Gắn Debug để bạn dễ dàng bắt lỗi nếu ấn Space không phản hồi
-        if (isInteracting) 
-        {
-            Debug.LogWarning("❌ Lệnh bị hủy: Bạn đang trong trạng thái tương tác rồi!");
-            return;
-        }
-        if (currentInteractTarget == null) 
-        {
-            Debug.LogWarning("❌ Lệnh bị hủy: Không có mục tiêu để tương tác!");
-            return;
-        }
-        
+        if (isInteracting) return;
+        if (currentInteractTarget == null) return;
+
         string tag = currentInteractTarget.tag;
 
         if (isCarryingPlayer && tag != "Moc") return;
         if (tag == "Moc" && !isCarryingPlayer) return;
 
-        // BƯỚC 1: XỬ LÝ UI NGAY LẬP TỨC TRÊN CLIENT (Chống trễ mạng)
         if (tag == "May") currentDuration = timeDapMay;
         else if (tag == "Moc") currentDuration = timeTreoMoc;
         else if (tag == "Playerchet") currentDuration = timeNhatPlayer;
@@ -509,62 +500,66 @@ public class HunterInteraction : NetworkBehaviour
         if (Object.HasInputAuthority)
         {
             if (interactImage != null) interactImage.gameObject.SetActive(false);
-            if (interactionSlider != null) 
-            { 
-                interactionSlider.gameObject.SetActive(true); 
-                interactionSlider.value = 0f; 
-                isSliderRunning = true; 
+            if (interactionSlider != null)
+            {
+                interactionSlider.gameObject.SetActive(true);
+                interactionSlider.value = 0f;
+                isSliderRunning = true;
                 sliderTimer = 0f;
             }
         }
 
-        // BƯỚC 2: ĐÓNG GÓI THÔNG TIN VÀ BÁO CÁO LÊN SERVER
         NetworkObject netObj = currentInteractTarget.GetComponentInParent<NetworkObject>();
         NetworkId idToSend = netObj != null ? netObj.Id : default;
 
-        Rpc_RequestInteraction(tag, currentInteractTarget.transform.position, idToSend);
+        // 🚨 TÌM ĐÚNG VỊ TRÍ MÓC ĐỂ GỬI LÊN SERVER
+        Vector3 exactTargetPos = currentInteractTarget.transform.position;
+        if (tag == "Moc")
+        {
+            Transform hookPoint = currentInteractTarget.transform.Find("HookPoint");
+            if (hookPoint != null) exactTargetPos = hookPoint.position;
+        }
+
+        Rpc_RequestInteraction(tag, exactTargetPos, idToSend);
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     private void Rpc_RequestInteraction(string tag, Vector3 targetPosition, NetworkId targetId)
     {
-        isInteracting = true; // Khóa trạng thái trên Server
+        isInteracting = true;
         syncedTargetId = targetId;
+        syncedTargetPos = targetPosition; // 🚨 Lưu vị trí chính xác lên Server
         Rpc_PlayInteractionEffects(tag, targetPosition);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void Rpc_PlayInteractionEffects(string tag, Vector3 targetPosition)
     {
-        // Ép xoay mặt về phía mục tiêu
         Vector3 lookPos = targetPosition;
         lookPos.y = transform.position.y;
         transform.LookAt(lookPos);
 
-        if (Object.HasInputAuthority && fpsCameraScript != null) 
-        { 
-            fpsCameraScript.isCameraLockedForAnim = true; 
-            fpsCameraScript.SyncCameraAngles(transform.eulerAngles.y); 
+        if (Object.HasInputAuthority && fpsCameraScript != null)
+        {
+            fpsCameraScript.isCameraLockedForAnim = true;
+            fpsCameraScript.SyncCameraAngles(transform.eulerAngles.y);
         }
 
-        // Kích hoạt Animation cho tất cả mọi người cùng xem
-        if (tag == "May") animator.SetTrigger("Dapmay"); 
-        else if (tag == "Moc") animator.SetTrigger("Treomoc"); 
+        if (tag == "May") animator.SetTrigger("Dapmay");
+        else if (tag == "Moc") animator.SetTrigger("Treomoc");
         else if (tag == "Playerchet")
         {
-            animator.SetTrigger("Nhacplayer"); 
-            if (currentInteractTarget != null)
-            {
-                if (currentInteractTarget.transform.parent != null) carriedPlayerObject = currentInteractTarget.transform.parent.gameObject;
-                else carriedPlayerObject = currentInteractTarget.gameObject;
-            }
+            animator.SetTrigger("Nhacplayer");
+            // 🚨 SỬA LẠI: Lấy mục tiêu từ NetworkId để chắc chắn 100% Client/Host đều biết đang nhặt ai
+            NetworkObject targetObj = Runner.FindObject(syncedTargetId);
+            if (targetObj != null) carriedPlayerObject = targetObj.gameObject;
         }
         else if (tag == "Cuaso")
         {
-            animator.SetTrigger("Treocuaso"); 
+            animator.SetTrigger("Treocuaso");
             isVaulting = true; controller.enabled = false;
             vStart = transform.position; vEnd = transform.position + transform.forward * vaultDistance;
-            vaultTimer = 0f; // Đặt lại timer di chuyển vật lý
+            vaultTimer = 0f;
         }
     }
 
@@ -576,7 +571,7 @@ public class HunterInteraction : NetworkBehaviour
             if (interactionTrigger == null) interactionTrigger = FindChildWithTag(carriedPlayerObject, "Playerchet");
             if (interactionTrigger != null) interactionTrigger.gameObject.SetActive(false);
 
-            if (Object.HasStateAuthority) 
+            if (Object.HasStateAuthority)
             {
                 PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
                 if (receiver != null) receiver.GetPickedUpOrHooked(handPoint);
@@ -609,19 +604,21 @@ public class HunterInteraction : NetworkBehaviour
 
     public void HookPlayerToHook()
     {
-        if (carriedPlayerObject != null && currentInteractTarget != null)
+        if (carriedPlayerObject != null)
         {
-            Transform hookPoint = currentInteractTarget.transform.Find("HookPoint");
-            Transform finalPoint = hookPoint ? hookPoint : currentInteractTarget.transform;
-
             if (Object.HasStateAuthority)
             {
-                PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
-                if (receiver != null) receiver.GetPickedUpOrHooked(finalPoint);
+                // 🚨 GỌI ĐÚNG HÀM GetHooked TRONG SCRIPT CỦA SURVIVOR!
+                IShowSpeedController_Fusion survivor = carriedPlayerObject.GetComponent<IShowSpeedController_Fusion>();
+                if (survivor != null)
+                {
+                    survivor.GetHooked(syncedTargetPos);
+                }
                 isCarryingPlayer = false;
             }
 
-            currentInteractTarget.tag = "Untagged";
+            // Xóa tag móc trên máy của mình
+            if (currentInteractTarget != null) currentInteractTarget.tag = "Untagged";
 
             if (Object.HasInputAuthority)
             {
@@ -675,7 +672,7 @@ public class HunterInteraction : NetworkBehaviour
             if (other.CompareTag("Playerchet"))
             {
                 IShowSpeedController_Fusion survivor = other.GetComponentInParent<IShowSpeedController_Fusion>();
-                if (survivor != null && !survivor.IsDowned) return; 
+                if (survivor != null && !survivor.IsDowned) return;
             }
 
             currentInteractTarget = other;
@@ -683,7 +680,7 @@ public class HunterInteraction : NetworkBehaviour
             if (Object.HasInputAuthority)
             {
                 if (interactImage == null || interactionSlider == null) AutoFindUI();
-                
+
                 if (interactImage != null) interactImage.gameObject.SetActive(true);
                 if (interactionSlider != null) interactionSlider.gameObject.SetActive(false);
             }
