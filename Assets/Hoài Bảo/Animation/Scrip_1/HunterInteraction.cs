@@ -393,8 +393,10 @@ public class HunterInteraction : NetworkBehaviour
     [Networked] private NetworkBool isInteracting { get; set; }
     [Networked] private NetworkBool isVaulting { get; set; }
 
+    // Tách riêng timer để không bị đụng chạm giữa UI và Vật Lý
     private bool isSliderRunning = false;
     private float sliderTimer = 0f;
+    private float vaultTimer = 0f;
     private Vector3 vStart, vEnd;
 
     private Animator animator;
@@ -451,11 +453,11 @@ public class HunterInteraction : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        // 🚨 XÓA BỎ sliderTimer += Runner.DeltaTime Ở ĐÂY ĐỂ TRÁNH XUNG ĐỘT MẠNG
+        // Nhảy cửa sổ bằng vật lý mạng (Dùng vaultTimer riêng, không chung đụng với UI)
         if (isVaulting)
         {
-            // Chỉ đọc sliderTimer để di chuyển vật lý trèo cửa sổ
-            transform.position = Vector3.Lerp(vStart, vEnd, sliderTimer / currentDuration);
+            vaultTimer += Runner.DeltaTime;
+            transform.position = Vector3.Lerp(vStart, vEnd, vaultTimer / currentDuration);
         }
     }
 
@@ -463,14 +465,12 @@ public class HunterInteraction : NetworkBehaviour
     {
         if (!Object.HasInputAuthority) return;
 
-        // 🚨 CHẠY UI SLIDER VÀ CỘNG THỜI GIAN Ở ĐÂY
+        // UI Slider chạy mượt mà ngay trên máy Client
         if (isSliderRunning && interactionSlider != null)
         {
-            sliderTimer += Time.deltaTime; // <--- FIX LỖI SLIDER KHÔNG CHẠY TẠI ĐÂY
-
+            sliderTimer += Time.deltaTime;
             interactionSlider.value = sliderTimer / currentDuration;
 
-            // Khi chạy đầy thanh thì tắt đi
             if (sliderTimer >= currentDuration)
             {
                 isSliderRunning = false;
@@ -483,53 +483,76 @@ public class HunterInteraction : NetworkBehaviour
 
     public void TryInteract()
     {
-        if (isInteracting || currentInteractTarget == null) return;
+        // Gắn Debug để bạn dễ dàng bắt lỗi nếu ấn Space không phản hồi
+        if (isInteracting) 
+        {
+            Debug.LogWarning("❌ Lệnh bị hủy: Bạn đang trong trạng thái tương tác rồi!");
+            return;
+        }
+        if (currentInteractTarget == null) 
+        {
+            Debug.LogWarning("❌ Lệnh bị hủy: Không có mục tiêu để tương tác!");
+            return;
+        }
         
         string tag = currentInteractTarget.tag;
+
         if (isCarryingPlayer && tag != "Moc") return;
         if (tag == "Moc" && !isCarryingPlayer) return;
 
-        NetworkObject netObj = currentInteractTarget.GetComponentInParent<NetworkObject>();
-        NetworkId idToSend = netObj != null ? netObj.Id : default;
-
-        // 🚨 SỬA LỖI QUYỀN MẠNG: Client gửi yêu cầu LÊN SERVER
-        Rpc_RequestInteraction(tag, currentInteractTarget.transform.position, idToSend);
-    }
-
-    // 🚨 BƯỚC 1: RPC CHỈ GỬI CHO SERVER ĐỂ SET BIẾN [Networked]
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void Rpc_RequestInteraction(string tag, Vector3 targetPosition, NetworkId targetId)
-    {
-        isInteracting = true; // Lúc này Server sửa biến mạng nên sẽ không bị đè về false nữa
-        syncedTargetId = targetId;
-
-        // Sau đó Server ra lệnh cho toàn bộ Client chạy Animation và UI
-        Rpc_PlayInteractionEffects(tag, targetPosition);
-    }
-
-    // 🚨 BƯỚC 2: SERVER YÊU CẦU MỌI NGƯỜI CHẠY ANIMATION/UI
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void Rpc_PlayInteractionEffects(string tag, Vector3 targetPosition)
-    {
-        sliderTimer = 0f;
+        // BƯỚC 1: XỬ LÝ UI NGAY LẬP TỨC TRÊN CLIENT (Chống trễ mạng)
+        if (tag == "May") currentDuration = timeDapMay;
+        else if (tag == "Moc") currentDuration = timeTreoMoc;
+        else if (tag == "Playerchet") currentDuration = timeNhatPlayer;
+        else if (tag == "Cuaso") currentDuration = timeTreoCUASO;
 
         if (Object.HasInputAuthority)
         {
             if (interactImage != null) interactImage.gameObject.SetActive(false);
-            if (interactionSlider != null) { interactionSlider.gameObject.SetActive(true); interactionSlider.value = 0f; isSliderRunning = true; }
+            if (interactionSlider != null) 
+            { 
+                interactionSlider.gameObject.SetActive(true); 
+                interactionSlider.value = 0f; 
+                isSliderRunning = true; 
+                sliderTimer = 0f;
+            }
         }
 
+        // BƯỚC 2: ĐÓNG GÓI THÔNG TIN VÀ BÁO CÁO LÊN SERVER
+        NetworkObject netObj = currentInteractTarget.GetComponentInParent<NetworkObject>();
+        NetworkId idToSend = netObj != null ? netObj.Id : default;
+
+        Rpc_RequestInteraction(tag, currentInteractTarget.transform.position, idToSend);
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void Rpc_RequestInteraction(string tag, Vector3 targetPosition, NetworkId targetId)
+    {
+        isInteracting = true; // Khóa trạng thái trên Server
+        syncedTargetId = targetId;
+        Rpc_PlayInteractionEffects(tag, targetPosition);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void Rpc_PlayInteractionEffects(string tag, Vector3 targetPosition)
+    {
+        // Ép xoay mặt về phía mục tiêu
         Vector3 lookPos = targetPosition;
         lookPos.y = transform.position.y;
         transform.LookAt(lookPos);
 
-        if (Object.HasInputAuthority && fpsCameraScript != null) { fpsCameraScript.isCameraLockedForAnim = true; fpsCameraScript.SyncCameraAngles(transform.eulerAngles.y); }
+        if (Object.HasInputAuthority && fpsCameraScript != null) 
+        { 
+            fpsCameraScript.isCameraLockedForAnim = true; 
+            fpsCameraScript.SyncCameraAngles(transform.eulerAngles.y); 
+        }
 
-        if (tag == "May") { animator.SetTrigger("Dapmay"); currentDuration = timeDapMay; }
-        else if (tag == "Moc") { animator.SetTrigger("Treomoc"); currentDuration = timeTreoMoc; }
+        // Kích hoạt Animation cho tất cả mọi người cùng xem
+        if (tag == "May") animator.SetTrigger("Dapmay"); 
+        else if (tag == "Moc") animator.SetTrigger("Treomoc"); 
         else if (tag == "Playerchet")
         {
-            animator.SetTrigger("Nhacplayer"); currentDuration = timeNhatPlayer;
+            animator.SetTrigger("Nhacplayer"); 
             if (currentInteractTarget != null)
             {
                 if (currentInteractTarget.transform.parent != null) carriedPlayerObject = currentInteractTarget.transform.parent.gameObject;
@@ -538,9 +561,10 @@ public class HunterInteraction : NetworkBehaviour
         }
         else if (tag == "Cuaso")
         {
-            animator.SetTrigger("Treocuaso"); currentDuration = timeTreoCUASO;
+            animator.SetTrigger("Treocuaso"); 
             isVaulting = true; controller.enabled = false;
             vStart = transform.position; vEnd = transform.position + transform.forward * vaultDistance;
+            vaultTimer = 0f; // Đặt lại timer di chuyển vật lý
         }
     }
 
@@ -648,11 +672,9 @@ public class HunterInteraction : NetworkBehaviour
                 if (gen == null || !gen.CanBeDamagedByHunter()) return;
             }
 
-            // 🚨 SỬA LỖI UI NHẠY BỞI KINEMATIC RIGIDBODY: Check kĩ xem Player đã thực sự gục chưa!
             if (other.CompareTag("Playerchet"))
             {
                 IShowSpeedController_Fusion survivor = other.GetComponentInParent<IShowSpeedController_Fusion>();
-                // Nếu tìm thấy Script của nạn nhân mà nạn nhân chưa gục -> Hủy luôn, không hiện UI.
                 if (survivor != null && !survivor.IsDowned) return; 
             }
 
@@ -672,8 +694,6 @@ public class HunterInteraction : NetworkBehaviour
     {
         if (currentInteractTarget == other)
         {
-            // 🚨 CHỐT CHẶN VẬT LÝ: Rigidbody đôi khi bị lỡ nhịp Trigger. 
-            // Nếu ta đang tương tác (ấn Space rồi) thì không được phép mất Target!
             if (!isInteracting)
             {
                 currentInteractTarget = null;
