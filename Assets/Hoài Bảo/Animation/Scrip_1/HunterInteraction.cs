@@ -552,7 +552,7 @@ public class HunterInteraction : NetworkBehaviour
         isInteracting = true;
         syncedTargetId = targetId;
         syncedTargetPos = targetPosition;
-        syncedTargetRot = targetRotation; 
+        syncedTargetRot = targetRotation;
         Rpc_PlayInteractionEffects(tag, targetPosition);
     }
 
@@ -674,7 +674,7 @@ public class HunterInteraction : NetworkBehaviour
         if (Object.HasInputAuthority)
         {
             if (fpsCameraScript != null) fpsCameraScript.isCameraLockedForAnim = false;
-            
+
             // Xóa UI sau khi Animation chạy xong
             isSliderRunning = false;
             if (interactionSlider != null) { interactionSlider.value = 1f; interactionSlider.gameObject.SetActive(false); }
@@ -683,27 +683,38 @@ public class HunterInteraction : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // 🚨 QUAN TRỌNG: Nếu đang tương tác, TUYỆT ĐỐI không xử lý Trigger để tránh loạn UI
+        // 1. Nếu đang tương tác thì bỏ qua va chạm mới
         if (isInteracting || isSliderRunning) return;
+
+        // 🚨 2. FIX LỖI TỰ NHẬN DIỆN: Chống Hunter tự va chạm với các Trigger trên chính cơ thể mình
+        if (other.transform.root == transform.root) return;
 
         if (other.CompareTag("May") || other.CompareTag("Moc") || other.CompareTag("Playerchet") || other.CompareTag("Cuaso"))
         {
+            // Kiểm tra điều kiện vác người
             if (isCarryingPlayer && !other.CompareTag("Moc")) return;
             if (other.CompareTag("Moc") && !isCarryingPlayer) return;
 
+            // Kiểm tra điều kiện đạp máy
             if (other.CompareTag("May"))
             {
                 Generator gen = other.GetComponent<Generator>();
                 if (gen == null || !gen.CanBeDamagedByHunter()) return;
             }
 
+            // 🚨 3. FIX LỖI HIỆN IMG KHI PLAYER CHƯA GỤC
             if (other.CompareTag("Playerchet"))
             {
                 IShowSpeedController_Fusion survivor = other.GetComponentInParent<IShowSpeedController_Fusion>();
-                if (survivor != null && !survivor.IsDowned) return;
+
+                // Nếu KHÔNG tìm thấy script Survivor, HOẶC Survivor chưa gục (IsDowned = false) => HỦY NGAY LẬP TỨC
+                if (survivor == null || !survivor.IsDowned)
+                {
+                    return;
+                }
             }
 
-            // Chốt mục tiêu
+            // Mọi điều kiện hợp lệ -> Chốt mục tiêu
             currentInteractTarget = other;
 
             if (Object.HasInputAuthority)
@@ -718,7 +729,7 @@ public class HunterInteraction : NetworkBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        // 🚨 QUAN TRỌNG: Không xóa mục tiêu hay tắt hình ảnh nếu đang trong quá trình thực hiện hành động
+        // Tránh lỗi đang tương tác mà trượt khỏi Trigger làm mất UI
         if (isInteracting || isSliderRunning) return;
 
         if (currentInteractTarget == other)
