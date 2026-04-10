@@ -16,7 +16,8 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     public Transform[] survivorSpawnPoints;
 
     [Header("== UI TEXT (BẢNG TÊN) ==")]
-    public TextMeshProUGUI[] hunterTexts;
+    [Tooltip("Nhập chính xác tên GameObject text của Hunter vào đây")]
+    public string hunterTextGameObjectName = "HunterNameText"; // <-- SỬA TẠI ĐÂY
     public TextMeshProUGUI[] survivorTexts;
 
     private Dictionary<PlayerRef, NetworkObject> spawnedCharacters = new Dictionary<PlayerRef, NetworkObject>();
@@ -40,10 +41,43 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
         StartCoroutine(UpdatePlayerNamesRoutine());
     }
 
+    // HÀM MỚI: Tìm Text Hunter theo tên (Tìm được cả khi GameObject bị ẩn / SetActive = false)
+    private TextMeshProUGUI FindHunterTextByName()
+    {
+        TextMeshProUGUI[] allTexts = Resources.FindObjectsOfTypeAll<TextMeshProUGUI>();
+        foreach (var txt in allTexts)
+        {
+            // Đảm bảo đúng tên và object đang thực sự có trong scene (tránh dính nhầm prefab chưa spawn trong folder)
+            if (txt.gameObject.name == hunterTextGameObjectName && txt.gameObject.scene.isLoaded)
+            {
+                return txt;
+            }
+        }
+        return null;
+    }
+
     private void ResetAllText()
     {
-        foreach (var txt in hunterTexts) if (txt != null) { txt.text = ""; txt.gameObject.SetActive(false); }
+        // 1. Reset bảng tên Survivor (nếu Survivor vẫn dùng UI gắn cứng trên Scene)
         foreach (var txt in survivorTexts) if (txt != null) { txt.text = ""; txt.gameObject.SetActive(false); }
+
+        // 2. Reset bảng tên Hunter (Tìm trực tiếp bên trong các nhân vật đã được spawn)
+        foreach (var kvp in spawnedCharacters)
+        {
+            NetworkObject spawnedObj = kvp.Value;
+            if (spawnedObj != null)
+            {
+                // Tìm tất cả Text bên trong nhân vật này (bao gồm cả các object đang bị ẩn)
+                var texts = spawnedObj.GetComponentsInChildren<TextMeshProUGUI>(true);
+                var hunterTxt = texts.FirstOrDefault(t => t.gameObject.name == hunterTextGameObjectName);
+                
+                if (hunterTxt != null)
+                {
+                    hunterTxt.text = "";
+                    hunterTxt.gameObject.SetActive(false);
+                }
+            }
+        }
     }
 
     IEnumerator UpdatePlayerNamesRoutine()
@@ -51,19 +85,27 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
         yield return new WaitForSeconds(1.0f);
         var allPlayers = FindObjectsOfType<RoomPlayer>().ToList();
 
-        // Cập nhật tên Hunter
+        // == CẬP NHẬT TÊN HUNTER ==
         var hunterData = allPlayers.FirstOrDefault(p => p.IsHunter);
-        if (hunterData != null)
+        // Kiểm tra xem đã tìm thấy Data của Hunter chưa, VÀ Hunter đó đã được spawn ra map chưa
+        if (hunterData != null && spawnedCharacters.TryGetValue(hunterData.Object.InputAuthority, out NetworkObject hunterObj))
         {
-            int id = hunterData.CharacterID;
-            if (id >= 0 && id < hunterTexts.Length && hunterTexts[id] != null)
+            // Tìm TextMeshProUGUI con bên trong Prefab Hunter đã spawn
+            var texts = hunterObj.GetComponentsInChildren<TextMeshProUGUI>(true);
+            TextMeshProUGUI hunterTxt = texts.FirstOrDefault(t => t.gameObject.name == hunterTextGameObjectName);
+
+            if (hunterTxt != null)
             {
-                hunterTexts[id].gameObject.SetActive(true);
-                hunterTexts[id].text = hunterData.PlayerName.ToString();
+                hunterTxt.gameObject.SetActive(true);
+                hunterTxt.text = hunterData.PlayerName.ToString();
+            }
+            else
+            {
+                Debug.LogWarning($"[MapSpawner] Không tìm thấy GameObject nào tên '{hunterTextGameObjectName}' bên trong Prefab Hunter!");
             }
         }
 
-        // Cập nhật tên Survivor
+        // == CẬP NHẬT TÊN SURVIVOR ==
         var survivorsData = allPlayers.Where(p => !p.IsHunter).OrderBy(p => p.Object.InputAuthority.PlayerId).ToList();
         for (int i = 0; i < survivorsData.Count; i++)
         {

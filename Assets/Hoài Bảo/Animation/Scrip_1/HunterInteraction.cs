@@ -389,7 +389,7 @@ public class HunterInteraction : NetworkBehaviour
     private Collider currentInteractTarget;
     private float currentDuration = 1f;
 
-    // --- BIẾN ĐỒNG BỘ MẠNG (TỪ BẢN MỚI NHẤT CỦA BẠN) ---
+    // --- BIẾN ĐỒNG BỘ MẠNG ---
     [Networked] private NetworkBool isInteracting { get; set; }
     [Networked] private NetworkBool isVaulting { get; set; }
     [Networked] private Vector3 syncedTargetPos { get; set; }
@@ -455,11 +455,9 @@ public class HunterInteraction : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        // Chỉ xử lý Vật Lý khi nhảy cửa sổ (Server/Client đồng bộ)
         if (isVaulting)
         {
             vaultTimer += Runner.DeltaTime;
-            // Tránh lỗi chia cho 0 nếu currentDuration vô tình bằng 0
             float safeDuration = Mathf.Max(0.1f, currentDuration);
             transform.position = Vector3.Lerp(vStart, vEnd, vaultTimer / safeDuration);
         }
@@ -467,8 +465,13 @@ public class HunterInteraction : NetworkBehaviour
 
     private void Update()
     {
-        // UI thuần túy trên máy Client
         if (!Object.HasInputAuthority) return;
+
+        // Ép tắt Image nếu Slider đang chạy để chống kẹt hình ảnh
+        if (isSliderRunning && interactImage != null && interactImage.gameObject.activeSelf)
+        {
+            interactImage.gameObject.SetActive(false);
+        }
 
         if (isSliderRunning && interactionSlider != null)
         {
@@ -485,21 +488,18 @@ public class HunterInteraction : NetworkBehaviour
         }
     }
 
-    public bool IsDoingAction() { return isInteracting || isVaulting; }
+    public bool IsDoingAction() { return isInteracting || isVaulting || isSliderRunning; }
 
     public void TryInteract()
     {
-        // 🚨 CHỐT DEBUG: Báo lỗi lên Console nếu bấm mà không chạy
-        if (isInteracting)
+        // 🚨 CHỐT DEBUG: Cấm bấm đúp phím Space hoặc spam lệnh
+        if (isInteracting || isSliderRunning)
         {
-            Debug.LogWarning("❌ [Hunter UI] Hủy lệnh: Bạn đang bận làm hành động khác (isInteracting = true).");
+            Debug.LogWarning("❌ [Hunter UI] Đang tương tác, không thể nhấn Space thêm nữa!");
             return;
         }
-        if (currentInteractTarget == null)
-        {
-            Debug.LogWarning("❌ [Hunter UI] Hủy lệnh: Không có mục tiêu (Kinematic Rigidbody đã bị trượt khỏi Trigger).");
-            return;
-        }
+
+        if (currentInteractTarget == null) return;
 
         string tag = currentInteractTarget.tag;
 
@@ -512,7 +512,7 @@ public class HunterInteraction : NetworkBehaviour
         else if (tag == "Playerchet") currentDuration = timeNhatPlayer;
         else if (tag == "Cuaso") currentDuration = timeTreoCUASO;
 
-        // BƯỚC 2: CHẠY UI NGAY LẬP TỨC TRÊN MÁY BẠN MÀ KHÔNG ĐỢI MẠNG
+        // BƯỚC 2: CHẠY UI NGAY LẬP TỨC 
         if (Object.HasInputAuthority)
         {
             if (interactImage != null) interactImage.gameObject.SetActive(false);
@@ -521,16 +521,15 @@ public class HunterInteraction : NetworkBehaviour
                 interactionSlider.gameObject.SetActive(true);
                 interactionSlider.value = 0f;
                 sliderTimer = 0f;
-                isSliderRunning = true;
-                Debug.Log("✅ [Hunter UI] Đã bắt đầu chạy Slider cho tương tác: " + tag);
+                isSliderRunning = true; // Bật cờ này lên để khóa các hàm Trigger lại
+                Debug.Log("✅ [Hunter UI] Đã bắt đầu chạy Slider cho: " + tag);
             }
         }
 
-        // BƯỚC 3: XỬ LÝ DỮ LIỆU ĐỂ GỬI LÊN SERVER (Logic mới của bạn)
+        // BƯỚC 3: GỬI LÊN SERVER 
         NetworkObject netObj = currentInteractTarget.GetComponentInParent<NetworkObject>();
         NetworkId idToSend = netObj != null ? netObj.Id : default;
 
-        // 🚨 Lấy cả Pos và Rot
         Vector3 exactTargetPos = currentInteractTarget.transform.position;
         Quaternion exactTargetRot = currentInteractTarget.transform.rotation;
 
@@ -540,22 +539,20 @@ public class HunterInteraction : NetworkBehaviour
             if (hookPoint != null)
             {
                 exactTargetPos = hookPoint.position;
-                exactTargetRot = hookPoint.rotation; // Cập nhật góc xoay của HookPoint
+                exactTargetRot = hookPoint.rotation;
             }
         }
 
-        // Truyền thêm Rot vào hàm Rpc
         Rpc_RequestInteraction(tag, exactTargetPos, exactTargetRot, idToSend);
     }
 
-    // 🚨 Thêm Quaternion targetRotation vào ngoặc
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     private void Rpc_RequestInteraction(string tag, Vector3 targetPosition, Quaternion targetRotation, NetworkId targetId)
     {
         isInteracting = true;
         syncedTargetId = targetId;
         syncedTargetPos = targetPosition;
-        syncedTargetRot = targetRotation; // 🚨 Lưu lên Server
+        syncedTargetRot = targetRotation; 
         Rpc_PlayInteractionEffects(tag, targetPosition);
     }
 
@@ -578,7 +575,6 @@ public class HunterInteraction : NetworkBehaviour
         {
             animator.SetTrigger("Nhacplayer");
 
-            // Logic mới của bạn: Đồng bộ vật phẩm được nhặt
             NetworkObject targetObj = Runner.FindObject(syncedTargetId);
             if (targetObj != null) carriedPlayerObject = targetObj.gameObject;
         }
@@ -639,7 +635,6 @@ public class HunterInteraction : NetworkBehaviour
                 IShowSpeedController_Fusion survivor = carriedPlayerObject.GetComponent<IShowSpeedController_Fusion>();
                 if (survivor != null)
                 {
-                    // 🚨 Truyền đủ 2 tham số: Vị trí và Góc xoay
                     survivor.GetHooked(syncedTargetPos, syncedTargetRot);
                 }
                 isCarryingPlayer = false;
@@ -667,6 +662,7 @@ public class HunterInteraction : NetworkBehaviour
         return null;
     }
 
+    // HÀM NÀY NÊN ĐƯỢC GỌI BỞI ANIMATION EVENT Ở CUỐI HOẠT ẢNH
     public void FinishInteraction()
     {
         if (Object.HasStateAuthority)
@@ -678,6 +674,8 @@ public class HunterInteraction : NetworkBehaviour
         if (Object.HasInputAuthority)
         {
             if (fpsCameraScript != null) fpsCameraScript.isCameraLockedForAnim = false;
+            
+            // Xóa UI sau khi Animation chạy xong
             isSliderRunning = false;
             if (interactionSlider != null) { interactionSlider.value = 1f; interactionSlider.gameObject.SetActive(false); }
         }
@@ -685,6 +683,9 @@ public class HunterInteraction : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        // 🚨 QUAN TRỌNG: Nếu đang tương tác, TUYỆT ĐỐI không xử lý Trigger để tránh loạn UI
+        if (isInteracting || isSliderRunning) return;
+
         if (other.CompareTag("May") || other.CompareTag("Moc") || other.CompareTag("Playerchet") || other.CompareTag("Cuaso"))
         {
             if (isCarryingPlayer && !other.CompareTag("Moc")) return;
@@ -717,14 +718,13 @@ public class HunterInteraction : NetworkBehaviour
 
     private void OnTriggerExit(Collider other)
     {
+        // 🚨 QUAN TRỌNG: Không xóa mục tiêu hay tắt hình ảnh nếu đang trong quá trình thực hiện hành động
+        if (isInteracting || isSliderRunning) return;
+
         if (currentInteractTarget == other)
         {
-            // Tránh việc đang tương tác mà lỡ bước ra ngoài bị mất mục tiêu
-            if (!isInteracting)
-            {
-                currentInteractTarget = null;
-                if (Object.HasInputAuthority && interactImage != null) interactImage.gameObject.SetActive(false);
-            }
+            currentInteractTarget = null;
+            if (Object.HasInputAuthority && interactImage != null) interactImage.gameObject.SetActive(false);
         }
     }
 
@@ -769,10 +769,7 @@ public class HunterInteraction : NetworkBehaviour
             NetworkObject targetObj = Runner.FindObject(syncedTargetId);
             if (targetObj != null)
             {
-                // 🚨 ÉP KIỂU SANG SCRIPT FUSION MỚI
                 Generator gen = targetObj.GetComponent<Generator>();
-
-                // Hàm DamageByHunterServer() đã tự động check xem máy có % sửa hay chưa
                 if (gen != null) gen.DamageByHunterServer();
             }
         }
