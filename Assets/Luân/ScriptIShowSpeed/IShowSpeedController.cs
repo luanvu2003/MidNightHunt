@@ -321,27 +321,21 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         animator.SetTrigger(hitAnimationTrigger);
     }
 
-    public void GetHooked(Vector3 hookPos)
+    // 🚨 Thêm Quaternion hookRot vào trong ngoặc
+    public void GetHooked(Vector3 hookPos, Quaternion hookRot)
     {
-        // Chỉ Server/Host mới có quyền quyết định việc treo móc
         if (IsHooked || !Object.HasStateAuthority) return;
-        IsDowned = false; // Tắt trạng thái gục
+        IsDowned = false;
         IsHooked = true;
 
-        // 🚨 QUAN TRỌNG: Gọi script kia để nhả nhân vật khỏi vai Hunter
         PlayerHookReceiver hookReceiver = GetComponent<PlayerHookReceiver>();
-        if (hookReceiver != null)
-        {
-            hookReceiver.ReleaseFromHunter();
-        }
+        if (hookReceiver != null) hookReceiver.ReleaseFromHunter();
 
-        // Đưa nhân vật vào đúng vị trí của cái Móc
+        // 🚨 ÉP CẢ VỊ TRÍ LẪN GÓC XOAY ĐỂ NHÂN VẬT ĐỨNG THẲNG LÊN
         transform.position = hookPos;
+        transform.rotation = hookRot;
 
-        // Bắt đầu đếm ngược thời gian chết
         SacrificeTimer = TickTimer.CreateFromSeconds(Runner, sacrificeTime);
-
-        Debug.Log("MÓC THÀNH CÔNG! Đã ép IsHooked = true");
     }
 
     [Rpc(RpcSources.All, RpcTargets.All)]
