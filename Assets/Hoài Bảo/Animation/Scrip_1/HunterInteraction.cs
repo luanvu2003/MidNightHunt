@@ -393,6 +393,7 @@ public class HunterInteraction : NetworkBehaviour
     [Networked] private NetworkBool isInteracting { get; set; }
     [Networked] private NetworkBool isVaulting { get; set; }
     [Networked] private Vector3 syncedTargetPos { get; set; }
+    [Networked] private Quaternion syncedTargetRot { get; set; }
 
     // Tách riêng timer để không bị đụng chạm giữa UI và Vật Lý
     private bool isSliderRunning = false;
@@ -529,22 +530,32 @@ public class HunterInteraction : NetworkBehaviour
         NetworkObject netObj = currentInteractTarget.GetComponentInParent<NetworkObject>();
         NetworkId idToSend = netObj != null ? netObj.Id : default;
 
+        // 🚨 Lấy cả Pos và Rot
         Vector3 exactTargetPos = currentInteractTarget.transform.position;
+        Quaternion exactTargetRot = currentInteractTarget.transform.rotation;
+
         if (tag == "Moc")
         {
             Transform hookPoint = currentInteractTarget.transform.Find("HookPoint");
-            if (hookPoint != null) exactTargetPos = hookPoint.position;
+            if (hookPoint != null)
+            {
+                exactTargetPos = hookPoint.position;
+                exactTargetRot = hookPoint.rotation; // Cập nhật góc xoay của HookPoint
+            }
         }
 
-        Rpc_RequestInteraction(tag, exactTargetPos, idToSend);
+        // Truyền thêm Rot vào hàm Rpc
+        Rpc_RequestInteraction(tag, exactTargetPos, exactTargetRot, idToSend);
     }
 
+    // 🚨 Thêm Quaternion targetRotation vào ngoặc
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void Rpc_RequestInteraction(string tag, Vector3 targetPosition, NetworkId targetId)
+    private void Rpc_RequestInteraction(string tag, Vector3 targetPosition, Quaternion targetRotation, NetworkId targetId)
     {
-        isInteracting = true; // Khóa không cho spam nút Space
+        isInteracting = true;
         syncedTargetId = targetId;
         syncedTargetPos = targetPosition;
+        syncedTargetRot = targetRotation; // 🚨 Lưu lên Server
         Rpc_PlayInteractionEffects(tag, targetPosition);
     }
 
@@ -625,11 +636,11 @@ public class HunterInteraction : NetworkBehaviour
         {
             if (Object.HasStateAuthority)
             {
-                // Logic mới của bạn: Gọi sang IShowSpeedController
                 IShowSpeedController_Fusion survivor = carriedPlayerObject.GetComponent<IShowSpeedController_Fusion>();
                 if (survivor != null)
                 {
-                    survivor.GetHooked(syncedTargetPos);
+                    // 🚨 Truyền đủ 2 tham số: Vị trí và Góc xoay
+                    survivor.GetHooked(syncedTargetPos, syncedTargetRot);
                 }
                 isCarryingPlayer = false;
             }
