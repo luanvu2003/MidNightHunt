@@ -372,6 +372,7 @@ public class HunterInteraction : NetworkBehaviour
     private GameObject carriedPlayerObject;
 
     [Header("Vượt Cửa Sổ")]
+    [Tooltip("Khoảng cách phi thân qua cửa sổ. NHỚ CHỈNH ĐỦ XA ĐỂ KHÔNG BỊ KẸT TƯỜNG!")]
     public float vaultDistance = 2.5f;
 
     [Header("Âm Thanh Tương Tác")]
@@ -389,17 +390,20 @@ public class HunterInteraction : NetworkBehaviour
     private Collider currentInteractTarget;
     private float currentDuration = 1f;
 
-    // --- BIẾN ĐỒNG BỘ MẠNG ---
+    // --- BIẾN ĐỒNG BỘ MẠNG CƠ BẢN ---
     [Networked] private NetworkBool isInteracting { get; set; }
-    [Networked] private NetworkBool isVaulting { get; set; }
     [Networked] private Vector3 syncedTargetPos { get; set; }
     [Networked] private Quaternion syncedTargetRot { get; set; }
 
-    // Tách riêng timer để không bị đụng chạm giữa UI và Vật Lý
+    [Networked] private NetworkBool isVaulting { get; set; }
+    [Networked] private float vaultTimer { get; set; }
+    [Networked] private Vector3 vStart { get; set; }
+    [Networked] private Vector3 vEnd { get; set; }
+    [Networked] private float syncedDuration { get; set; }
+
+    // Tách riêng timer cho UI chạy mượt trên máy Client
     private bool isSliderRunning = false;
     private float sliderTimer = 0f;
-    private float vaultTimer = 0f;
-    private Vector3 vStart, vEnd;
 
     private Animator animator;
     private CharacterController controller;
@@ -453,13 +457,43 @@ public class HunterInteraction : NetworkBehaviour
         return null;
     }
 
+    // 🚨 HỆ THỐNG VẬT LÝ MẠNG (ĐÃ FIX LỖI GIẬT LÙI)
     public override void FixedUpdateNetwork()
     {
         if (isVaulting)
         {
-            vaultTimer += Runner.DeltaTime;
-            float safeDuration = Mathf.Max(0.1f, currentDuration);
-            transform.position = Vector3.Lerp(vStart, vEnd, vaultTimer / safeDuration);
+            // 1. Ép tắt CharacterController liên tục để chống kẹt
+            if (controller != null && controller.enabled) controller.enabled = false;
+
+            // 2. Server chốt thời gian
+            if (Object.HasStateAuthority)
+            {
+                vaultTimer += Runner.DeltaTime;
+                if (vaultTimer >= syncedDuration)
+                {
+                    isVaulting = false;
+                    transform.position = vEnd; // Chốt hạ vị trí chính xác
+                }
+            }
+
+            // 3. Cho phép Client trượt mượt mà
+            float safeDuration = Mathf.Max(0.1f, syncedDuration);
+            float t = Mathf.Clamp01(vaultTimer / safeDuration);
+            transform.position = Vector3.Lerp(vStart, vEnd, t);
+        }
+        else
+        {
+            // 🚨 FIX QUAN TRỌNG: Chỉ bật lại va chạm khi KHÔNG CÒN tương tác VÀ thanh UI đã chạy xong
+            // Điều này chống lại độ trễ mạng (Network Delay) khi Client nhận biến false chậm hơn Server
+            if (!isInteracting && !isSliderRunning)
+            {
+                if (controller != null && !controller.enabled)
+                {
+                    // FIX CHỐT HẠ: Ép Unity ghi nhận tọa độ mới trước khi bật va chạm
+                    Physics.SyncTransforms(); 
+                    controller.enabled = true;
+                }
+            }
         }
     }
 
@@ -467,7 +501,6 @@ public class HunterInteraction : NetworkBehaviour
     {
         if (!Object.HasInputAuthority) return;
 
-        // Ép tắt Image nếu Slider đang chạy để chống kẹt hình ảnh
         if (isSliderRunning && interactImage != null && interactImage.gameObject.activeSelf)
         {
             interactImage.gameObject.SetActive(false);
@@ -492,10 +525,9 @@ public class HunterInteraction : NetworkBehaviour
 
     public void TryInteract()
     {
-        // 🚨 CHỐT DEBUG: Cấm bấm đúp phím Space hoặc spam lệnh
         if (isInteracting || isSliderRunning)
         {
-            Debug.LogWarning("❌ [Hunter UI] Đang tương tác, không thể nhấn Space thêm nữa!");
+            Debug.LogWarning("❌ [Hunter] Đang tương tác, không nhận lệnh!");
             return;
         }
 
@@ -506,13 +538,11 @@ public class HunterInteraction : NetworkBehaviour
         if (isCarryingPlayer && tag != "Moc") return;
         if (tag == "Moc" && !isCarryingPlayer) return;
 
-        // BƯỚC 1: SET THỜI GIAN
         if (tag == "May") currentDuration = timeDapMay;
         else if (tag == "Moc") currentDuration = timeTreoMoc;
         else if (tag == "Playerchet") currentDuration = timeNhatPlayer;
         else if (tag == "Cuaso") currentDuration = timeTreoCUASO;
 
-        // BƯỚC 2: CHẠY UI NGAY LẬP TỨC 
         if (Object.HasInputAuthority)
         {
             if (interactImage != null) interactImage.gameObject.SetActive(false);
@@ -521,12 +551,14 @@ public class HunterInteraction : NetworkBehaviour
                 interactionSlider.gameObject.SetActive(true);
                 interactionSlider.value = 0f;
                 sliderTimer = 0f;
-                isSliderRunning = true; // Bật cờ này lên để khóa các hàm Trigger lại
-                Debug.Log("✅ [Hunter UI] Đã bắt đầu chạy Slider cho: " + tag);
+                isSliderRunning = true;
             }
+
+            // 🚨 FIX QUAN TRỌNG TẠI CLIENT: Tắt ngay CharacterController khi vừa bấm phím
+            // Tránh việc Client vẫn di chuyển trong lúc chờ Server trả tín hiệu về!
+            if (controller != null) controller.enabled = false;
         }
 
-        // BƯỚC 3: GỬI LÊN SERVER 
         NetworkObject netObj = currentInteractTarget.GetComponentInParent<NetworkObject>();
         NetworkId idToSend = netObj != null ? netObj.Id : default;
 
@@ -552,7 +584,7 @@ public class HunterInteraction : NetworkBehaviour
         isInteracting = true;
         syncedTargetId = targetId;
         syncedTargetPos = targetPosition;
-        syncedTargetRot = targetRotation;
+        syncedTargetRot = targetRotation; 
         Rpc_PlayInteractionEffects(tag, targetPosition);
     }
 
@@ -581,9 +613,15 @@ public class HunterInteraction : NetworkBehaviour
         else if (tag == "Cuaso")
         {
             animator.SetTrigger("Treocuaso");
-            isVaulting = true; controller.enabled = false;
-            vStart = transform.position; vEnd = transform.position + transform.forward * vaultDistance;
-            vaultTimer = 0f;
+            
+            if (Object.HasStateAuthority)
+            {
+                isVaulting = true;
+                vStart = transform.position;
+                vEnd = transform.position + transform.forward * vaultDistance;
+                vaultTimer = 0f;
+                syncedDuration = timeTreoCUASO;
+            }
         }
     }
 
@@ -662,20 +700,18 @@ public class HunterInteraction : NetworkBehaviour
         return null;
     }
 
-    // HÀM NÀY NÊN ĐƯỢC GỌI BỞI ANIMATION EVENT Ở CUỐI HOẠT ẢNH
+    // GỌI BỞI ANIMATION EVENT TẠI KHUNG HÌNH CUỐI CÙNG CỦA HOẠT ẢNH
     public void FinishInteraction()
     {
         if (Object.HasStateAuthority)
         {
             isInteracting = false;
-            if (isVaulting) { isVaulting = false; controller.enabled = true; }
         }
 
         if (Object.HasInputAuthority)
         {
             if (fpsCameraScript != null) fpsCameraScript.isCameraLockedForAnim = false;
-
-            // Xóa UI sau khi Animation chạy xong
+            
             isSliderRunning = false;
             if (interactionSlider != null) { interactionSlider.value = 1f; interactionSlider.gameObject.SetActive(false); }
         }
@@ -683,38 +719,35 @@ public class HunterInteraction : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // 1. Nếu đang tương tác thì bỏ qua va chạm mới
         if (isInteracting || isSliderRunning) return;
-
-        // 🚨 2. FIX LỖI TỰ NHẬN DIỆN: Chống Hunter tự va chạm với các Trigger trên chính cơ thể mình
-        if (other.transform.root == transform.root) return;
+        
+        if (other.transform.root == transform.root) return; 
 
         if (other.CompareTag("May") || other.CompareTag("Moc") || other.CompareTag("Playerchet") || other.CompareTag("Cuaso"))
         {
-            // Kiểm tra điều kiện vác người
             if (isCarryingPlayer && !other.CompareTag("Moc")) return;
             if (other.CompareTag("Moc") && !isCarryingPlayer) return;
 
-            // Kiểm tra điều kiện đạp máy
+            // FIX: Tránh quay lưng vào cửa sổ vẫn trèo được
+            if (other.CompareTag("Cuaso"))
+            {
+                Vector3 dirToWindow = (other.transform.position - transform.position).normalized;
+                float dot = Vector3.Dot(transform.forward, dirToWindow);
+                if (dot < 0.3f) return; 
+            }
+
             if (other.CompareTag("May"))
             {
                 Generator gen = other.GetComponent<Generator>();
                 if (gen == null || !gen.CanBeDamagedByHunter()) return;
             }
 
-            // 🚨 3. FIX LỖI HIỆN IMG KHI PLAYER CHƯA GỤC
             if (other.CompareTag("Playerchet"))
             {
                 IShowSpeedController_Fusion survivor = other.GetComponentInParent<IShowSpeedController_Fusion>();
-
-                // Nếu KHÔNG tìm thấy script Survivor, HOẶC Survivor chưa gục (IsDowned = false) => HỦY NGAY LẬP TỨC
-                if (survivor == null || !survivor.IsDowned)
-                {
-                    return;
-                }
+                if (survivor == null || !survivor.IsDowned) return;
             }
 
-            // Mọi điều kiện hợp lệ -> Chốt mục tiêu
             currentInteractTarget = other;
 
             if (Object.HasInputAuthority)
@@ -729,7 +762,6 @@ public class HunterInteraction : NetworkBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        // Tránh lỗi đang tương tác mà trượt khỏi Trigger làm mất UI
         if (isInteracting || isSliderRunning) return;
 
         if (currentInteractTarget == other)

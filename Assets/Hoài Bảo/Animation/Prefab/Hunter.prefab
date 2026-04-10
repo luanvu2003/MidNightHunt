@@ -295,7 +295,7 @@ MonoBehaviour:
   shoulderPoint: {fileID: 2578564187576613543}
   _isCarryingPlayer:
     _value: 0
-  vaultDistance: 2.5
+  vaultDistance: 3
   interactAudioSource: {fileID: 0}
   clipDapMay: {fileID: 8300000, guid: 429696fe3aa058744afcd88fed15532b, type: 3}
   clipTreoCuaso: {fileID: 8300000, guid: 6a7f37b58e202eb43837f9d7662a1e35, type: 3}
