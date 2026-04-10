@@ -12,7 +12,6 @@ public class CrowAI : NetworkBehaviour
     public float rotationSpeed = 8f;
 
     [Header("Cài đặt Hồi sinh")]
-    [Tooltip("Thời gian (giây) để quạ hiện lại tại chỗ cũ")]
     public float respawnDelay = 300f;
 
     [Header("Model & Bay")]
@@ -21,14 +20,14 @@ public class CrowAI : NetworkBehaviour
     public float flyUpSpeed = 18f;
     public float detectionRadius = 5f;
 
-    [Header("Âm thanh & Báo động (MỚI)")]
+    [Header("Âm thanh & Bóng Đỏ (Hunter Vision)")]
     public AudioSource cawSound;
-    [Tooltip("Khoảng cách tối đa mà Hunter/Player có thể nghe thấy tiếng quạ")]
-    public float maxHearingDistance = 40f; 
-    
-    [Tooltip("Kéo Prefab hiệu ứng màu đỏ (Particle/Sprite) vào đây")]
-    public GameObject redAlertPrefab;
-    public float alertDuration = 3f; // Thời gian hiệu ứng đỏ tồn tại trên màn hình
+    public float maxHearingDistance = 40f;
+
+    [Tooltip("Kéo Prefab bóng con quạ màu đỏ vào đây")]
+    public GameObject redSilhouettePrefab;
+    [Tooltip("Thời gian cái bóng đỏ tồn tại (giây)")]
+    public float silhouetteDuration = 5f;
 
     private Vector3 startPosition;
     private Quaternion startRotation;
@@ -45,21 +44,18 @@ public class CrowAI : NetworkBehaviour
         startPosition = transform.position;
         startRotation = transform.rotation;
 
-        // 🚨 TỰ ĐỘNG CẤU HÌNH ÂM THANH 3D (Gần to, xa nhỏ)
         if (cawSound != null)
         {
-            cawSound.spatialBlend = 1f; // 1 = Hoàn toàn là 3D, 0 = 2D (nghe rõ mồn một ở mọi nơi)
-            cawSound.rolloffMode = AudioRolloffMode.Linear; // Âm lượng giảm dần đều theo khoảng cách
-            cawSound.minDistance = 3f; // Đứng cách 3m sẽ nghe to nhất
-            cawSound.maxDistance = maxHearingDistance; 
+            cawSound.spatialBlend = 1f;
+            cawSound.rolloffMode = AudioRolloffMode.Linear;
+            cawSound.minDistance = 3f;
+            cawSound.maxDistance = maxHearingDistance;
+            if (cawSound.isPlaying) cawSound.Stop();
         }
 
         UpdateVisuals();
 
-        if (HasStateAuthority)
-        {
-            StartCoroutine(PatrolRoutine());
-        }
+        if (HasStateAuthority) StartCoroutine(PatrolRoutine());
     }
 
     public override void FixedUpdateNetwork()
@@ -90,35 +86,47 @@ public class CrowAI : NetworkBehaviour
             switch (change)
             {
                 case nameof(IsFleeing):
-                    OnFleeStateChanged();
+                    if (IsFleeing) ProcessCrowFlight();
+                    else UpdateVisuals();
                     break;
             }
         }
     }
 
-    private void OnFleeStateChanged()
+    private void ProcessCrowFlight()
     {
         UpdateVisuals();
 
-        if (IsFleeing)
+        if (flyModel != null)
         {
-            if (cawSound != null) cawSound.Play();
+            Animator anim = flyModel.GetComponentInChildren<Animator>();
+            if (anim != null) { anim.Play("CrowFly", 0, 0f); anim.speed = 1.5f; }
+        }
 
-            if (flyModel != null)
-            {
-                Animator anim = flyModel.GetComponentInChildren<Animator>();
-                if (anim != null) { anim.Play("CrowFly", 0, 0f); anim.speed = 1.5f; }
-            }
+        if (cawSound != null) cawSound.Play();
 
-            // 🚨 TẠO HIỆU ỨNG ĐỎ BÁO ĐỘNG (Chạy trên tất cả Client để ai cũng thấy)
-            if (redAlertPrefab != null)
+        // 🚨 GỌI HÀM SINH RA BÓNG ĐỎ
+        SpawnRedSilhouetteLocal();
+    }
+
+    private void SpawnRedSilhouetteLocal()
+    {
+        // 1. Tìm script Camera đang chạy trên máy này
+        GameCameraController cam = FindFirstObjectByType<GameCameraController>();
+
+        // 2. CHỈ thực hiện tạo bóng đỏ nếu người chơi đang ở chế độ Hunter (FPS)
+        if (cam != null && cam.currentMode == GameCameraController.CameraMode.FPS_Hunter)
+        {
+            if (redSilhouettePrefab != null)
             {
-                // Sinh ra ở vị trí cũ của quạ, nhích lên trên một xíu cho dễ nhìn
-                GameObject alert = Instantiate(redAlertPrefab, startPosition + Vector3.up * 2f, Quaternion.identity);
-                // Tự động xóa đi sau vài giây
-                Destroy(alert, alertDuration); 
+                // Sinh ra bóng đỏ tại vị trí và hướng lúc quạ bắt đầu bay
+                GameObject silhouette = Instantiate(redSilhouettePrefab, startPosition, startRotation);
+
+                // Xóa bóng sau 5 giây
+                Destroy(silhouette, silhouetteDuration);
             }
         }
+        // Nếu là Survivor (TPS), hàm này sẽ chạy nhưng không làm gì cả, không tốn tài nguyên
     }
 
     private void UpdateVisuals()
@@ -143,7 +151,7 @@ public class CrowAI : NetworkBehaviour
     {
         if (IsFleeing || !HasStateAuthority) return;
 
-        IsFleeing = true; 
+        IsFleeing = true;
         StopAllCoroutines();
         StartCoroutine(FlyAndRespawnRoutine());
     }
@@ -157,8 +165,8 @@ public class CrowAI : NetworkBehaviour
 
             Vector2 randomCircle = Random.insideUnitCircle * patrolRadius;
             Vector3 targetPoint = startPosition + new Vector3(randomCircle.x, 0, randomCircle.y);
-
             Vector3 direction = (targetPoint - transform.position).normalized;
+
             if (direction != Vector3.zero)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(direction);
@@ -194,24 +202,19 @@ public class CrowAI : NetworkBehaviour
         }
 
         transform.position = startPosition + Vector3.down * 100f;
-
         yield return new WaitForSeconds(respawnDelay);
-
         transform.position = startPosition;
         transform.rotation = startRotation;
 
-        IsFleeing = false; 
+        IsFleeing = false;
 
-        StartCoroutine(PatrolRoutine());
+        if (HasStateAuthority) StartCoroutine(PatrolRoutine());
     }
 
     private void OnTriggerEnter(Collider other)
     {
         if (!HasStateAuthority) return;
 
-        if (!IsFleeing && other.CompareTag("Player"))
-        {
-            TriggerFleeServer();
-        }
+        if (!IsFleeing && other.CompareTag("Player")) TriggerFleeServer();
     }
 }

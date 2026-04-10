@@ -2312,9 +2312,9 @@ MonoBehaviour:
   flyUpSpeed: 15
   detectionRadius: 5
   cawSound: {fileID: 3958676201132615580}
-  maxHearingDistance: 40
-  redAlertPrefab: {fileID: 0}
-  alertDuration: 3
+  maxHearingDistance: 20
+  redSilhouettePrefab: {fileID: 4835688463642126945, guid: 6602391637b577141ab6e64cb2e623e4, type: 3}
+  silhouetteDuration: 5
   _IsFleeing:
     _value: 0
 --- !u!82 &3958676201132615580
