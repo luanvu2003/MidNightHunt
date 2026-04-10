@@ -571,6 +571,7 @@ public class AttackController : NetworkBehaviour
     public string uiContainerName = "KhungUI_Hunter";
     public string ammoTextName = "TxtAmmo";
     public string cooldownImageName = "ImgCooldown";
+    public string cooldownTextName = "TxtCooldownTime";
 
     [Header("Tên UI Image Từng Hunter")]
     public string imgHunter1Name = "ImgHunter1";
@@ -580,6 +581,7 @@ public class AttackController : NetworkBehaviour
     [HideInInspector] public GameObject uiContainer;
     [HideInInspector] public TextMeshProUGUI ammoText;
     [HideInInspector] public Image cooldownImage;
+    [HideInInspector] public TextMeshProUGUI cooldownText; 
 
     [HideInInspector] public GameObject imgHunter1;
     [HideInInspector] public GameObject imgHunter2;
@@ -600,10 +602,9 @@ public class AttackController : NetworkBehaviour
     [Networked, OnChangedRender(nameof(UpdateAmmoUI))] public int currentTrap { get; set; }
     public GameObject trapPrefab;
 
-    // 🚨 ĐỔI THÀNH PREFAB ĐỂ DÙNG TRÊN MẠNG
     [Tooltip("Kéo PREFAB của bẫy mờ (Trap Fake) vào đây")]
     public GameObject trapPreviewPrefab;
-    private GameObject trapPreviewInstance; // Bản sao dùng riêng cho máy này
+    private GameObject trapPreviewInstance; 
 
     public float placeRange = 6.5f;
     public LayerMask groundLayer;
@@ -673,11 +674,16 @@ public class AttackController : NetworkBehaviour
             if (imgHunter2 != null) imgHunter2.SetActive(false);
             if (imgHunter3 != null) imgHunter3.SetActive(false);
 
-            // 🚨 TẮT COOLDOWN BAN ĐẦU CHO H1 VÀ H2
             if (cooldownImage != null && typeOfHunter != HunterType.Hunter3_OiDoc)
             {
                 cooldownImage.gameObject.SetActive(false);
                 cooldownImage.fillAmount = 0f;
+            }
+
+            if (cooldownText != null)
+            {
+                cooldownText.gameObject.SetActive(false);
+                cooldownText.text = "";
             }
 
             switch (typeOfHunter)
@@ -687,14 +693,10 @@ public class AttackController : NetworkBehaviour
                     break;
                 case HunterType.Hunter2_DatTrap:
                     if (imgHunter2 != null) imgHunter2.SetActive(true);
-
-                    // 🚨 TỰ ĐỘNG TẠO TRAP FAKE TỪ PREFAB
                     if (trapPreviewPrefab != null)
                     {
                         trapPreviewInstance = Instantiate(trapPreviewPrefab);
                         trapPreviewInstance.SetActive(false);
-
-                        // Tắt Collider của Trap Fake để tránh đụng chạm vật lý
                         foreach (Collider col in trapPreviewInstance.GetComponentsInChildren<Collider>())
                             col.enabled = false;
                     }
@@ -702,6 +704,8 @@ public class AttackController : NetworkBehaviour
                 case HunterType.Hunter3_OiDoc:
                     UpdateSkillUI();
                     if (imgHunter3 != null) imgHunter3.SetActive(true);
+                    // Ẩn cứng Text Ammo cho con Hunter 3 ngay từ đầu
+                    if (ammoText != null) ammoText.gameObject.SetActive(false);
                     break;
             }
         }
@@ -722,7 +726,6 @@ public class AttackController : NetworkBehaviour
 
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
-        // Xóa Trap Fake đi nếu người chơi thoát game/chết để tránh rác RAM
         if (trapPreviewInstance != null) Destroy(trapPreviewInstance);
     }
 
@@ -730,7 +733,6 @@ public class AttackController : NetworkBehaviour
     {
         if (Object.HasStateAuthority)
         {
-            // 🚨 Cả H1 và H2 đều dùng chung hệ thống nạp lại đạn/bẫy
             if (typeOfHunter == HunterType.Hunter1_NemBua || typeOfHunter == HunterType.Hunter2_DatTrap)
                 HandleReloadSystem();
 
@@ -743,20 +745,37 @@ public class AttackController : NetworkBehaviour
     {
         if (!Object.HasInputAuthority) return;
 
-        // 🚨 LOGIC BẬT/TẮT COOLDOWN CHUNG CHO H1 & H2
         if (typeOfHunter == HunterType.Hunter1_NemBua || typeOfHunter == HunterType.Hunter2_DatTrap)
         {
-            if (cooldownImage != null)
+            if (isReloading)
             {
-                if (isReloading)
+                float remaining = reloadTimer.RemainingTime(Runner) ?? 0f;
+
+                if (cooldownImage != null)
                 {
                     if (!cooldownImage.gameObject.activeSelf) cooldownImage.gameObject.SetActive(true);
-                    float remaining = reloadTimer.RemainingTime(Runner) ?? 0f;
                     cooldownImage.fillAmount = remaining / reloadTime;
                 }
-                else
+
+                if (ammoText != null && ammoText.gameObject.activeSelf)
                 {
-                    if (cooldownImage.gameObject.activeSelf) cooldownImage.gameObject.SetActive(false);
+                    ammoText.gameObject.SetActive(false);
+                }
+
+                if (cooldownText != null)
+                {
+                    if (!cooldownText.gameObject.activeSelf) cooldownText.gameObject.SetActive(true);
+                    cooldownText.text = Mathf.CeilToInt(remaining).ToString(); 
+                }
+            }
+            else
+            {
+                if (cooldownImage != null && cooldownImage.gameObject.activeSelf) cooldownImage.gameObject.SetActive(false);
+                if (cooldownText != null && cooldownText.gameObject.activeSelf) cooldownText.gameObject.SetActive(false);
+                if (ammoText != null && !ammoText.gameObject.activeSelf)
+                {
+                    ammoText.gameObject.SetActive(true);
+                    UpdateAmmoUI();
                 }
             }
         }
@@ -786,6 +805,9 @@ public class AttackController : NetworkBehaviour
 
         if (cooldownImage == null && !string.IsNullOrEmpty(cooldownImageName))
             cooldownImage = FindUIObjectByName(cooldownImageName)?.GetComponent<Image>();
+
+        if (cooldownText == null && !string.IsNullOrEmpty(cooldownTextName))
+            cooldownText = FindUIObjectByName(cooldownTextName)?.GetComponent<TextMeshProUGUI>();
 
         if (imgHunter1 == null) imgHunter1 = FindUIObjectByName(imgHunter1Name);
         if (imgHunter2 == null) imgHunter2 = FindUIObjectByName(imgHunter2Name);
@@ -822,10 +844,20 @@ public class AttackController : NetworkBehaviour
     private void Rpc_FinishReload()
     {
         if (leftHandHammer != null) leftHandHammer.SetActive(true);
-        if (Object.HasInputAuthority && cooldownImage != null)
+        if (Object.HasInputAuthority)
         {
-            cooldownImage.fillAmount = 0f;
-            cooldownImage.gameObject.SetActive(false); // Tắt cooldown đi khi nạp xong
+            if (cooldownImage != null)
+            {
+                cooldownImage.fillAmount = 0f;
+                cooldownImage.gameObject.SetActive(false); 
+            }
+
+            if (cooldownText != null) cooldownText.gameObject.SetActive(false);
+            if (ammoText != null)
+            {
+                ammoText.gameObject.SetActive(true);
+                UpdateAmmoUI();
+            }
         }
     }
 
@@ -870,7 +902,7 @@ public class AttackController : NetworkBehaviour
         if (Physics.Raycast(ray, out RaycastHit hit, placeRange, groundLayer))
         {
             if (!trapPreviewInstance.activeSelf) trapPreviewInstance.SetActive(true);
-            trapPreviewInstance.transform.position = hit.point + Vector3.up * 0.02f; // Nhích lên để không cấn sàn
+            trapPreviewInstance.transform.position = hit.point + Vector3.up * 0.02f; 
             trapPreviewInstance.transform.rotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
 
             lockedTrapPos = hit.point;
@@ -895,7 +927,6 @@ public class AttackController : NetworkBehaviour
             currentTrap--;
             Rpc_PlayReleaseSound();
 
-            // 🚨 HẾT BẪY -> BẮT ĐẦU CHẠY COOLDOWN NẠP LẠI
             if (currentTrap <= 0) StartReload();
         }
     }
@@ -920,12 +951,43 @@ public class AttackController : NetworkBehaviour
         }
     }
 
+    // 🚨 ĐÃ SỬA: Cập nhật hàm này để quản lý UI Cooldown cho Hunter 3
     private void UpdateSkillUI()
     {
-        if (cooldownImage != null && Object.HasInputAuthority)
+        if (!Object.HasInputAuthority) return;
+
+        if (currentSkillEnergy > 0f)
         {
-            if (!cooldownImage.gameObject.activeSelf) cooldownImage.gameObject.SetActive(true);
-            cooldownImage.fillAmount = currentSkillEnergy;
+            // Bật Ảnh chạy Cooldown
+            if (cooldownImage != null)
+            {
+                if (!cooldownImage.gameObject.activeSelf) cooldownImage.gameObject.SetActive(true);
+                cooldownImage.fillAmount = currentSkillEnergy;
+            }
+
+            // Quản lý Text đếm giây
+            if (cooldownText != null)
+            {
+                if (!cooldownText.gameObject.activeSelf) cooldownText.gameObject.SetActive(true);
+
+                if (isVomiting)
+                {
+                    // Lúc đang vận chiêu ói thì không đếm số (để trống)
+                    cooldownText.text = ""; 
+                }
+                else
+                {
+                    // Đang hồi chiêu -> Tính ra số giây và hiển thị
+                    float timeRemaining = currentSkillEnergy * skillRechargeTime;
+                    cooldownText.text = Mathf.CeilToInt(timeRemaining).ToString();
+                }
+            }
+        }
+        else
+        {
+            // Tắt hết khi Hồi Chiêu xong (SkillEnergy = 0)
+            if (cooldownImage != null && cooldownImage.gameObject.activeSelf) cooldownImage.gameObject.SetActive(false);
+            if (cooldownText != null && cooldownText.gameObject.activeSelf) cooldownText.gameObject.SetActive(false);
         }
     }
 
@@ -992,7 +1054,6 @@ public class AttackController : NetworkBehaviour
     {
         if (isAttacking || isVomiting) return;
         isSpecialActionLocked = false;
-        // Truyền tọa độ rỗng vì chém thường không cần
         Rpc_RequestAttack(animAttack, isSpecialActionLocked, Vector3.zero, Quaternion.identity);
     }
 
@@ -1014,7 +1075,6 @@ public class AttackController : NetworkBehaviour
             case HunterType.Hunter2_DatTrap:
                 if (currentTrap <= 0 || trapPreviewInstance == null || !trapPreviewInstance.activeSelf) return;
 
-                // Lấy tọa độ Client nhắm để chuẩn bị gửi cho Server
                 sendPos = trapPreviewInstance.transform.position;
                 sendRot = trapPreviewInstance.transform.rotation;
                 trapPreviewInstance.SetActive(false);
@@ -1027,7 +1087,6 @@ public class AttackController : NetworkBehaviour
                 break;
         }
 
-        // 🚨 CHÌA KHÓA Ở ĐÂY: Gửi kèm tọa độ bẫy lên Server
         Rpc_RequestAttack(animThrow, isSpecialActionLocked, sendPos, sendRot);
     }
 
@@ -1036,8 +1095,6 @@ public class AttackController : NetworkBehaviour
     {
         isAttacking = true;
         isSpecialActionLocked = isLocked;
-
-        // Tăng ID nhát chém lên để Hitbox biết đây là đợt tấn công mới hoàn toàn
         attackCounter++;
 
         lockedTrapPos = trapPos;
@@ -1045,6 +1102,7 @@ public class AttackController : NetworkBehaviour
 
         Rpc_PlayAttackAnim(attackTriggerHash, isLocked);
     }
+
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void Rpc_PlayAttackAnim(int attackTriggerHash, bool isLocked)
     {
@@ -1096,9 +1154,22 @@ public class AttackController : NetworkBehaviour
     {
         if (ammoText == null || !Object.HasInputAuthority) return;
 
-        if (typeOfHunter == HunterType.Hunter1_NemBua) ammoText.text = currentAmmo.ToString();
-        else if (typeOfHunter == HunterType.Hunter2_DatTrap) ammoText.text = currentTrap.ToString();
-        else if (typeOfHunter == HunterType.Hunter3_OiDoc) ammoText.text = "";
+        if (typeOfHunter == HunterType.Hunter1_NemBua)
+        {
+            if (!ammoText.gameObject.activeSelf && !isReloading) ammoText.gameObject.SetActive(true);
+            ammoText.text = currentAmmo.ToString();
+        }
+        else if (typeOfHunter == HunterType.Hunter2_DatTrap)
+        {
+            if (!ammoText.gameObject.activeSelf && !isReloading) ammoText.gameObject.SetActive(true);
+            ammoText.text = currentTrap.ToString();
+        }
+        else if (typeOfHunter == HunterType.Hunter3_OiDoc)
+        {
+            // 🚨 ĐÃ SỬA: Đảm bảo khi chọn Hunter 3 thì Text Đạn luôn bị tắt hoàn toàn
+            ammoText.text = "";
+            ammoText.gameObject.SetActive(false); 
+        }
     }
 
     public void PlaySoundSwing() { if (attackSource != null && clipChemBua != null) attackSource.PlayOneShot(clipChemBua); }
