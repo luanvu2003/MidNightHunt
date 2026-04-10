@@ -2,21 +2,22 @@ using UnityEngine;
 
 public class RepairZone : MonoBehaviour
 {
-    public Generator generator; // Kéo object Generator vào đây
+    // 🚨 Đổi từ Generator sang bản mạng: Generator_Fusion
+    public Generator generator; 
 
     void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
+        if (other.CompareTag("Player") && generator != null)
         {
-            generator.PlayerEnteredZone();
+            generator.PlayerEnteredZone(other);
         }
     }
 
     void OnTriggerExit(Collider other)
     {
-        if (other.CompareTag("Player"))
+        if (other.CompareTag("Player") && generator != null)
         {
-            generator.PlayerExitedZone();
+            generator.PlayerExitedZone(other);
         }
     }
 }

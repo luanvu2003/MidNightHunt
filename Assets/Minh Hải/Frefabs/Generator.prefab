@@ -7966,6 +7966,7 @@ GameObject:
   - component: {fileID: 2101347511902750236}
   - component: {fileID: 2914932110496687611}
   - component: {fileID: 1228510006672049023}
+  - component: {fileID: 2079249322746183399}
   m_Layer: 0
   m_Name: Generator
   m_TagString: May
@@ -8009,15 +8010,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   repairTime: 150
-  progress: 0
-  currentSkillLevel: 1
-  stunDuration: 10
   progressPenalty: 5
+  stunDuration: 10
   hunterDamageAmount: 15
-  isDamagedByHunter: 0
-  player: {fileID: 0}
-  playerMovementScript: {fileID: 0}
-  isRepairing: 0
   skillCheck: {fileID: 230709234879574068}
   progressBar: {fileID: 23103903925779912}
   repairText: {fileID: 2719721927811256887}
@@ -8026,6 +8021,12 @@ MonoBehaviour:
   animator: {fileID: 4716045569740181332}
   explosionSound: {fileID: 2914932110496687611}
   repairSound: {fileID: 1228510006672049023}
+  _Progress: 0
+  _IsRepaired:
+    _value: 0
+  _IsDamagedByHunter:
+    _value: 0
+  _ActiveRepairers: []
 --- !u!82 &2914932110496687611
 AudioSource:
   m_ObjectHideFlags: 0
@@ -8220,6 +8221,25 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &2079249322746183399
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3309650600516844648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SortKey: 1641589558
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 2101347511902750236}
+  ForceRemoteRenderTimeframe: 0
 --- !u!1 &3726844985509005769
 GameObject:
   m_ObjectHideFlags: 0

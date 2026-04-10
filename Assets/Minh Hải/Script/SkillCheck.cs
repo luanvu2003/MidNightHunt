@@ -7,6 +7,7 @@ public class SkillCheck : MonoBehaviour
     public RectTransform successZone;
     private Image successZoneImage;
 
+    // 🚨 ĐỔI SANG SCRIPT FUSION
     public Generator generator;
 
     [Header("Difficulty Settings")]
@@ -22,7 +23,6 @@ public class SkillCheck : MonoBehaviour
     private float angle = 0;
     
     public bool isChecking = false; 
-    
     private float tolerance = 3f; 
 
     void OnEnable()
@@ -33,10 +33,11 @@ public class SkillCheck : MonoBehaviour
         }
     }
 
+    // 🚨 ĐỔI THAM SỐ ĐẦU VÀO SANG FUSION
     public void StartNewSkillCheck(Generator gen)
     {
         this.generator = gen;
-        this.currentLevel = gen.currentSkillLevel; 
+        this.currentLevel = 1; // Bắt đầu sửa luôn reset về mốc dễ nhất
         
         gameObject.SetActive(true);
         SetupNextRound(); 
@@ -64,14 +65,14 @@ public class SkillCheck : MonoBehaviour
 
     void Update()
     {
-        if (!isChecking || generator == null || !generator.isRepairing) return;
+        if (!isChecking || generator == null) return;
 
         float speedMultiplier = currentLevel * 0.1f;
         float currentRotateSpeed = baseRotateSpeed * speedMultiplier;
 
         angle += currentRotateSpeed * Time.deltaTime;
 
-        // Nếu để kim chạy lố 360 độ -> TÍNH LÀ THẤT BẠI MINIGAME
+        // Trượt vòng quay
         if (angle >= 360f)
         {
             Fail();
@@ -94,7 +95,6 @@ public class SkillCheck : MonoBehaviour
         }
         else
         {
-            // Bấm Space nhưng trượt ra ngoài vùng xanh -> TÍNH LÀ THẤT BẠI MINIGAME
             Fail();
         }
     }
@@ -105,8 +105,7 @@ public class SkillCheck : MonoBehaviour
 
         if (currentLevel < 5)
         {
-            currentLevel++;
-            if (generator != null) generator.currentSkillLevel = currentLevel;
+            currentLevel++; // Tăng độ khó nếu bấm trúng
         }
 
         Invoke("AutoRestart", 0.5f);
@@ -118,23 +117,23 @@ public class SkillCheck : MonoBehaviour
 
         if (generator != null)
         {
-            // GỌI HÀM PHẠT CHOÁNG 10s BÊN MÁY PHÁT ĐIỆN
-            generator.ApplyStun(); 
+            // 🚨 GỌI HÀM CỦA MÁY ĐỂ BÁO LÊN SERVER (Gây nổ máy, phạt hit)
+            generator.LocalFailSkillCheck(); 
         }
 
-        // Tắt minigame
         gameObject.SetActive(false);
     }
 
     void AutoRestart()
     {
-        if (generator != null && generator.isRepairing && generator.progress < generator.repairTime)
+        // 🚨 CHỈ KIỂM TRA BIẾN PROGRESS TỪ MÁY CHỦ FUSION
+        if (generator != null && !generator.IsRepaired && generator.Progress < generator.repairTime)
         {
             SetupNextRound();
         }
         else
         {
-            gameObject.SetActive(false);
+            gameObject.SetActive(false); // Tắt UI nếu máy đã sửa xong
         }
     }
 }
