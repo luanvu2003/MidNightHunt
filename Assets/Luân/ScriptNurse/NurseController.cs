@@ -1,204 +1,3 @@
-// using UnityEngine;
-// using UnityEngine.InputSystem;
-// using Fusion;
-// using Unity.Mathematics;
-// using System.Collections;
-
-// [RequireComponent(typeof(CharacterController))]
-// public class NurseController : MonoBehaviour
-// {
-//     [Header("Animator Settings")]
-//     public Animator animator;
-
-//     [Header("Movement Settings")]
-//     public float slowWalkSpeed = 2f;
-//     public float mediumRunSpeed = 5f;
-//     public float sprintSpeed = 8f;
-//     public float rotationSpeed = 10f;
-
-//     [Header("Input Settings")]
-//     public InputActionReference moveInput;
-//     public InputActionReference sprintInput;
-//     public InputActionReference walkInput;
-//     public InputActionReference jumpInput;
-
-//     [Header("Window Vaulting Settings")]
-//     public GameObject interactUI;
-//     public string vaultAnimationTrigger = "Vault";
-//     public float vaultDuration = 1.5f;
-//     [Tooltip("Khoảng cách trượt qua cửa sổ")]
-//     public float vaultDistance = 2.5f; // Đã thêm biến khoảng cách
-
-//     [Header("Camera Reference")]
-//     public Transform mainCamera;
-
-//     private CharacterController characterController;
-
-//     private bool isNearWindow = false;
-//     private bool isVaulting = false;
-
-//     private void Awake()
-//     {
-//         characterController = GetComponent<CharacterController>();
-//         animator = GetComponentInChildren<Animator>();
-
-//         if (interactUI != null) interactUI.SetActive(false);
-//     }
-
-//     private void OnEnable()
-//     {
-//         moveInput.action.Enable();
-//         sprintInput.action.Enable();
-//         walkInput.action.Enable();
-//         if (jumpInput != null) jumpInput.action.Enable();
-//     }
-
-//     private void OnDisable()
-//     {
-//         moveInput.action.Disable();
-//         sprintInput.action.Disable();
-//         walkInput.action.Disable();
-//         if (jumpInput != null) jumpInput.action.Disable();
-//     }
-
-//     public void Update()
-//     {
-//         if (mainCamera == null) return;
-
-//         // Cập nhật: Chỉ return nếu không có CC, không block nếu CC bị tắt (để xử lý vụ trượt cửa sổ)
-//         if (characterController == null) return;
-
-//         // Chặn di chuyển tự do khi đang chạy animation đu cửa sổ
-//         if (isVaulting) return;
-
-//         HandleMovement();
-//         HandleWindowInteraction();
-//     }
-
-//     private void HandleMovement()
-//     {
-//         // Chặn di chuyển nếu CharacterController đang tắt
-//         if (!characterController.enabled) return;
-
-//         Vector2 moveInputValue = moveInput.action.ReadValue<Vector2>();
-
-//         Vector3 camForward = mainCamera.forward;
-//         Vector3 camRight = mainCamera.right;
-
-//         camForward.y = 0f;
-//         camRight.y = 0f;
-//         camForward.Normalize();
-//         camRight.Normalize();
-
-//         Vector3 moveDirection = (camForward * moveInputValue.y) + (camRight * moveInputValue.x);
-
-//         bool isSprinting = sprintInput.action.IsPressed();
-//         bool isWalking = walkInput.action.IsPressed();
-
-//         float currentMoveSpeed = mediumRunSpeed;
-//         float targetAnimSpeed = 0.5f;
-
-//         if (isWalking)
-//         {
-//             currentMoveSpeed = slowWalkSpeed;
-//             targetAnimSpeed = 0.2f;
-//         }
-//         else if (isSprinting)
-//         {
-//             currentMoveSpeed = sprintSpeed;
-//             targetAnimSpeed = 1f;
-//         }
-
-//         if (moveDirection.magnitude == 0)
-//         {
-//             targetAnimSpeed = 0f;
-//         }
-
-//         if (moveDirection.magnitude >= 0.1f)
-//         {
-//             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-//             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-
-//             characterController.Move(moveDirection * currentMoveSpeed * Time.deltaTime);
-//         }
-
-//         if (animator != null)
-//         {
-//             float currentAnimSpeed = animator.GetFloat("Speed");
-//             animator.SetFloat("Speed", Mathf.Lerp(currentAnimSpeed, targetAnimSpeed, Time.deltaTime * 10f));
-//         }
-//     }
-
-//     private void HandleWindowInteraction()
-//     {
-//         if (isNearWindow && jumpInput != null && jumpInput.action.triggered)
-//         {
-//             StartCoroutine(VaultWindowRoutine());
-//         }
-//     }
-
-//     private IEnumerator VaultWindowRoutine()
-//     {
-//         isVaulting = true;
-
-//         if (interactUI != null) interactUI.SetActive(false);
-
-//         if (animator != null) animator.SetTrigger(vaultAnimationTrigger);
-
-//         // QUAN TRỌNG: Tắt CharacterController để không bị kẹt vào tường/cửa sổ khi trượt
-//         characterController.enabled = false;
-
-//         // Lưu lại vị trí xuất phát và tính điểm rơi
-//         Vector3 startPosition = transform.position;
-//         Vector3 targetPosition = transform.position + (transform.forward * vaultDistance);
-
-//         float elapsedTime = 0f;
-
-//         // Vòng lặp trượt nhân vật mượt mà
-//         while (elapsedTime < vaultDuration)
-//         {
-//             float t = elapsedTime / vaultDuration;
-//             t = Mathf.SmoothStep(0f, 1f, t); // Làm mượt gia tốc
-
-//             transform.position = Vector3.Lerp(startPosition, targetPosition, t);
-
-//             elapsedTime += Time.deltaTime;
-//             yield return null;
-//         }
-
-//         // Đảm bảo đáp xuống đúng vị trí
-//         transform.position = targetPosition;
-
-//         // Bật lại CharacterController để đi lại bình thường
-//         characterController.enabled = true;
-//         isVaulting = false;
-//     }
-
-//     private void OnTriggerEnter(Collider other)
-//     {
-//         if (other.CompareTag("Cuaso"))
-//         {
-//             isNearWindow = true;
-//             if (interactUI != null && !isVaulting)
-//             {
-//                 interactUI.SetActive(true);
-//             }
-//         }
-//     }
-
-//     private void OnTriggerExit(Collider other)
-//     {
-//         if (other.CompareTag("Cuaso"))
-//         {
-//             isNearWindow = false;
-//             if (interactUI != null)
-//             {
-//                 interactUI.SetActive(false);
-//             }
-//         }
-//     }
-// }
-
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Fusion; // Thư viện Fusion
@@ -522,26 +321,32 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         animator.SetTrigger(hitAnimationTrigger);
     }
 
-    public void GetHooked(Vector3 hookPos)
+    // 🚨 Thêm Quaternion hookRot vào trong ngoặc
+    public void GetHooked(Vector3 hookPos, Quaternion hookRot)
     {
         if (IsHooked || !Object.HasStateAuthority) return;
-        IsDowned = false; // Tắt trạng thái gục
+
+        IsDowned = false;
         IsHooked = true;
 
-        // 🚨 QUAN TRỌNG: Gọi script kia để nhả nhân vật khỏi vai Hunter
         PlayerHookReceiver hookReceiver = GetComponent<PlayerHookReceiver>();
-        if (hookReceiver != null)
+        if (hookReceiver != null) hookReceiver.ReleaseFromHunter();
+
+        // 🚨 1. Bắt buộc tắt Character Controller trước khi dời đi
+        if (_characterController != null) _characterController.enabled = false;
+
+        // 🚨 2. Ép tọa độ và góc xoay
+        transform.position = hookPos;
+        transform.rotation = hookRot;
+
+        // 🚨 3. Báo cho Fusion biết nhân vật đã dịch chuyển (RẤT QUAN TRỌNG)
+        var networkTransform = GetComponent<NetworkTransform>();
+        if (networkTransform != null)
         {
-            hookReceiver.ReleaseFromHunter();
+            networkTransform.Teleport(hookPos, hookRot);
         }
 
-        // Đưa nhân vật vào đúng vị trí của cái Móc
-        transform.position = hookPos;
-
-        // Bắt đầu đếm ngược thời gian chết
         SacrificeTimer = TickTimer.CreateFromSeconds(Runner, sacrificeTime);
-
-        Debug.Log("MÓC THÀNH CÔNG! Đã ép IsHooked = true");
     }
 
     [Rpc(RpcSources.All, RpcTargets.All)]
@@ -588,7 +393,6 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
 
         if (other.CompareTag("Cuaso")) _isNearWindow = true;
         else if (other.CompareTag("HuntetHit")) TakeHit();
-        else if (other.CompareTag("Moc") && IsDowned) GetHooked(other.transform.position);
     }
 
     private void OnTriggerExit(Collider other)
