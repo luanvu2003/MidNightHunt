@@ -54,18 +54,16 @@
 //     }
 // }
 using UnityEngine;
-using Fusion; 
+using Fusion;
 
-public class PlayerHookReceiver : NetworkBehaviour 
+public class PlayerHookReceiver : NetworkBehaviour
 {
     [Header("Trạng Thái Bị Vác / Treo")]
-    
-    // 🚨 FIX FUSION 2: Đổi từ OnChanged sang OnChangedRender
-    [Networked, OnChangedRender(nameof(OnCarryStateChanged))] 
+    [Networked, OnChangedRender(nameof(OnCarryStateChanged))]
     public NetworkBool isBeingCarried { get; set; }
-    
-    public Transform targetFollow;  
-    public float followSpeed = 8f; 
+
+    public Transform targetFollow;
+    public float followSpeed = 8f;
 
     private CharacterController controller;
 
@@ -79,7 +77,10 @@ public class PlayerHookReceiver : NetworkBehaviour
         if (!Object.HasStateAuthority) return;
 
         targetFollow = targetPoint;
-        isBeingCarried = true; 
+        isBeingCarried = true;
+
+        // 🚨 FIX 1: ÉP TẮT VẬT LÝ NGAY LẬP TỨC TRÊN SERVER
+        if (controller != null) controller.enabled = false;
 
         Debug.Log("😱 Player: Đang bám chặt vào -> " + targetPoint.name);
     }
@@ -88,20 +89,24 @@ public class PlayerHookReceiver : NetworkBehaviour
     {
         if (!Object.HasStateAuthority) return;
 
-        isBeingCarried = false; 
+        isBeingCarried = false;
         targetFollow = null;
     }
 
-    // =========================================================
-    // 🚨 FIX FUSION 2: Hàm chạy cục bộ khi biến mạng thay đổi (Bỏ static)
-    // =========================================================
     public void OnCarryStateChanged()
     {
         if (controller != null)
         {
-            // Bị vác -> Tắt CharacterController (Để không bị rớt do trọng lực)
-            // Thả ra -> Bật lại CharacterController
-            controller.enabled = !isBeingCarried;
+            // 🚨 FIX TỪ BƯỚC TRƯỚC: Giữ cho Client cũng tắt vật lý chuẩn xác
+            IShowSpeedController_Fusion survivor = GetComponent<IShowSpeedController_Fusion>();
+            if (isBeingCarried || (survivor != null && survivor.IsHooked))
+            {
+                controller.enabled = false;
+            }
+            else
+            {
+                controller.enabled = true;
+            }
         }
     }
 
@@ -113,15 +118,20 @@ public class PlayerHookReceiver : NetworkBehaviour
         {
             float distance = Vector3.Distance(transform.position, targetFollow.position);
 
+            // 🚨 FIX 2: CHỐNG LỘN CỔ 
+            // Không lấy góc xoay của cái xương vai nữa, mà lấy góc xoay của cả cơ thể Hunter (root)
+            // Hoặc ép nhân vật luôn đứng thẳng tương đối với Hunter
+            Quaternion safeRotation = targetFollow.root.rotation;
+
             if (distance < 0.1f)
             {
                 transform.position = targetFollow.position;
-                transform.rotation = targetFollow.rotation;
+                transform.rotation = safeRotation; // Dùng góc xoay an toàn
             }
             else
             {
                 transform.position = Vector3.Lerp(transform.position, targetFollow.position, followSpeed * Runner.DeltaTime);
-                transform.rotation = Quaternion.Lerp(transform.rotation, targetFollow.rotation, followSpeed * Runner.DeltaTime);
+                transform.rotation = Quaternion.Lerp(transform.rotation, safeRotation, followSpeed * Runner.DeltaTime); // Dùng góc xoay an toàn
             }
         }
     }

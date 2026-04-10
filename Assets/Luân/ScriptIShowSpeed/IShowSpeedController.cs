@@ -325,15 +325,26 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     public void GetHooked(Vector3 hookPos, Quaternion hookRot)
     {
         if (IsHooked || !Object.HasStateAuthority) return;
+
         IsDowned = false;
         IsHooked = true;
 
         PlayerHookReceiver hookReceiver = GetComponent<PlayerHookReceiver>();
         if (hookReceiver != null) hookReceiver.ReleaseFromHunter();
 
-        // 🚨 ÉP CẢ VỊ TRÍ LẪN GÓC XOAY ĐỂ NHÂN VẬT ĐỨNG THẲNG LÊN
+        // 🚨 1. Bắt buộc tắt Character Controller trước khi dời đi
+        if (_characterController != null) _characterController.enabled = false;
+
+        // 🚨 2. Ép tọa độ và góc xoay
         transform.position = hookPos;
         transform.rotation = hookRot;
+
+        // 🚨 3. Báo cho Fusion biết nhân vật đã dịch chuyển (RẤT QUAN TRỌNG)
+        var networkTransform = GetComponent<NetworkTransform>();
+        if (networkTransform != null)
+        {
+            networkTransform.Teleport(hookPos, hookRot);
+        }
 
         SacrificeTimer = TickTimer.CreateFromSeconds(Runner, sacrificeTime);
     }
