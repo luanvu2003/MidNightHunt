@@ -451,14 +451,11 @@ public class HunterInteraction : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
+        // 🚨 XÓA BỎ sliderTimer += Runner.DeltaTime Ở ĐÂY ĐỂ TRÁNH XUNG ĐỘT MẠNG
         if (isVaulting)
         {
-            sliderTimer += Runner.DeltaTime;
+            // Chỉ đọc sliderTimer để di chuyển vật lý trèo cửa sổ
             transform.position = Vector3.Lerp(vStart, vEnd, sliderTimer / currentDuration);
-        }
-        else if (isInteracting)
-        {
-            sliderTimer += Runner.DeltaTime;
         }
     }
 
@@ -466,10 +463,14 @@ public class HunterInteraction : NetworkBehaviour
     {
         if (!Object.HasInputAuthority) return;
 
+        // 🚨 CHẠY UI SLIDER VÀ CỘNG THỜI GIAN Ở ĐÂY
         if (isSliderRunning && interactionSlider != null)
         {
+            sliderTimer += Time.deltaTime; // <--- FIX LỖI SLIDER KHÔNG CHẠY TẠI ĐÂY
+
             interactionSlider.value = sliderTimer / currentDuration;
 
+            // Khi chạy đầy thanh thì tắt đi
             if (sliderTimer >= currentDuration)
             {
                 isSliderRunning = false;
