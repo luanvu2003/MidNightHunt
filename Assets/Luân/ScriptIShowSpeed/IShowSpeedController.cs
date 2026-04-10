@@ -382,7 +382,6 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
 
         if (other.CompareTag("Cuaso")) _isNearWindow = true;
         else if (other.CompareTag("HuntetHit")) TakeHit();
-        else if (other.CompareTag("TreoMoc") && IsDowned) GetHooked(other.transform.position);
     }
 
     private void OnTriggerExit(Collider other)
