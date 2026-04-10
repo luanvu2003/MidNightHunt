@@ -2264,6 +2264,8 @@ GameObject:
   - component: {fileID: 3958676201132615580}
   - component: {fileID: 5558671056662853309}
   - component: {fileID: -5238107630617900000}
+  - component: {fileID: 1660740932056831408}
+  - component: {fileID: 1864628449019389602}
   m_Layer: 0
   m_Name: Crow
   m_TagString: Untagged
@@ -2310,6 +2312,8 @@ MonoBehaviour:
   cawSound: {fileID: 3958676201132615580}
   flyUpSpeed: 15
   detectionRadius: 5
+  _IsFleeing:
+    _value: 0
 --- !u!82 &3958676201132615580
 AudioSource:
   m_ObjectHideFlags: 0
@@ -2455,6 +2459,43 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &1660740932056831408
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4835688463642126945}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0
+--- !u!114 &1864628449019389602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4835688463642126945}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SortKey: 1897801227
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 7262707445230611435}
+  - {fileID: 1660740932056831408}
+  ForceRemoteRenderTimeframe: 0
 --- !u!1 &4846765790245512354
 GameObject:
   m_ObjectHideFlags: 0
