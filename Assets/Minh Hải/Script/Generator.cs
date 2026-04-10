@@ -81,6 +81,7 @@ public class Generator : NetworkBehaviour
 
     private void Update()
     {
+        if (Object == null || !Object.IsValid) return;
         // Xử lý Input Cục bộ (Chỉ chạy trên máy của Player)
         if (IsRepaired) return;
 
