@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using System;
 using System.Collections;
 using UnityEngine.SceneManagement;
-using UnityEngine.InputSystem; // 🚨 THÊM THƯ VIỆN NÀY ĐỂ DÙNG INPUT ACTIONS
+using UnityEngine.InputSystem;
 
 public class ChatSystem : NetworkBehaviour
 {
@@ -21,9 +21,19 @@ public class ChatSystem : NetworkBehaviour
     // Biến static để lưu lịch sử chat xuyên Scene
     private static string _globalChatHistory = "";
 
-    // 🚨 KHAI BÁO BIẾN CHO INPUT ACTIONS
+    // KHAI BÁO BIẾN CHO INPUT ACTIONS
     private InputAction _toggleAction;
     private InputAction _sendAction;
+
+    // Bảng màu cho Player (Bạn có thể đổi mã màu Hex ở đây tùy thích)
+    private readonly string[] _playerColors = new string[] 
+    {
+        "#FFD700", // Vàng (Gold)
+        "#00BFFF", // Xanh da trời (Deep Sky Blue)
+        "#FF69B4", // Hồng (Hot Pink)
+        "#32CD32", // Xanh lá (Lime Green)
+        "#FF8C00"  // Cam (Dark Orange)
+    };
 
     public override void Spawned()
     {
@@ -33,20 +43,16 @@ public class ChatSystem : NetworkBehaviour
         FindAndSetupUI();
 
         // ==========================================
-        // 🛠️ SETUP INPUT ACTIONS BẰNG CODE
+        // SETUP INPUT ACTIONS BẰNG CODE
         // ==========================================
-        // 1. Tạo hành động bật/tắt chat gán vào nút Tab
         _toggleAction = new InputAction(type: InputActionType.Button, binding: "<Keyboard>/tab");
         
-        // 2. Tạo hành động gửi tin nhắn gán vào nút Enter (Thêm cả Enter bên cụm phím số)
         _sendAction = new InputAction(type: InputActionType.Button, binding: "<Keyboard>/enter");
         _sendAction.AddBinding("<Keyboard>/numpadEnter");
 
-        // 3. Đăng ký sự kiện: Khi phím được bấm (performed) thì chạy hàm tương ứng
         _toggleAction.performed += ctx => OnToggleKeyPressed();
         _sendAction.performed += ctx => OnSendKeyPressed();
 
-        // 4. Bật Input lên để lắng nghe
         _toggleAction.Enable();
         _sendAction.Enable();
     }
@@ -57,7 +63,7 @@ public class ChatSystem : NetworkBehaviour
         {
             SceneManager.sceneLoaded -= OnSceneLoaded;
 
-            // 🚨 DỌN DẸP INPUT ACTIONS KHI THOÁT ĐỂ TRÁNH LỖI BỘ NHỚ
+            // DỌN DẸP INPUT ACTIONS KHI THOÁT ĐỂ TRÁNH LỖI BỘ NHỚ
             if (_toggleAction != null)
             {
                 _toggleAction.Disable();
@@ -68,17 +74,19 @@ public class ChatSystem : NetworkBehaviour
                 _sendAction.Disable();
                 _sendAction.Dispose();
             }
+
+            // 🚨 TỰ ĐỘNG XÓA LỊCH SỬ CHAT KHI NGƯỜI CHƠI DISCONNECT / THOÁT GAME
+            _globalChatHistory = "";
         }
     }
 
     // ==========================================
-    // 🎮 CÁC HÀM XỬ LÝ SỰ KIỆN TỪ INPUT ACTIONS
+    // CÁC HÀM XỬ LÝ SỰ KIỆN TỪ INPUT ACTIONS
     // ==========================================
     private void OnToggleKeyPressed()
     {
         if (!HasInputAuthority) return;
         
-        // Nếu không bị chặn (ví dụ Hunter) thì mới được bật
         if (_pannelChatRoot != null && _pannelChatRoot.activeSelf)
         {
             ToggleChat();
@@ -89,7 +97,6 @@ public class ChatSystem : NetworkBehaviour
     {
         if (!HasInputAuthority) return;
 
-        // Chỉ được gửi khi cái bảng chat đang mở
         if (_pannelcon != null && _pannelcon.activeSelf)
         {
             SendMessageChat();
@@ -97,7 +104,7 @@ public class ChatSystem : NetworkBehaviour
     }
 
     // ==========================================
-    // CÁC HÀM UI CŨ BÊN DƯỚI GIỮ NGUYÊN
+    // CÁC HÀM UI CŨ BÊN DƯỚI
     // ==========================================
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -152,7 +159,7 @@ public class ChatSystem : NetworkBehaviour
             _pannelcon.SetActive(isActive);
             if (isActive)
             {
-                _inputField.ActivateInputField(); // Focus luôn vào ô gõ
+                _inputField.ActivateInputField(); 
                 StartCoroutine(ForceScrollDown());
             }
         }
@@ -164,25 +171,28 @@ public class ChatSystem : NetworkBehaviour
         if (RoomPlayer.Local == null) return;
 
         string myName = RoomPlayer.Local.PlayerName.ToString();
+        // 🚨 Lấy ID của người chơi để quyết định màu
+        int myPlayerId = Runner.LocalPlayer.PlayerId;
 
-        // Gửi tin nhắn qua mạng
-        Rpc_SendChat(myName, _inputField.text);
+        // Gửi tin nhắn qua mạng kèm theo ID
+        Rpc_SendChat(myName, _inputField.text, myPlayerId);
 
-        // Xóa ô nhập và focus lại để chat liên tục
         _inputField.text = "";
         _inputField.ActivateInputField(); 
     }
 
     [Rpc(RpcSources.All, RpcTargets.All)]
-    public void Rpc_SendChat(string user, string message)
+    public void Rpc_SendChat(string user, string message, int senderId)
     {
-        string time = DateTime.Now.ToString("HH:mm");
-        string formatted = $"[{time}] <color=yellow><b>{user}:</b></color> {message}\n";
+        // 🚨 Lấy màu dựa trên ID của người gửi (dùng toán tử % để không bao giờ bị lỗi quá mảng)
+        string colorHex = _playerColors[Mathf.Abs(senderId) % _playerColors.Length];
 
-        // Lưu vào tổng lịch sử (Máy nào cũng tự lưu)
+        string time = DateTime.Now.ToString("HH:mm");
+        // 🚨 Áp dụng màu cho tên người gửi
+        string formatted = $"[{time}] <color={colorHex}><b>{user}:</b></color> {message}\n";
+
         _globalChatHistory += formatted;
 
-        // Bất kể thằng nào gửi RPC, tao chỉ nhờ cái Script của tao (Local) cập nhật UI thôi.
         if (RoomPlayer.Local != null)
         {
             var myLocalChatSystem = RoomPlayer.Local.GetComponent<ChatSystem>();
@@ -193,14 +203,12 @@ public class ChatSystem : NetworkBehaviour
         }
     }
 
-    // Hàm phụ để vẽ lại màn hình trên máy Local
     public void RefreshChatUI()
     {
         if (_textDisplay != null && _pannelChatRoot != null && _pannelChatRoot.activeSelf)
         {
             _textDisplay.text = _globalChatHistory;
             
-            // Chỉ kéo thanh scroll nếu bảng chat đang được mở
             if (_pannelcon != null && _pannelcon.activeSelf)
             {
                 StartCoroutine(ForceScrollDown());
