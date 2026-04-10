@@ -2,7 +2,6 @@ using UnityEngine;
 using System.Collections;
 using Fusion;
 
-// Yêu cầu GameObject phải có component NetworkTransform để đồng bộ vị trí
 [RequireComponent(typeof(NetworkTransform))]
 public class CrowAI : NetworkBehaviour
 {
@@ -19,32 +18,44 @@ public class CrowAI : NetworkBehaviour
     [Header("Model & Bay")]
     public GameObject idleModel;
     public GameObject flyModel;
-    public AudioSource cawSound;
     public float flyUpSpeed = 18f;
     public float detectionRadius = 5f;
+
+    [Header("Âm thanh & Báo động (MỚI)")]
+    public AudioSource cawSound;
+    [Tooltip("Khoảng cách tối đa mà Hunter/Player có thể nghe thấy tiếng quạ")]
+    public float maxHearingDistance = 40f; 
+    
+    [Tooltip("Kéo Prefab hiệu ứng màu đỏ (Particle/Sprite) vào đây")]
+    public GameObject redAlertPrefab;
+    public float alertDuration = 3f; // Thời gian hiệu ứng đỏ tồn tại trên màn hình
 
     private Vector3 startPosition;
     private Quaternion startRotation;
 
-    // Biến Networked lưu trạng thái bay. Khi State Authority đổi biến này, các Client sẽ nhận được.
     [Networked] public NetworkBool IsFleeing { get; set; }
 
-    // Dùng để phát hiện sự thay đổi của biến [Networked] trong Fusion 2
     private ChangeDetector _changeDetector;
     private Collider[] _overlapResults = new Collider[10];
 
     public override void Spawned()
     {
-        // Khởi tạo ChangeDetector
         _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
 
         startPosition = transform.position;
         startRotation = transform.rotation;
 
-        // Cập nhật model ngay khi spawn (hữu ích cho người chơi vào phòng muộn - Late Joiners)
+        // 🚨 TỰ ĐỘNG CẤU HÌNH ÂM THANH 3D (Gần to, xa nhỏ)
+        if (cawSound != null)
+        {
+            cawSound.spatialBlend = 1f; // 1 = Hoàn toàn là 3D, 0 = 2D (nghe rõ mồn một ở mọi nơi)
+            cawSound.rolloffMode = AudioRolloffMode.Linear; // Âm lượng giảm dần đều theo khoảng cách
+            cawSound.minDistance = 3f; // Đứng cách 3m sẽ nghe to nhất
+            cawSound.maxDistance = maxHearingDistance; 
+        }
+
         UpdateVisuals();
 
-        // Chỉ có máy chủ (State Authority) mới chạy logic tuần tra
         if (HasStateAuthority)
         {
             StartCoroutine(PatrolRoutine());
@@ -53,15 +64,10 @@ public class CrowAI : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        // Khách (Client) hoặc Quạ đang bay thì không cần quét tìm Player
         if (!HasStateAuthority || IsFleeing) return;
 
-        // Quét va chạm và đổ kết quả vào mảng _overlapResults. 
-        // Trả về hitCount là số lượng mục tiêu thực tế nằm trong vùng quét.
-        // -1 là check tất cả các layer.
         int hitCount = Runner.GetPhysicsScene().OverlapSphere(transform.position, detectionRadius, _overlapResults, -1, QueryTriggerInteraction.UseGlobal);
 
-        // Chỉ lặp qua đúng số lượng hitCount thay vì toàn bộ mảng
         for (int i = 0; i < hitCount; i++)
         {
             Collider t = _overlapResults[i];
@@ -79,7 +85,6 @@ public class CrowAI : NetworkBehaviour
 
     public override void Render()
     {
-        // Bắt sự kiện khi biến IsFleeing thay đổi trên tất cả các máy
         foreach (var change in _changeDetector.DetectChanges(this))
         {
             switch (change)
@@ -91,39 +96,40 @@ public class CrowAI : NetworkBehaviour
         }
     }
 
-    // Hàm này chạy trên TẤT CẢ client khi biến IsFleeing thay đổi
     private void OnFleeStateChanged()
     {
         UpdateVisuals();
 
         if (IsFleeing)
         {
-            // Bật âm thanh cho tất cả người chơi
             if (cawSound != null) cawSound.Play();
 
-            // Kích hoạt Animation
             if (flyModel != null)
             {
                 Animator anim = flyModel.GetComponentInChildren<Animator>();
                 if (anim != null) { anim.Play("CrowFly", 0, 0f); anim.speed = 1.5f; }
+            }
+
+            // 🚨 TẠO HIỆU ỨNG ĐỎ BÁO ĐỘNG (Chạy trên tất cả Client để ai cũng thấy)
+            if (redAlertPrefab != null)
+            {
+                // Sinh ra ở vị trí cũ của quạ, nhích lên trên một xíu cho dễ nhìn
+                GameObject alert = Instantiate(redAlertPrefab, startPosition + Vector3.up * 2f, Quaternion.identity);
+                // Tự động xóa đi sau vài giây
+                Destroy(alert, alertDuration); 
             }
         }
     }
 
     private void UpdateVisuals()
     {
-        // Tắt bật model dựa trên trạng thái đồng bộ
         if (idleModel != null) idleModel.SetActive(!IsFleeing);
         if (flyModel != null) flyModel.SetActive(IsFleeing);
     }
 
-    // --- HÀM QUAN TRỌNG: Generator.cs gọi hàm này ---
     public void OnGeneratorExplosion()
     {
-        // Chỉ Server mới có quyền quyết định cho quạ bay
         if (!HasStateAuthority || IsFleeing) return;
-
-        // Chạy delay ngẫu nhiên bằng Coroutine thay vì Invoke (an toàn hơn trong Multiplayer)
         StartCoroutine(DelayedFleeRoutine());
     }
 
@@ -133,18 +139,15 @@ public class CrowAI : NetworkBehaviour
         TriggerFleeServer();
     }
 
-    // Hàm này chỉ chạy trên Server
     public void TriggerFleeServer()
     {
         if (IsFleeing || !HasStateAuthority) return;
 
-        IsFleeing = true; // Set biến này sẽ tự động báo cho tất cả Client bật âm thanh & animation
+        IsFleeing = true; 
         StopAllCoroutines();
-
         StartCoroutine(FlyAndRespawnRoutine());
     }
 
-    // Logic di chuyển chỉ chạy trên Server. Vị trí sẽ tự đồng bộ qua NetworkTransform
     IEnumerator PatrolRoutine()
     {
         while (!IsFleeing)
@@ -176,13 +179,11 @@ public class CrowAI : NetworkBehaviour
         }
     }
 
-    // Vị trí bay lên chỉ tính toán trên Server
     IEnumerator FlyAndRespawnRoutine()
     {
         float timer = 0f;
         Vector3 randomDir = (new Vector3(Random.Range(-1f, 1f), 0, Random.Range(-1f, 1f)).normalized * 1.5f + Vector3.up).normalized;
 
-        // Giai đoạn 1: Bay vút lên trời
         while (timer < 2.5f)
         {
             float currentSpeed = Mathf.Lerp(flyUpSpeed, flyUpSpeed * 0.4f, timer / 2.5f);
@@ -192,25 +193,20 @@ public class CrowAI : NetworkBehaviour
             yield return null;
         }
 
-        // Giai đoạn 2: Ẩn model bay (Quạ bay đi xa) -> Server tạm cất nó đi dưới lòng đất hoặc tàng hình
-        // Client đã tự tắt model nếu chúng ta set biến State, nhưng để cho chắc có thể giấu vị trí
         transform.position = startPosition + Vector3.down * 100f;
 
-        // Giai đoạn 3: Đợi hồi sinh
         yield return new WaitForSeconds(respawnDelay);
 
-        // Giai đoạn 4: Đưa quạ về vị trí cũ
         transform.position = startPosition;
         transform.rotation = startRotation;
 
-        IsFleeing = false; // Báo cho mọi client đổi lại model thành Idle
+        IsFleeing = false; 
 
         StartCoroutine(PatrolRoutine());
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        // Chỉ Server mới được check va chạm để tránh việc nhiều Client cùng gọi quạ bay
         if (!HasStateAuthority) return;
 
         if (!IsFleeing && other.CompareTag("Player"))

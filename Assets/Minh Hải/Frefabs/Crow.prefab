@@ -2309,9 +2309,12 @@ MonoBehaviour:
   respawnDelay: 300
   idleModel: {fileID: 6336038652835492950}
   flyModel: {fileID: 7250905231381443666}
-  cawSound: {fileID: 3958676201132615580}
   flyUpSpeed: 15
   detectionRadius: 5
+  cawSound: {fileID: 3958676201132615580}
+  maxHearingDistance: 40
+  redAlertPrefab: {fileID: 0}
+  alertDuration: 3
   _IsFleeing:
     _value: 0
 --- !u!82 &3958676201132615580
@@ -2371,7 +2374,7 @@ AudioSource:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 0
+      value: 1
       inSlope: 0
       outSlope: 0
       tangentMode: 0
