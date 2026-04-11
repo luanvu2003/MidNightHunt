@@ -34,10 +34,18 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     public float vaultDuration = 1.5f;
     public float vaultDistance = 2.5f;
 
-    [Header("Speed Skill Settings")]
-    public float skillSpeedBonus = 3f;
-    public float skillDuration = 10f;
+    [Header("Wallhack Skill Settings")]
+    public float scanDistance = 15f;
+    [Range(0, 360)] public float scanAngle = 90f;
+    public float skillDuration = 5f;
     public float skillCooldown = 30f;
+
+    // 🚨 THÊM BIẾN NÀY: Dùng để chọn Layer của Tường/Vật cản trong Unity
+    public LayerMask obstacleMask;
+
+    private List<GameObject> _highlightedHunters = new List<GameObject>();
+
+
 
     [Header("Health & States")]
     public string hitAnimationTrigger = "AnHit";
@@ -185,8 +193,6 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         animator.SetBool(hookedAnimationBool, IsHooked);
         animator.SetBool(revivingAnimBool, IsReviving);
 
-        // 🚨 ĐÃ FIX: Chạy Lerp Animation bằng Time.deltaTime ở hàm Render. 
-        // Đảm bảo 100% mượt mà và không bao giờ bị giật khung hình.
         float currentAnimSpeed = animator.GetFloat("Speed");
         animator.SetFloat("Speed", Mathf.Lerp(currentAnimSpeed, AnimSpeedValue, Time.deltaTime * 15f));
 
@@ -199,7 +205,117 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
             if (revivePrompt) revivePrompt.SetActive(canShowE);
 
             UpdateReviveProgressUI();
+
+            // 🚨 GỌI HÀM XỬ LÝ NHÌN XUYÊN TƯỜNG Ở ĐÂY
+            HandleWallhackVisuals();
         }
+    }
+
+    private void HandleWallhackVisuals()
+    {
+        bool skillActive = !SkillDurationTimer.ExpiredOrNotRunning(Runner);
+
+        if (!skillActive)
+        {
+            ClearAllHighlights();
+            return;
+        }
+
+        List<GameObject> currentHuntersInRange = new List<GameObject>();
+        Collider[] hits = Physics.OverlapSphere(transform.position, scanDistance);
+
+        foreach (var hit in hits)
+        {
+            if (hit.CompareTag("Hunter") || hit.CompareTag("hunter"))
+            {
+                Vector3 directionToHunter = (hit.transform.position - transform.position).normalized;
+                directionToHunter.y = 0;
+                Vector3 forward = transform.forward;
+                forward.y = 0;
+                float angle = Vector3.Angle(forward, directionToHunter);
+
+                if (angle <= scanAngle / 2f)
+                {
+                    // 🚨 1. TÍNH KHOẢNG CÁCH & ĐỘ RÕ (Alpha)
+                    float distanceToHunter = Vector3.Distance(transform.position, hit.transform.position);
+                    // Càng gần thì Alpha tiến về 1, càng xa tiến về 0
+                    float alphaValue = 1f - (distanceToHunter / scanDistance);
+                    alphaValue = Mathf.Clamp01(alphaValue);
+
+                    // 🚨 2. KIỂM TRA TƯỜNG CHE KHUẤT
+                    Vector3 rayStart = transform.position + Vector3.up * 1.5f; // Vị trí mắt nhân vật
+                    Vector3 rayTarget = hit.transform.position + Vector3.up * 1.0f; // Vị trí giữa thân Hunter
+                    Vector3 rayDir = rayTarget - rayStart;
+
+                    // Bắn tia từ mắt mình đến Hunter, xem có đụng Tường (obstacleMask) trước không
+                    bool isHiddenBehindWall = Physics.Raycast(rayStart, rayDir, distanceToHunter, obstacleMask);
+
+                    if (isHiddenBehindWall)
+                    {
+                        // Bị tường che -> Bật hiệu ứng đỏ xuyên tường và áp dụng độ rõ
+                        currentHuntersInRange.Add(hit.gameObject);
+                        SetHunterHighlight(hit.gameObject, true, alphaValue);
+                    }
+                    else
+                    {
+                        // Thấy trực tiếp (không bị tường che) -> Tắt hiệu ứng, nhìn bình thường
+                        SetHunterHighlight(hit.gameObject, false, 0f);
+                    }
+                }
+            }
+        }
+    }
+
+    // Hàm này sẽ được gọi từ HandleWallhackVisuals
+    private void SetHunterHighlight(GameObject hunter, bool isHighlighted, float alpha)
+    {
+        // 1. Tìm cái bóng đỏ mà chúng ta đã setup bên trong con Hunter
+        Transform xRayOverlay = hunter.transform.Find("XRayOverlay");
+
+        if (xRayOverlay != null)
+        {
+            // Bật/Tắt dựa trên việc có bị tường che và nằm trong vùng quét hay không
+            xRayOverlay.gameObject.SetActive(isHighlighted);
+
+            // Nếu đang bật, ta sẽ cập nhật độ mờ (Alpha) theo khoảng cách
+            if (isHighlighted)
+            {
+                // Lấy tất cả Renderer của cái bóng đỏ (phòng trường hợp model có nhiều cục nhỏ)
+                Renderer[] renderers = xRayOverlay.GetComponentsInChildren<Renderer>();
+                foreach (Renderer r in renderers)
+                {
+                    // Xử lý đổi Alpha cho Material thường (Standard Pipeline)
+                    if (r.material.HasProperty("_Color"))
+                    {
+                        Color color = r.material.color;
+                        color.a = alpha; // Gán giá trị alpha từ 0 đến 1
+                        r.material.color = color;
+                    }
+                    // Xử lý đổi Alpha cho URP/HDRP (nếu project của bạn đang dùng)
+                    else if (r.material.HasProperty("_BaseColor"))
+                    {
+                        Color color = r.material.GetColor("_BaseColor");
+                        color.a = alpha;
+                        r.material.SetColor("_BaseColor", color);
+                    }
+                }
+            }
+        }
+        else
+        {
+            // Báo lỗi nhỏ để bạn biết nếu quên chưa setup bước 1
+            Debug.LogWarning($"[Skill Xuyên Tường] Không tìm thấy object 'XRayOverlay' bên trong Hunter {hunter.name}");
+        }
+    }
+
+    private void ClearAllHighlights()
+    {
+        foreach (var hunter in _highlightedHunters)
+        {
+            // 🚨 Đã thêm số 0f vào cuối để khớp với hàm SetHunterHighlight mới
+            if (hunter != null) SetHunterHighlight(hunter, false, 0f);
+        }
+        _highlightedHunters.Clear();
     }
 
     private bool IsNearDeadBody()
@@ -218,23 +334,14 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         _characterController.enabled = true;
         Vector3 direction = CalculateDirection(input.moveDirection, input.camForward, input.camRight);
 
-        // 🚨 CHUẨN HÓA: Chống lỗi đi chéo bị nhân đôi tốc độ (X2 Speed)
         if (direction.magnitude > 1f) direction.Normalize();
 
         float speed = mediumRunSpeed;
         float targetAnimSpeed = 0.5f;
-        bool skillActive = !SkillDurationTimer.ExpiredOrNotRunning(Runner);
 
-        if (skillActive)
-        {
-            speed = sprintSpeed + skillSpeedBonus;
-            targetAnimSpeed = 1f;
-        }
-        else
-        {
-            if (input.isWalking) { speed = slowWalkSpeed; targetAnimSpeed = 0.2f; }
-            else if (input.isSprinting) { speed = sprintSpeed; targetAnimSpeed = 1f; }
-        }
+        // BỎ logic skillActive ở đây vì skill không còn tăng tốc nữa
+        if (input.isWalking) { speed = slowWalkSpeed; targetAnimSpeed = 0.2f; }
+        else if (input.isSprinting) { speed = sprintSpeed; targetAnimSpeed = 1f; }
 
         if (direction.magnitude == 0) targetAnimSpeed = 0f;
 
