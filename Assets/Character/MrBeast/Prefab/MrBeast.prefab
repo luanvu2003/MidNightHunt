@@ -220,7 +220,7 @@ GameObject:
   - component: {fileID: 2708820643796017999}
   - component: {fileID: 5964148935267279177}
   m_Layer: 0
-  m_Name: BoxBiGuc (1)
+  m_Name: BoxBiGuc
   m_TagString: Playerchet
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -235,7 +235,7 @@ Transform:
   m_GameObject: {fileID: 444642512099688221}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.015297178, y: 0.0054363697, z: 0.001707944}
+  m_LocalPosition: {x: 0.015297178, y: 0.145, z: 0.001707944}
   m_LocalScale: {x: 0.009090909, y: 0.009090909, z: 0.009090909}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -260,8 +260,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 2.6053276, y: 1.1366307, z: 2.980072}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 392.0278, y: 98.8143, z: 396.82718}
+  m_Center: {x: -4.7945666, y: 30.428036, z: -1.9553483}
 --- !u!1 &1045640429513354571
 GameObject:
   m_ObjectHideFlags: 0
@@ -350,7 +350,7 @@ GameObject:
   - component: {fileID: 4528702321387595711}
   - component: {fileID: 7293545143867024024}
   m_Layer: 0
-  m_Name: CanvasUINhay (1)
+  m_Name: CanvasUI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1691,7 +1691,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5323825426777730768}
   m_Layer: 5
-  m_Name: MrBean
+  m_Name: MrBeast
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2085,7 +2085,7 @@ GameObject:
   - component: {fileID: 738574047444335955}
   m_Layer: 0
   m_Name: MrBeast
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2100,7 +2100,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 39.5722, y: 0.042, z: 59.047607}
-  m_LocalScale: {x: 110, y: 110, z: 110}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7887082696286105073}
@@ -2126,13 +2126,13 @@ CharacterController:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Height: 2
-  m_Radius: 0.5
+  m_Height: 1.79
+  m_Radius: 0.33
   m_SlopeLimit: 45
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0.9, z: 0}
 --- !u!114 &7613728942639097995
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2446,6 +2446,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4496159976589184080}
     m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: dd9723f825b017341a9e39699851cc9d, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 110
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: dd9723f825b017341a9e39699851cc9d, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 110
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: dd9723f825b017341a9e39699851cc9d, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 110
+      objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: dd9723f825b017341a9e39699851cc9d, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
