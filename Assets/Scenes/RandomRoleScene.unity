@@ -261,9 +261,9 @@ MonoBehaviour:
   highlightColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   hunterColor: {r: 1, g: 0, b: 0, a: 1}
   audioSource: {fileID: 110629617}
-  spinSound: {fileID: 0}
+  spinSound: {fileID: 8300000, guid: f471ef9801b7e534daf1b6b687e19854, type: 3}
   resultSound: {fileID: 8300000, guid: 60125175e1b7c544e8effe72d6cc19de, type: 3}
-  tickSound: {fileID: 8300000, guid: fabe5f4c9d467054bb5e8b132656b0c5, type: 3}
+  tickSound: {fileID: 8300000, guid: 527f52fedf90c3844942c4b5bb9f7c6c, type: 3}
   _IsRoleAssigned:
     _value: 0
 --- !u!4 &110629616

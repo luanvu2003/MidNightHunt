@@ -230,7 +230,7 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
 
         foreach (var hit in hits)
         {
-            if (hit.CompareTag("Hunter") || hit.CompareTag("hunter"))
+            if (hit.CompareTag("Hunter"))
             {
                 Vector3 directionToHunter = (hit.transform.position - transform.position).normalized;
                 directionToHunter.y = 0;
