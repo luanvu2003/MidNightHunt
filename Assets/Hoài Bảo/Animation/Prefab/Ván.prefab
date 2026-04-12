@@ -142,7 +142,7 @@ MonoBehaviour:
   breakZone: {fileID: 6756074632695875198}
   spaceUI: {fileID: 0}
   fallTime: 0.25
-  dropRotationOffset: {x: 60, y: 0, z: 0}
+  dropRotationOffset: {x: 0, y: 0, z: 60}
   audioSource: {fileID: 0}
   dropSound: {fileID: 0}
   breakSound: {fileID: 0}
