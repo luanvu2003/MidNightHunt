@@ -145,15 +145,19 @@ MonoBehaviour:
   timeTreoCUASO: 1.5
   timeTreoMoc: 1.1
   timeNhatPlayer: 6
+  timeDapVan: 2
   handPoint: {fileID: 3312282744366834754}
   shoulderPoint: {fileID: 253773707505019705}
   _isCarryingPlayer:
     _value: 0
   vaultDistance: 3
+  maxInteractDistance: 4
   interactAudioSource: {fileID: 0}
   clipDapMay: {fileID: 8300000, guid: 429696fe3aa058744afcd88fed15532b, type: 3}
+  clipDapVan: {fileID: 8300000, guid: 429696fe3aa058744afcd88fed15532b, type: 3}
   clipTreoCuaso: {fileID: 8300000, guid: 6a7f37b58e202eb43837f9d7662a1e35, type: 3}
   clipTreoMoc: {fileID: 8300000, guid: e075744580a086f47b91e8894bbbde7f, type: 3}
+  stunAnimationTrigger: BeStunned
 --- !u!114 &7450912723286064828
 MonoBehaviour:
   m_ObjectHideFlags: 0
