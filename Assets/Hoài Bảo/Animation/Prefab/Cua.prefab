@@ -708,6 +708,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Cuafack
       objectReference: {fileID: 0}
+    - target: {fileID: 395617286021164849, guid: a808e9bb198386845bb3f38dd1be1efd, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4711771898798588965, guid: a808e9bb198386845bb3f38dd1be1efd, type: 3}
       propertyPath: m_LocalScale.x
       value: 1
