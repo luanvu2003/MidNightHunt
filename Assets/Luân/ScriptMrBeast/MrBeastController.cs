@@ -76,6 +76,8 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     public InputActionReference interactInput;
     public GameObject revivePrompt;
     public Slider reviveSlider;
+    [Header("Tùy Chỉnh Lệch Móc")]
+    public Vector3 hookOffset = Vector3.zero; // Chỉnh X, Y, Z trong Unity để bù trừ vị trí
 
     [Networked] public NetworkBool IsBeingRevived { get; set; }
     [Networked] public NetworkBool IsReviving { get; set; }
@@ -429,6 +431,7 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     }
 
     // 🚨 Thêm Quaternion hookRot vào trong ngoặc
+    // 🚨 Thêm Quaternion hookRot vào trong ngoặc
     public void GetHooked(Vector3 hookPos, Quaternion hookRot)
     {
         if (IsHooked || !Object.HasStateAuthority) return;
@@ -442,15 +445,17 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         // 🚨 1. Bắt buộc tắt Character Controller trước khi dời đi
         if (_characterController != null) _characterController.enabled = false;
 
-        // 🚨 2. Ép tọa độ và góc xoay
-        transform.position = hookPos;
+        // 🚨 2. TÍNH TOÁN VỊ TRÍ MỚI (Cộng thêm offset theo hướng của cái móc)
+        Vector3 adjustedPos = hookPos + (hookRot * hookOffset);
+
+        transform.position = adjustedPos;
         transform.rotation = hookRot;
 
-        // 🚨 3. Báo cho Fusion biết nhân vật đã dịch chuyển (RẤT QUAN TRỌNG)
+        // 🚨 3. Báo cho Fusion biết nhân vật đã dịch chuyển
         var networkTransform = GetComponent<NetworkTransform>();
         if (networkTransform != null)
         {
-            networkTransform.Teleport(hookPos, hookRot);
+            networkTransform.Teleport(adjustedPos, hookRot);
         }
 
         SacrificeTimer = TickTimer.CreateFromSeconds(Runner, sacrificeTime);
