@@ -537,9 +537,26 @@ public class HunterInteraction : NetworkBehaviour
         if (isCarryingPlayer && tag != "Moc") return;
         if (tag == "Moc" && !isCarryingPlayer) return;
 
-        if (tag == "May") currentDuration = timeDapMay;
+        // 🚨 CHẶN NGAY LÚC BẤM PHÍM: Nếu là Player thì phải check lại trạng thái
+        if (tag == "Playerchet")
+        {
+            if (!currentInteractTarget.gameObject.activeInHierarchy) return;
+
+            IShowSpeedController_Fusion survivor = currentInteractTarget.GetComponentInParent<IShowSpeedController_Fusion>();
+            if (survivor != null)
+            {
+                // 🚨 NẾU Survivor KHÔNG gục HOẶC ĐÃ bị treo rồi thì KHÔNG cho nhặt
+                if (!survivor.IsDowned || survivor.IsHooked)
+                {
+                    Debug.Log("❌ [Hunter] Mục tiêu không ở trạng thái gục hoặc đã bị treo!");
+                    currentInteractTarget = null; // Xóa mục tiêu để tránh lỗi
+                    return;
+                }
+            }
+            currentDuration = timeNhatPlayer;
+        }
+        else if (tag == "May") currentDuration = timeDapMay;
         else if (tag == "Moc") currentDuration = timeTreoMoc;
-        else if (tag == "Playerchet") currentDuration = timeNhatPlayer;
         else if (tag == "Cuaso") currentDuration = timeTreoCUASO;
 
         if (Object.HasInputAuthority)
@@ -553,8 +570,6 @@ public class HunterInteraction : NetworkBehaviour
                 isSliderRunning = true;
             }
 
-            // 🚨 FIX QUAN TRỌNG TẠI CLIENT: Tắt ngay CharacterController khi vừa bấm phím
-            // Tránh việc Client vẫn di chuyển trong lúc chờ Server trả tín hiệu về!
             if (controller != null) controller.enabled = false;
         }
 
@@ -665,46 +680,27 @@ public class HunterInteraction : NetworkBehaviour
 
     public void HookPlayerToHook()
     {
-        if (carriedPlayerObject != null)
+        if (carriedPlayerObject != null && currentInteractTarget != null)
         {
+            // 1. Tìm điểm HookPoint mà bạn đã chỉnh tay cực khổ
+            Transform hookPoint = currentInteractTarget.transform.Find("HookPoint");
+            Vector3 finalPos = hookPoint ? hookPoint.position : currentInteractTarget.transform.position;
+            Quaternion finalRot = hookPoint ? hookPoint.rotation : currentInteractTarget.transform.rotation;
+
             if (Object.HasStateAuthority)
             {
+                // 2. 🚨 SỬA TẠI ĐÂY: Gọi đúng script IShowSpeedController_Fusion
                 IShowSpeedController_Fusion survivor = carriedPlayerObject.GetComponent<IShowSpeedController_Fusion>();
                 if (survivor != null)
                 {
-                    survivor.GetHooked(syncedTargetPos, syncedTargetRot);
+                    // Truyền cả vị trí và góc xoay chuẩn vào
+                    survivor.GetHooked(finalPos, finalRot);
                 }
-
-                // 🚨 FIX QUAN TRỌNG: Báo cho PlayerHookReceiver biết là đổi mục tiêu hút từ "Vai Hunter" sang "Cái Móc"
-                PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
-                if (receiver != null)
-                {
-                    NetworkObject hookObj = Runner.FindObject(syncedTargetId);
-                    if (hookObj != null)
-                    {
-                        Transform hookPoint = hookObj.transform.Find("HookPoint");
-                        receiver.GetPickedUpOrHooked(hookPoint != null ? hookPoint : hookObj.transform);
-                    }
-                    else
-                    {
-                        // Backup an toàn nếu lỡ mất kết nối hook
-                        receiver.ReleaseFromHunter();
-                    }
-                }
-
                 isCarryingPlayer = false;
             }
 
+            // Dọn dẹp các biến sau khi treo xong
             if (currentInteractTarget != null) currentInteractTarget.tag = "Untagged";
-
-            if (Object.HasInputAuthority)
-            {
-                if (interactImage != null) interactImage.gameObject.SetActive(false);
-                ToggleAuraGroup(allGenerators, auraMatWhite, false);
-                ToggleAuraGroup(allGenerators, auraMatRed, true);
-                ToggleAuraGroup(allHooks, auraMatRed, false);
-            }
-
             carriedPlayerObject = null;
             currentInteractTarget = null;
         }
@@ -759,9 +755,22 @@ public class HunterInteraction : NetworkBehaviour
 
             if (other.CompareTag("Playerchet"))
             {
-                // 🚨 FIX 1: Chống lỗi Rigidbody nhận diện sai. 
-                // Chỉ cho phép bắt trúng Collider có đánh dấu "Is Trigger" (Cục tương tác). Bỏ qua va chạm vật lý thân thể.
-                if (!other.isTrigger) return;
+                // Lấy script từ Survivor đang chạm phải
+                IShowSpeedController_Fusion survivor = other.GetComponentInParent<IShowSpeedController_Fusion>();
+
+                if (survivor != null)
+                {
+                    // 🚨 CHỈ hiện UI nhặt người nếu Survivor đó đang gục VÀ chưa bị treo
+                    if (survivor.IsDowned && !survivor.IsHooked)
+                    {
+                        currentInteractTarget = other;
+
+                        if (Object.HasInputAuthority)
+                        {
+                            if (interactImage != null) interactImage.gameObject.SetActive(true);
+                        }
+                    }
+                }
             }
 
             currentInteractTarget = other;
