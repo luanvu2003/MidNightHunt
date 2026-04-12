@@ -502,7 +502,7 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         else if (Object.HasInputAuthority && other.CompareTag("Playerchet"))
         {
             // Đi ra khỏi vùng Trigger -> Tự động hủy cứu
-            if (IsReviving || IsUnhooking) RPC_SetReviveState(false, NetworkId.None, false);
+            if (IsReviving || IsUnhooking) RPC_SetReviveState(false, default, false);
             _targetToRevive = null;
         }
     }
