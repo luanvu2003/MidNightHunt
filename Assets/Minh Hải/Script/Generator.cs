@@ -212,24 +212,20 @@ public class Generator : NetworkBehaviour
     {
         if (IsRepaired) return;
 
-        // 1. Áp dụng Cooldown (Stun máy)
         StunTimer = TickTimer.CreateFromSeconds(Runner, stunDuration);
 
-        // 2. Clear danh sách sửa trên Server TRƯỚC
-        ActiveRepairers.Clear();
-
-        // 3. Tìm đúng thằng bấm hụt để cho ăn Hit
         var playerObj = Runner.FindObject(playerId);
         if (playerObj != null)
         {
-            var playerScript = playerObj.GetComponent<ISurvivor>();
-            if (playerScript != null)
+            var survivor = playerObj.GetComponent<ISurvivor>();
+            if (survivor != null)
             {
-                playerScript.TakeHit(); // Cắn 1 hit vì tay chân vụng về
+                survivor.TakeHit();
+                survivor.SetRepairAnimation(false); // 🚨 THÊM DÒNG NÀY (Tắt anim khi bấm hụt)
             }
         }
 
-        // 4. Phát tín hiệu hình ảnh/âm thanh nổ cho tất cả client
+        ActiveRepairers.Clear();
         RPC_PlayExplosionEffects();
     }
 
@@ -281,7 +277,7 @@ public class Generator : NetworkBehaviour
                 if (survivor != null)
                 {
                     survivor.TakeHit();
-                    survivor.SetRepairAnimation(false); // 🚨 Tắt anim khi nổ máy
+                    survivor.SetRepairAnimation(false); // 🚨 THÊM DÒNG NÀY (Tắt anim khi thả E spam)
                 }
             }
         }
@@ -294,9 +290,21 @@ public class Generator : NetworkBehaviour
     {
         Progress = repairTime;
         IsRepaired = true;
+
+        // 🚨 THÊM MỚI: Tắt sạch animation sửa máy của những ai đang ngồi sửa
+        foreach (var playerId in ActiveRepairers)
+        {
+            var playerObj = Runner.FindObject(playerId);
+            if (playerObj != null)
+            {
+                var survivor = playerObj.GetComponent<ISurvivor>();
+                if (survivor != null) survivor.SetRepairAnimation(false); // Ép tắt Anim
+            }
+        }
+
         ActiveRepairers.Clear();
 
-        // 🚨 BÁO LÊN GAME MANAGER LÀ ĐÃ SỬA XONG 1 MÁY
+        // Báo cho GameManager để đếm lùi số máy
         if (GameManager_Fusion.Instance != null)
         {
             GameManager_Fusion.Instance.OnGeneratorRepaired();
@@ -389,6 +397,12 @@ public class Generator : NetworkBehaviour
         if (progressBar != null) progressBar.gameObject.SetActive(false);
         if (repairText != null) repairText.SetActive(false);
         UpdateVisuals(false);
+
+        // 🚨 THÊM MỚI: Mở khóa di chuyển cho người chơi (Tránh kẹt nút WASD)
+        if (_isLocalPlayerRepairing)
+        {
+            StopLocalRepair();
+        }
     }
 
     private void AlertNearbyCrows()
