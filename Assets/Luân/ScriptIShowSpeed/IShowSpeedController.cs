@@ -76,6 +76,7 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
 
     private CharacterController _characterController;
     private bool _isNearWindow = false;
+    private bool _isLocalRepairing = false;
 
     // --- CÁC BIẾN ĐỒNG BỘ MẠNG (NETWORKED) ---
     [Networked] public NetworkBool IsDowned { get; set; }
@@ -239,6 +240,16 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         float speed = mediumRunSpeed;
         float targetAnimSpeed = 0.5f;
         bool skillActive = !SkillDurationTimer.ExpiredOrNotRunning(Runner);
+        if (_isLocalRepairing || IsRepairingAnim)
+        {
+            // Vẫn phải giữ trọng lực để nhân vật không rớt xuyên map
+            if (_characterController.isGrounded && velocityY < 0) velocityY = -2f;
+            velocityY += -9.81f * Runner.DeltaTime;
+            _characterController.Move(new Vector3(0, velocityY, 0) * Runner.DeltaTime);
+
+            AnimSpeedValue = 0f; // Ép tắt animation chạy
+            return; // 🚨 KẾT THÚC HÀM TẠI ĐÂY, VÔ HIỆU HÓA WASD
+        }
 
         if (skillActive)
         {
@@ -630,8 +641,14 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     }
     public NetworkObject Object => base.Object;
     public float GetRepairSpeedMultiplier() => 1f; // Tốc độ cơ bản 1x
-    public void OnStartRepair() { }
-    public void OnStopRepair() { }
+    public void OnStartRepair()
+    {
+        _isLocalRepairing = true; // Bấm E là khóa chân ngay
+    }
+    public void OnStopRepair()
+    {
+        _isLocalRepairing = false; // Thả E hoặc nổ máy là mở khóa
+    }
 }
 
 
