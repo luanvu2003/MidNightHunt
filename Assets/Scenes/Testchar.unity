@@ -2357,6 +2357,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: MrBean
       objectReference: {fileID: 0}
+    - target: {fileID: 7292639732778651450, guid: f49449c111e98a04e9371b76ac04f9a7, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7962216387632141696, guid: f49449c111e98a04e9371b76ac04f9a7, type: 3}
       propertyPath: m_LocalPosition.x
       value: 41.25489
@@ -2421,6 +2425,10 @@ PrefabInstance:
     - target: {fileID: 6139483228109351529, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
       propertyPath: m_Name
       value: IShowSpeed
+      objectReference: {fileID: 0}
+    - target: {fileID: 6139483228109351529, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6807195076597215443, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2524,6 +2532,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Nurse
       objectReference: {fileID: 0}
+    - target: {fileID: 2006184711979089739, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3112147768813184209, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
       propertyPath: SortKey
       value: 2789218463
@@ -2545,6 +2557,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1012355811381491365, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: -1332652823, guid: 17801dedf08293d43998b5a0b896d33a, type: 3}
     - target: {fileID: 4496159976589184080, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
       propertyPath: m_LocalPosition.x
       value: 39.5722
@@ -2588,10 +2604,6 @@ PrefabInstance:
     - target: {fileID: 6890075402328209381, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
       propertyPath: SortKey
       value: 275145653
-      objectReference: {fileID: 0}
-    - target: {fileID: 7613728942639097995, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: hookOffset.x
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8437323240024215010, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
       propertyPath: m_Name

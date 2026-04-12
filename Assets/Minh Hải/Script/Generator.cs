@@ -42,8 +42,10 @@ public class Generator : NetworkBehaviour
     // ========================================================
     private bool _isPlayerInRange = false;
     private bool _isLocalPlayerRepairing = false;
-    private IShowSpeedController_Fusion _localPlayer;
+    private ISurvivor _localPlayer;
     private ChangeDetector _changeDetector;
+    private float _localRepairStartTime;
+    public float spamThreshold = 10f; // Dưới 0.8s tính là spam
 
     public override void Spawned()
     {
@@ -84,11 +86,12 @@ public class Generator : NetworkBehaviour
         if (Object == null || !Object.IsValid) return;
         if (IsRepaired) return;
 
-        // 🚨 FAILSAFE: Trị dứt điểm bệnh kẹt Trigger đi đâu cũng hiện chữ E
+        // 🚨 FAILSAFE
         if (_localPlayer != null)
         {
-            float distanceToPlayer = Vector3.Distance(transform.position, _localPlayer.transform.position);
-            if (distanceToPlayer > 3.5f) // Chỉnh con số này cho vừa với hitbox của máy
+            // 🚨 ĐÃ SỬA LẠI CÁCH GỌI TRANSFORM CỦA INTERFACE
+            float distanceToPlayer = Vector3.Distance(transform.position, _localPlayer.Object.transform.position);
+            if (distanceToPlayer > 3.5f)
             {
                 _isPlayerInRange = false;
                 if (_isLocalPlayerRepairing) StopLocalRepair();
@@ -97,14 +100,12 @@ public class Generator : NetworkBehaviour
             }
         }
 
-        // Nếu máy đang bị Stun (Vừa nổ xong) thì giấu text
         bool isStunned = !StunTimer.ExpiredOrNotRunning(Runner);
 
         if (_isPlayerInRange && !isStunned && !_isLocalPlayerRepairing)
         {
             if (repairText != null) repairText.SetActive(true);
 
-            // Bấm E để BẮT ĐẦU sửa
             if (Input.GetKeyDown(KeyCode.E) && _localPlayer != null)
             {
                 StartLocalRepair();
@@ -114,9 +115,14 @@ public class Generator : NetworkBehaviour
         {
             if (repairText != null) repairText.SetActive(false);
 
-            // Bấm E lần nữa để DỪNG sửa
             if (Input.GetKeyDown(KeyCode.E))
             {
+                float repairDuration = Time.time - _localRepairStartTime;
+                if (repairDuration < spamThreshold)
+                {
+                    RPC_ExplodeGenerator();
+                }
+
                 StopLocalRepair();
             }
         }
@@ -125,17 +131,29 @@ public class Generator : NetworkBehaviour
             if (repairText != null) repairText.SetActive(false);
         }
     }
-
     public override void FixedUpdateNetwork()
     {
-        // LOGIC CHÍNH: Chỉ Server/Host mới tính toán tiến trình sửa
         if (!Object.HasStateAuthority || IsRepaired) return;
 
         if (ActiveRepairers.Count > 0)
         {
-            // Tốc độ sửa nhân lên theo số lượng người (1 người = 1x, 2 người = 2x, 3 người = 3x)
-            float speedMultiplier = ActiveRepairers.Count;
-            Progress += Runner.DeltaTime * speedMultiplier;
+            float totalSpeedMultiplier = 0f;
+
+            // 🚨 Quét từng người đang sửa để lấy tốc độ (Nếu MrBean đang bật skill sẽ cộng nhiều hơn)
+            foreach (var playerId in ActiveRepairers)
+            {
+                var playerObj = Runner.FindObject(playerId);
+                if (playerObj != null)
+                {
+                    var survivor = playerObj.GetComponent<ISurvivor>();
+                    if (survivor != null)
+                    {
+                        totalSpeedMultiplier += survivor.GetRepairSpeedMultiplier();
+                    }
+                }
+            }
+
+            Progress += Runner.DeltaTime * totalSpeedMultiplier;
 
             if (Progress >= repairTime)
             {
@@ -150,11 +168,14 @@ public class Generator : NetworkBehaviour
     private void StartLocalRepair()
     {
         _isLocalPlayerRepairing = true;
+        _localRepairStartTime = Time.time;
 
         if (progressBar != null) progressBar.gameObject.SetActive(true);
-        if (skillCheck != null) skillCheck.StartNewSkillCheck(this); // Kích hoạt SkillCheck vòng quay
+        if (skillCheck != null) skillCheck.StartNewSkillCheck(this);
 
-        // Gửi lệnh lên Server báo: "Tôi bắt đầu sửa"
+        // 🚨 Báo cho nhân vật biết là đã bắt đầu sửa (Kích hoạt thời gian skill MrBean)
+        if (_localPlayer != null) _localPlayer.OnStartRepair();
+
         RPC_ChangeRepairState(_localPlayer.Object.Id, true);
     }
 
@@ -165,9 +186,10 @@ public class Generator : NetworkBehaviour
         if (progressBar != null) progressBar.gameObject.SetActive(false);
         if (skillCheck != null) skillCheck.gameObject.SetActive(false);
 
-        // Gửi lệnh lên Server báo: "Tôi ngừng sửa"
+        // 🚨 Báo cho nhân vật biết đã ngừng sửa
         if (_localPlayer != null)
         {
+            _localPlayer.OnStopRepair();
             RPC_ChangeRepairState(_localPlayer.Object.Id, false);
         }
     }
@@ -184,8 +206,8 @@ public class Generator : NetworkBehaviour
         }
     }
 
-    // 🚨 THÊM RPC MỚI: Xử lý riêng cho việc Fail Minigame
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    // 🚨 ĐỔI RpcSources.InputAuthority THÀNH RpcSources.All
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     private void RPC_FailSkillCheckMinigame(NetworkId playerId)
     {
         if (IsRepaired) return;
@@ -200,14 +222,14 @@ public class Generator : NetworkBehaviour
         var playerObj = Runner.FindObject(playerId);
         if (playerObj != null)
         {
-            var playerScript = playerObj.GetComponent<IShowSpeedController_Fusion>();
+            var playerScript = playerObj.GetComponent<ISurvivor>();
             if (playerScript != null)
             {
                 playerScript.TakeHit(); // Cắn 1 hit vì tay chân vụng về
             }
         }
 
-        // 4. Phát tín hiệu hình ảnh/âm thanh nổ cho tất cả client (Hàm này sẽ ép văng UI ra)
+        // 4. Phát tín hiệu hình ảnh/âm thanh nổ cho tất cả client
         RPC_PlayExplosionEffects();
     }
 
@@ -222,11 +244,23 @@ public class Generator : NetworkBehaviour
         if (isStarting)
         {
             if (!ActiveRepairers.Contains(playerId)) ActiveRepairers.Add(playerId);
-            IsDamagedByHunter = false; // Survivor chạm vào là mất cờ bị đạp
+            IsDamagedByHunter = false;
         }
         else
         {
             ActiveRepairers.Remove(playerId);
+        }
+
+        // 🚨 ĐỒNG BỘ ANIMATION CHO NHÂN VẬT
+        // Khi Server nhận lệnh, nó sẽ ép nhân vật đó bật/tắt biến IsRepairingAnim
+        var playerObj = Runner.FindObject(playerId);
+        if (playerObj != null)
+        {
+            var survivor = playerObj.GetComponent<ISurvivor>();
+            if (survivor != null)
+            {
+                survivor.SetRepairAnimation(isStarting);
+            }
         }
     }
 
@@ -235,28 +269,24 @@ public class Generator : NetworkBehaviour
     {
         if (IsRepaired) return;
 
-        // 1. Trừ tiến trình
         Progress = Mathf.Max(0, Progress - progressPenalty);
         StunTimer = TickTimer.CreateFromSeconds(Runner, stunDuration);
 
-        // 2. Phạt Dính Hit TẤT CẢ những ai đang ngồi chung cái máy này
         foreach (var playerId in ActiveRepairers)
         {
             var playerObj = Runner.FindObject(playerId);
             if (playerObj != null)
             {
-                var playerScript = playerObj.GetComponent<IShowSpeedController_Fusion>();
-                if (playerScript != null)
+                var survivor = playerObj.GetComponent<ISurvivor>();
+                if (survivor != null)
                 {
-                    playerScript.TakeHit(); // Cắn 1 hit vì làm nổ máy
+                    survivor.TakeHit();
+                    survivor.SetRepairAnimation(false); // 🚨 Tắt anim khi nổ máy
                 }
             }
         }
 
-        // 3. Đuổi tất cả ra khỏi máy
         ActiveRepairers.Clear();
-
-        // 4. Phát tín hiệu hình ảnh/âm thanh nổ cho tất cả client
         RPC_PlayExplosionEffects();
     }
 
@@ -311,7 +341,7 @@ public class Generator : NetworkBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            var player = other.GetComponent<IShowSpeedController_Fusion>();
+            var player = other.GetComponent<ISurvivor>();
             // CHỈ BẬT UI cho nhân vật MÀ MÌNH ĐIỀU KHIỂN (Tránh vụ thằng khác đi tới máy thì màn hình mình lại hiện chữ E)
             if (player != null && player.Object.HasInputAuthority)
             {
@@ -325,7 +355,7 @@ public class Generator : NetworkBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            var player = other.GetComponent<IShowSpeedController_Fusion>();
+            var player = other.GetComponent<ISurvivor>();
             if (player != null && player.Object.HasInputAuthority)
             {
                 _isPlayerInRange = false;
@@ -372,7 +402,7 @@ public class Generator : NetworkBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            var player = other.GetComponent<IShowSpeedController_Fusion>();
+            var player = other.GetComponent<ISurvivor>();
 
             // CHỈ BẬT UI cho nhân vật MÀ MÌNH ĐIỀU KHIỂN
             if (player != null && player.Object.HasInputAuthority)
@@ -387,7 +417,7 @@ public class Generator : NetworkBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            var player = other.GetComponent<IShowSpeedController_Fusion>();
+            var player = other.GetComponent<ISurvivor>();
 
             // Nếu chính mình đi ra khỏi vùng thì mới tắt UI và ngừng sửa
             if (player != null && player.Object.HasInputAuthority)

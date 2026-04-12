@@ -9,7 +9,7 @@ using Fusion.Sockets; // 🚨 Đã thêm
 
 [RequireComponent(typeof(CharacterController))]
 // 🚨 Đã thêm INetworkRunnerCallbacks vào đây
-public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
+public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks, ISurvivor
 {
     [Header("Animator Settings")]
     public Animator animator;
@@ -96,6 +96,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
     [Networked] public NetworkBool IsGameStarted { get; set; } = false;
     [Networked] public float AnimSpeedValue { get; set; }
     [Networked] private float velocityY { get; set; }
+    [Networked] public NetworkBool IsRepairingAnim { get; set; }
 
     public override void Spawned()
     {
@@ -187,6 +188,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         animator.SetBool(downedAnimationBool, IsDowned);
         animator.SetBool(hookedAnimationBool, IsHooked);
         animator.SetBool(revivingAnimBool, IsReviving);
+        animator.SetBool("SuaMay", IsRepairingAnim);
 
         float currentAnimSpeed = animator.GetFloat("Speed");
         animator.SetFloat("Speed", Mathf.Lerp(currentAnimSpeed, AnimSpeedValue, Time.deltaTime * 15f));
@@ -208,6 +210,11 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
 
             UpdateReviveProgressUI();
         }
+    }
+
+    public void SetRepairAnimation(bool isRepairing)
+    {
+        IsRepairingAnim = isRepairing;
     }
 
     private bool IsNearDeadBody()
@@ -621,6 +628,11 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
     {
 
     }
+    public NetworkObject Object => base.Object;
+    public float GetRepairSpeedMultiplier() => 1f; // Tốc độ cơ bản 1x
+    public void OnStartRepair() { }
+    public void OnStopRepair() { }
+
 }
 
 public struct NurseGameplayInput : INetworkInput
