@@ -82,8 +82,20 @@ public class Generator : NetworkBehaviour
     private void Update()
     {
         if (Object == null || !Object.IsValid) return;
-        // Xử lý Input Cục bộ (Chỉ chạy trên máy của Player)
         if (IsRepaired) return;
+
+        // 🚨 FAILSAFE: Trị dứt điểm bệnh kẹt Trigger đi đâu cũng hiện chữ E
+        if (_localPlayer != null)
+        {
+            float distanceToPlayer = Vector3.Distance(transform.position, _localPlayer.transform.position);
+            if (distanceToPlayer > 3.5f) // Chỉnh con số này cho vừa với hitbox của máy
+            {
+                _isPlayerInRange = false;
+                if (_isLocalPlayerRepairing) StopLocalRepair();
+                _localPlayer = null;
+                if (repairText != null) repairText.SetActive(false);
+            }
+        }
 
         // Nếu máy đang bị Stun (Vừa nổ xong) thì giấu text
         bool isStunned = !StunTimer.ExpiredOrNotRunning(Runner);
@@ -161,10 +173,42 @@ public class Generator : NetworkBehaviour
     }
 
     // SkillCheck sẽ gọi hàm này nếu bấm trượt
+    // SkillCheck sẽ gọi hàm này nếu bấm trượt
     public void LocalFailSkillCheck()
     {
-        StopLocalRepair();
-        RPC_ExplodeGenerator(); // Báo lên Server là tôi làm nổ máy
+        // 🚨 KHÔNG gọi StopLocalRepair() ở đây nữa! 
+        // Chỉ gửi thẳng lên Server báo "Tôi vừa bấm hụt", để Server giật điện đúng người.
+        if (_localPlayer != null)
+        {
+            RPC_FailSkillCheckMinigame(_localPlayer.Object.Id);
+        }
+    }
+
+    // 🚨 THÊM RPC MỚI: Xử lý riêng cho việc Fail Minigame
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_FailSkillCheckMinigame(NetworkId playerId)
+    {
+        if (IsRepaired) return;
+
+        // 1. Áp dụng Cooldown (Stun máy)
+        StunTimer = TickTimer.CreateFromSeconds(Runner, stunDuration);
+
+        // 2. Clear danh sách sửa trên Server TRƯỚC
+        ActiveRepairers.Clear();
+
+        // 3. Tìm đúng thằng bấm hụt để cho ăn Hit
+        var playerObj = Runner.FindObject(playerId);
+        if (playerObj != null)
+        {
+            var playerScript = playerObj.GetComponent<IShowSpeedController_Fusion>();
+            if (playerScript != null)
+            {
+                playerScript.TakeHit(); // Cắn 1 hit vì tay chân vụng về
+            }
+        }
+
+        // 4. Phát tín hiệu hình ảnh/âm thanh nổ cho tất cả client (Hàm này sẽ ép văng UI ra)
+        RPC_PlayExplosionEffects();
     }
 
     // ========================================================
