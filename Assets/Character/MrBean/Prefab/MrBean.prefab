@@ -2356,6 +2356,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3051894626846475032}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -3713088881137894682}
   m_SourcePrefab: {fileID: 100100000, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
 --- !u!95 &4080073567845634042 stripped
 Animator:
@@ -2436,6 +2439,7 @@ MonoBehaviour:
   interactInput: {fileID: 7423052703018821967, guid: 5d3126308f258f146aa8efa2f820b362, type: 3}
   revivePrompt: {fileID: 7214776827326209686}
   reviveSlider: {fileID: 3837475137057698334}
+  hookOffset: {x: 0, y: 0, z: 0}
   _IsBeingRevived:
     _value: 0
   _IsReviving:
@@ -2561,6 +2565,33 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 1
   m_Center: {x: 0, y: 0.82, z: 0}
+--- !u!54 &-3713088881137894682
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7292639732778651450}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!4 &7962216387632141696 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
