@@ -375,6 +375,9 @@ public class HunterInteraction : NetworkBehaviour
     [Header("Vượt Cửa Sổ")]
     [Tooltip("Khoảng cách phi thân qua cửa sổ. NHỚ CHỈNH ĐỦ XA ĐỂ KHÔNG BỊ KẸT TƯỜNG!")]
     public float vaultDistance = 2.5f;
+    // 🚨 THÊM BIẾN NÀY ĐỂ FIX LỖI KẸT CỬA SỔ
+    [Header("Khoảng cách tương tác an toàn")]
+    public float maxInteractDistance = 4.0f;
 
     [Header("Âm Thanh Tương Tác")]
     public AudioSource interactAudioSource;
@@ -527,6 +530,19 @@ public class HunterInteraction : NetworkBehaviour
                 interactionSlider.gameObject.SetActive(false);
             }
         }
+
+        // 🚨 FIX KẸT TƯƠNG TÁC TỪ XA: Tự động xóa Target nếu đi quá xa
+        if (currentInteractTarget != null && !isInteracting && !isSliderRunning)
+        {
+            float dist = Vector3.Distance(transform.position, currentInteractTarget.transform.position);
+
+            // Nếu vượt quá khoảng cách cho phép, ép clear target và tắt UI
+            if (dist > maxInteractDistance)
+            {
+                currentInteractTarget = null;
+                if (interactImage != null) interactImage.gameObject.SetActive(false);
+            }
+        }
     }
     // Hàm gọi từ phía Server hoặc qua RPC để gây choáng
     public void ApplyStun(float duration)
@@ -571,6 +587,15 @@ public class HunterInteraction : NetworkBehaviour
         }
 
         if (currentInteractTarget == null) return;
+        // 🚨 FIX: Kiểm tra lại khoảng cách một lần nữa trước khi thực hiện hành động
+        float distToTarget = Vector3.Distance(transform.position, currentInteractTarget.transform.position);
+        if (distToTarget > maxInteractDistance)
+        {
+            Debug.Log("❌ [Hunter] Đã đi quá xa mục tiêu, tự động hủy!");
+            currentInteractTarget = null;
+            if (Object.HasInputAuthority && interactImage != null) interactImage.gameObject.SetActive(false);
+            return;
+        }
 
         string tag = currentInteractTarget.tag;
 
