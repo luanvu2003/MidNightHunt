@@ -2310,7 +2310,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
       propertyPath: m_TagString
@@ -2441,6 +2441,9 @@ MonoBehaviour:
   _CurrentHits: 0
   _IsVaulting:
     _value: 0
+  _IsGameStarted:
+    _value: 0
+  _AnimSpeedValue: 0
 --- !u!114 &3165707616130625318
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2510,6 +2513,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fed702da464343b4a9bff20cbcd85301, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isHunterPrefab: 0
   headBoneName: mixamorig:Head
   myFpsEyeOffset: {x: 0, y: 0.1, z: 0.2}
   myTpsOffset: {x: 0.5, y: 1.5, z: -3}
