@@ -344,37 +344,6 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         }
     }
 
-    // ============================================
-    // THỰC THI INTERFACE ISURVIVOR
-    // ============================================
-    public NetworkObject Object => base.Object;
-
-    public float GetRepairSpeedMultiplier()
-    {
-        return IsSkillActive ? repairSpeedMultiplier : 1f;
-    }
-
-    public void OnStartRepair()
-    {
-        _isLocalRepairing = true; // 🚨 THÊM DÒNG NÀY
-        if (IsSkillArmed)
-        {
-            IsSkillArmed = false;
-            IsSkillActive = true;
-            SkillDurationTimer = TickTimer.CreateFromSeconds(Runner, skillDuration);
-        }
-    }
-
-    public void OnStopRepair()
-    {
-        _isLocalRepairing = false; // 🚨 THÊM DÒNG NÀY
-        if (IsSkillActive)
-        {
-            IsSkillActive = false;
-            SkillCooldownTimer = TickTimer.CreateFromSeconds(Runner, skillCooldown);
-            SkillDurationTimer = TickTimer.None;
-        }
-    }
 
     public void TakeHit()
     {
@@ -619,6 +588,7 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         }
     }
 
+
     // --- INetworkRunnerCallbacks ---
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
@@ -730,6 +700,34 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
     public void OnSceneLoadStart(NetworkRunner runner)
     {
 
+    }
+    public NetworkObject Object => base.Object;
+
+    public float GetRepairSpeedMultiplier()
+    {
+        return IsSkillActive ? repairSpeedMultiplier : 1f;
+    }
+
+    public void OnStartRepair()
+    {
+        _isLocalRepairing = true; // 🚨 THÊM DÒNG NÀY
+        if (IsSkillArmed)
+        {
+            IsSkillArmed = false;
+            IsSkillActive = true;
+            SkillDurationTimer = TickTimer.CreateFromSeconds(Runner, skillDuration);
+        }
+    }
+
+    public void OnStopRepair()
+    {
+        _isLocalRepairing = false; // 🚨 THÊM DÒNG NÀY
+        if (IsSkillActive)
+        {
+            IsSkillActive = false;
+            SkillCooldownTimer = TickTimer.CreateFromSeconds(Runner, skillCooldown);
+            SkillDurationTimer = TickTimer.None;
+        }
     }
 
     public bool GetIsDowned() => IsDowned;
