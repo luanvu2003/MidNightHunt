@@ -2430,10 +2430,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: IShowSpeed
       objectReference: {fileID: 0}
-    - target: {fileID: 6139483228109351529, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 6807195076597215443, guid: 6c20dcafdecdbc44c95ca20be40e60c4, type: 3}
       propertyPath: m_LocalPosition.x
       value: 43.080723
