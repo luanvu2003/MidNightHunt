@@ -57,7 +57,7 @@ Transform:
   m_GameObject: {fileID: 2938589921025845127}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0.061}
+  m_LocalPosition: {x: -0.754, y: -1.073, z: 0.061}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -83,8 +83,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.53756714, y: 2.9775345, z: 1.934433}
-  m_Center: {x: 0.74113464, y: 0.022467017, z: 0.7278824}
+  m_Size: {x: 0.51156616, y: 3.0252671, z: 1.934433}
+  m_Center: {x: 1.414444, y: 1.1522543, z: 0.7278824}
 --- !u!1 &4819547477470318510
 GameObject:
   m_ObjectHideFlags: 0
@@ -137,12 +137,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _State: 0
-  palletPivot: {fileID: 4027873174707741785}
+  palletPivot: {fileID: 4117454495452272955}
   stunZone: {fileID: 2476246144269490411}
   breakZone: {fileID: 6756074632695875198}
   spaceUI: {fileID: 0}
   fallTime: 0.25
-  droppedRotation: {x: 0, y: 0, z: 0.5, w: 0.8660254}
+  dropRotationOffset: {x: 60, y: 0, z: 0}
   audioSource: {fileID: 0}
   dropSound: {fileID: 0}
   breakSound: {fileID: 0}
@@ -331,11 +331,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1795326129877222336, guid: 5922b17428130d943baa3f640f617000, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1.4906311
+      value: 2.133
       objectReference: {fileID: 0}
     - target: {fileID: 1795326129877222336, guid: 5922b17428130d943baa3f640f617000, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -1.4291103
+      value: -0.215
       objectReference: {fileID: 0}
     - target: {fileID: 1795326129877222336, guid: 5922b17428130d943baa3f640f617000, type: 3}
       propertyPath: m_LocalPosition.z

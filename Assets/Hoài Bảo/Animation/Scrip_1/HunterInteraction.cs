@@ -393,9 +393,9 @@ public class HunterInteraction : NetworkBehaviour
 
     private Collider currentInteractTarget;
     private float currentDuration = 1f;
-    
+
     [Header("Hệ Thống Choáng (Stun)")]
-    [Networked] public TickTimer StunTimer { get; set; } 
+    [Networked] public TickTimer StunTimer { get; set; }
     public string stunAnimationTrigger = "BeStunned";
 
     // --- BIẾN ĐỒNG BỘ MẠNG CƠ BẢN ---
@@ -467,7 +467,7 @@ public class HunterInteraction : NetworkBehaviour
     public override void FixedUpdateNetwork()
     {
         if (!StunTimer.ExpiredOrNotRunning(Runner)) return;
-        
+
         if (isVaulting)
         {
             if (controller != null && controller.enabled) controller.enabled = false;
@@ -477,7 +477,7 @@ public class HunterInteraction : NetworkBehaviour
             if (vaultTimer >= syncedDuration)
             {
                 isVaulting = false;
-                transform.position = vEnd; 
+                transform.position = vEnd;
             }
             else
             {
@@ -526,7 +526,20 @@ public class HunterInteraction : NetworkBehaviour
         {
             float dist = Vector3.Distance(transform.position, currentInteractTarget.transform.position);
 
-            if (dist > maxInteractDistance)
+            // 🚨 THÊM MỚI: Liên tục kiểm tra xem máy còn hợp lệ để đạp không
+            bool isInvalidGen = false;
+            if (currentInteractTarget.CompareTag("May"))
+            {
+                Generator gen = currentInteractTarget.GetComponent<Generator>();
+                // Nếu máy không có % hoặc đã bị đạp rồi -> Đánh dấu là không hợp lệ
+                if (gen != null && !gen.CanBeDamagedByHunter())
+                {
+                    isInvalidGen = true;
+                }
+            }
+
+            // Nếu đi quá xa HOẶC máy không còn hợp lệ -> Xóa mục tiêu và Tắt UI
+            if (dist > maxInteractDistance || isInvalidGen)
             {
                 currentInteractTarget = null;
                 if (interactImage != null) interactImage.gameObject.SetActive(false);
@@ -595,7 +608,7 @@ public class HunterInteraction : NetworkBehaviour
         }
 
         if (currentInteractTarget == null) return;
-        
+
         float distToTarget = Vector3.Distance(transform.position, currentInteractTarget.transform.position);
         if (distToTarget > maxInteractDistance)
         {
@@ -609,6 +622,18 @@ public class HunterInteraction : NetworkBehaviour
 
         if (isCarryingPlayer && tag != "Moc") return;
         if (tag == "Moc" && !isCarryingPlayer) return;
+        // 🚨 THÊM MỚI: Chặn tận gốc việc bấm phím E nếu máy không thỏa mãn điều kiện
+        if (tag == "May")
+        {
+            Generator gen = currentInteractTarget.GetComponent<Generator>();
+            if (gen == null || !gen.CanBeDamagedByHunter())
+            {
+                Debug.Log("❌ [Hunter] Máy chưa có tiến trình hoặc đã bị đạp rồi, không thể đạp spam!");
+                currentInteractTarget = null;
+                if (Object.HasInputAuthority && interactImage != null) interactImage.gameObject.SetActive(false);
+                return;
+            }
+        }
 
         if (tag == "Playerchet")
         {
@@ -860,7 +885,7 @@ public class HunterInteraction : NetworkBehaviour
                 var s4 = other.GetComponentInParent<NurseController_Fusion>();
                 if (s4 != null && s4.IsDowned && !s4.IsHooked) showUI = true;
 
-                if (!showUI) return; 
+                if (!showUI) return;
             }
 
             currentInteractTarget = other;
