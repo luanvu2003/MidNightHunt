@@ -1,35 +1,33 @@
 using UnityEngine;
 using Fusion;
-using UnityEngine.InputSystem; // 🚨 Bắt buộc thêm dòng này để nhận diện phím Space mới
+using UnityEngine.InputSystem;
 
-public class PalletInteraction_Fusion : NetworkBehaviour
+public class PalletInteraction : NetworkBehaviour
 {
     public enum PalletState { Up, Falling, Dropped, Destroyed }
 
     [Header("Cấu Hình Trạng Thái")]
     [Networked] public PalletState State { get; set; } = PalletState.Up;
-
-    [Networked] private TickTimer FallTimer { get; set; }
+    
+    [Networked] private TickTimer FallTimer { get; set; } 
 
     [Header("Tham Chiếu Render & Physics")]
-    public Transform palletPivot;
-    public GameObject stunZone;
-    public GameObject breakZone;
-    public GameObject spaceUI;
+    public Transform palletPivot; 
+    public GameObject stunZone;   
+    public GameObject breakZone;  
+    public GameObject spaceUI;    
 
     [Header("Thông Số")]
-    public float fallTime = 0.25f;
-    public Quaternion droppedRotation = Quaternion.Euler(0, 0, 90);
+    public float fallTime = 0.25f; 
+    public Quaternion droppedRotation = Quaternion.Euler(0, 0, 90); 
 
     private ChangeDetector _changes;
-    private bool _isLocalPlayerInZone = false;
-    private bool _isSpawned = false;
+    private bool _isLocalPlayerInZone = false; 
+    private bool _isSpawned = false; 
 
     public override void Spawned()
     {
-        _isSpawned = true;
-        Debug.Log("🌐 [FUSION] Ván đã được Mạng Spawn thành công!");
-
+        _isSpawned = true; 
         _changes = GetChangeDetector(ChangeDetector.Source.SnapshotFrom);
         if (spaceUI != null) spaceUI.SetActive(false);
         UpdateVisuals();
@@ -37,7 +35,7 @@ public class PalletInteraction_Fusion : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        if (!_isSpawned) return;
+        if (!_isSpawned) return; 
 
         if (Object.HasStateAuthority && State == PalletState.Falling)
         {
@@ -50,7 +48,7 @@ public class PalletInteraction_Fusion : NetworkBehaviour
 
     public override void Render()
     {
-        if (!_isSpawned) return;
+        if (!_isSpawned) return; 
 
         foreach (var change in _changes.DetectChanges(this))
         {
@@ -78,7 +76,7 @@ public class PalletInteraction_Fusion : NetworkBehaviour
             case PalletState.Dropped:
                 if (stunZone) stunZone.SetActive(false);
                 if (breakZone) breakZone.SetActive(true);
-                palletPivot.localRotation = droppedRotation;
+                palletPivot.localRotation = droppedRotation; 
                 break;
             case PalletState.Destroyed:
                 if (Object.HasStateAuthority) Runner.Despawn(Object);
@@ -88,83 +86,74 @@ public class PalletInteraction_Fusion : NetworkBehaviour
 
     private void Update()
     {
-        if (!_isSpawned) return;
+        if (!_isSpawned) return; 
 
         if (_isLocalPlayerInZone && State == PalletState.Up)
         {
-            // 🚨 TỐI ƯU INPUT: Dùng New Input System để đọc phím Space thay vì hàm cũ
             bool isSpacePressed = false;
-
+            
             if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
             {
                 isSpacePressed = true;
             }
 
-            // Nếu dự án của bạn đang dùng cả 2 Input (Both), dự phòng thêm hàm cũ
-#if ENABLE_LEGACY_INPUT_MANAGER
+            #if ENABLE_LEGACY_INPUT_MANAGER
             if (Input.GetKeyDown(KeyCode.Space)) isSpacePressed = true;
-#endif
+            #endif
 
             if (isSpacePressed)
             {
-                Debug.Log("🟢 Đã bấm Space! Đang gửi lệnh ngã ván lên Server...");
                 Rpc_RequestDropPallet();
-
-                _isLocalPlayerInZone = false;
+                _isLocalPlayerInZone = false; 
                 if (spaceUI != null) spaceUI.SetActive(false);
             }
         }
     }
 
-    // --- LOGIC NHẬN DIỆN PLAYER VÀ HUNTER ---
     private void OnTriggerEnter(Collider other)
     {
-        // Đặt Debug LÊN TRÊN CÙNG để bắt quả tang vật lý
-        Debug.Log("💥 [VẬT LÝ] Có vật thể chạm vào Ván: " + other.name);
-
-        if (!_isSpawned)
-        {
-            Debug.LogError("❌ [LỖI FUSION] Vật lý có hoạt động, nhưng Mạng chưa Spawn Ván! (Cần kiểm tra lại Network Object)");
-            return;
-        }
-
+        if (!_isSpawned) return; 
+        
         CheckLocalPlayerTrigger(other, true);
 
         if (State == PalletState.Falling && other.CompareTag("Hunter"))
         {
             var hunter = other.GetComponentInParent<HunterInteraction>();
-            if (hunter != null) hunter.ApplyStun(3.0f);
+            if (hunter != null) hunter.ApplyStun(3.0f); 
         }
     }
 
     private void OnTriggerStay(Collider other)
     {
-        if (!_isSpawned) return;
+        if (!_isSpawned) return; 
         CheckLocalPlayerTrigger(other, true);
     }
 
     private void OnTriggerExit(Collider other)
     {
-        if (!_isSpawned) return;
+        if (!_isSpawned) return; 
         CheckLocalPlayerTrigger(other, false);
     }
 
+    // 🚨 ĐÃ FIX: DÙNG NETWORK OBJECT ĐỂ NHẬN DIỆN CẢ 4 NHÂN VẬT
     private void CheckLocalPlayerTrigger(Collider other, bool isInside)
     {
         if (State != PalletState.Up) return;
 
-        var playerScript = other.GetComponentInParent<IShowSpeedController_Fusion>();
-
-        if (playerScript != null)
+        // Chỉ xét những vật thể có Tag là Player
+        if (other.CompareTag("Player"))
         {
-            // Kiểm tra xem nhân vật này có phải do máy mình điều khiển không
-            if (playerScript.Object != null && playerScript.Object.HasInputAuthority)
+            // Lấy thẳng NetworkObject thay vì script của từng nhân vật
+            var netObj = other.GetComponentInParent<NetworkObject>();
+            
+            if (netObj != null)
             {
-                if (isInside && !_isLocalPlayerInZone)
-                    Debug.Log("✅ Player hợp lệ đã vào vùng ván! Bật UI.");
-
-                _isLocalPlayerInZone = isInside;
-                if (spaceUI != null) spaceUI.SetActive(isInside);
+                // Nếu đây là nhân vật do máy mình điều khiển
+                if (netObj.HasInputAuthority)
+                {
+                    _isLocalPlayerInZone = isInside;
+                    if (spaceUI != null) spaceUI.SetActive(isInside);
+                }
             }
         }
     }
@@ -175,7 +164,7 @@ public class PalletInteraction_Fusion : NetworkBehaviour
         if (State == PalletState.Up)
         {
             State = PalletState.Falling;
-            FallTimer = TickTimer.CreateFromSeconds(Runner, fallTime);
+            FallTimer = TickTimer.CreateFromSeconds(Runner, fallTime); 
         }
     }
 
