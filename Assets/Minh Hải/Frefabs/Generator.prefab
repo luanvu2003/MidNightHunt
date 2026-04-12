@@ -8029,7 +8029,7 @@ MonoBehaviour:
   _IsDamagedByHunter:
     _value: 0
   _ActiveRepairers: []
-  spamThreshold: 0.8
+  spamThreshold: 10
 --- !u!82 &2914932110496687611
 AudioSource:
   m_ObjectHideFlags: 0
