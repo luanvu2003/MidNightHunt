@@ -31,7 +31,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 8639104310756400662}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &4101661985590211158
+--- !u!1 &2938589921025845127
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -39,37 +39,38 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 9173098921066398651}
-  - component: {fileID: 5702846107929648801}
+  - component: {fileID: 4117454495452272955}
+  - component: {fileID: 3880182349872706389}
   m_Layer: 0
-  m_Name: Pallet_Pivot
+  m_Name: Pallettt
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &9173098921066398651
+--- !u!4 &4117454495452272955
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4101661985590211158}
+  m_GameObject: {fileID: 2938589921025845127}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.624, y: -1.344, z: 0.688}
+  m_LocalPosition: {x: 0, y: 0, z: 0.061}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 4027873174707741785}
   m_Father: {fileID: 8639104310756400662}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &5702846107929648801
+--- !u!65 &3880182349872706389
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4101661985590211158}
+  m_GameObject: {fileID: 2938589921025845127}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -82,8 +83,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.43621826, y: 2.8345056, z: 1.7713776}
-  m_Center: {x: 0.14471436, y: 1.3695905, z: 0.055107117}
+  m_Size: {x: 0.53756714, y: 2.9775345, z: 1.934433}
+  m_Center: {x: 0.74113464, y: 0.022467017, z: 0.7278824}
 --- !u!1 &4819547477470318510
 GameObject:
   m_ObjectHideFlags: 0
@@ -117,11 +118,10 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 4027873174707741785}
-  - {fileID: 9173098921066398651}
   - {fileID: 4308429721410445566}
   - {fileID: 7718890242428416659}
   - {fileID: 5398691759067762170}
+  - {fileID: 4117454495452272955}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4652747555613028608
@@ -137,12 +137,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _State: 0
-  palletPivot: {fileID: 9173098921066398651}
+  palletPivot: {fileID: 4027873174707741785}
   stunZone: {fileID: 2476246144269490411}
   breakZone: {fileID: 6756074632695875198}
   spaceUI: {fileID: 0}
   fallTime: 0.25
-  droppedRotation: {x: 0, y: 0, z: 0.70710677, w: 0.70710677}
+  droppedRotation: {x: 0, y: 0, z: 0.5, w: 0.8660254}
+  audioSource: {fileID: 0}
+  dropSound: {fileID: 0}
+  breakSound: {fileID: 0}
+  stunSound: {fileID: 0}
 --- !u!114 &8312563430814065768
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -319,11 +323,11 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 8639104310756400662}
+    m_TransformParent: {fileID: 4117454495452272955}
     m_Modifications:
     - target: {fileID: 1414578020349335930, guid: 5922b17428130d943baa3f640f617000, type: 3}
       propertyPath: m_Name
-      value: Pallett
+      value: Pallet_Pivot
       objectReference: {fileID: 0}
     - target: {fileID: 1795326129877222336, guid: 5922b17428130d943baa3f640f617000, type: 3}
       propertyPath: m_LocalPosition.x
