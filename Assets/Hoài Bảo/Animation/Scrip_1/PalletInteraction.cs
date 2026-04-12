@@ -1,6 +1,5 @@
 using UnityEngine;
 using Fusion;
-using System.Collections.Generic;
 
 public class PalletInteraction_Fusion : NetworkBehaviour
 {
@@ -8,46 +7,55 @@ public class PalletInteraction_Fusion : NetworkBehaviour
 
     [Header("Cấu Hình Trạng Thái")]
     [Networked] public PalletState State { get; set; } = PalletState.Up;
+    
+    // Đếm ngược thời gian ngã chuẩn mạng
+    [Networked] private TickTimer FallTimer { get; set; } 
 
     [Header("Tham Chiếu Render & Physics")]
-    public Transform palletPivot; // Điểm xoay của ván (nằm ở cạnh dưới)
-    public GameObject stunZone;   // Vùng gây choáng (Trigger)
-    public GameObject breakZone;  // Vùng để Hunter đập ván (Trigger)
-    public GameObject spaceUI;    // Image "Space" để hiển thị
+    public Transform palletPivot; 
+    public GameObject stunZone;   
+    public GameObject breakZone;  
+    public GameObject spaceUI;    
 
     [Header("Thông Số")]
-    public float fallSpeed = 10f;
-    public Quaternion droppedRotation = Quaternion.Euler(0, 0, 90); // Góc khi ván nằm xuống
+    [Tooltip("Thời gian để ván ngã xuống đất (giây)")]
+    public float fallTime = 0.25f; // Tối ưu: Dùng thời gian cố định thay vì tốc độ
+    public Quaternion droppedRotation = Quaternion.Euler(0, 0, 90); 
 
     private ChangeDetector _changes;
+    private bool _isLocalPlayerInZone = false; // Biến kiểm tra xem Player đang ở gần ván không
 
     public override void Spawned()
     {
         _changes = GetChangeDetector(ChangeDetector.Source.SnapshotFrom);
+        if (spaceUI != null) spaceUI.SetActive(false);
         UpdateVisuals();
+    }
+
+    // 🚨 TỐI ƯU 1: Server quản lý việc chuyển trạng thái cực kỳ chuẩn xác
+    public override void FixedUpdateNetwork()
+    {
+        if (Object.HasStateAuthority && State == PalletState.Falling)
+        {
+            if (FallTimer.Expired(Runner))
+            {
+                State = PalletState.Dropped;
+            }
+        }
     }
 
     public override void Render()
     {
-        // Đồng bộ hình ảnh mượt mà cho tất cả người chơi
+        // Nhận diện thay đổi trạng thái từ mạng
         foreach (var change in _changes.DetectChanges(this))
         {
-            if (change == nameof(State))
-            {
-                UpdateVisuals();
-            }
+            if (change == nameof(State)) UpdateVisuals();
         }
 
-        // Hiệu ứng xoay mượt mà khi ván đang ngã
-        if (State == PalletState.Falling)
+        // Xoay mượt mà (Chỉ ảnh hưởng phần nhìn)
+        if (State == PalletState.Falling || State == PalletState.Dropped)
         {
-            palletPivot.localRotation = Quaternion.Lerp(palletPivot.localRotation, droppedRotation, Time.deltaTime * fallSpeed);
-
-            // Nếu gần sát góc đích thì chuyển hẳn sang trạng thái Dropped (Chỉ Server làm)
-            if (Object.HasStateAuthority && Quaternion.Angle(palletPivot.localRotation, droppedRotation) < 1f)
-            {
-                State = PalletState.Dropped;
-            }
+            palletPivot.localRotation = Quaternion.Lerp(palletPivot.localRotation, droppedRotation, Time.deltaTime * 15f);
         }
     }
 
@@ -56,17 +64,17 @@ public class PalletInteraction_Fusion : NetworkBehaviour
         switch (State)
         {
             case PalletState.Up:
-                stunZone.SetActive(false);
-                breakZone.SetActive(false);
+                if (stunZone) stunZone.SetActive(false);
+                if (breakZone) breakZone.SetActive(false);
                 break;
             case PalletState.Falling:
-                stunZone.SetActive(true);
-                breakZone.SetActive(false);
+                if (stunZone) stunZone.SetActive(true);
+                if (breakZone) breakZone.SetActive(false);
                 break;
             case PalletState.Dropped:
-                palletPivot.localRotation = droppedRotation;
-                stunZone.SetActive(false);
-                breakZone.SetActive(true); // Hiện vùng cho Hunter đập
+                if (stunZone) stunZone.SetActive(false);
+                if (breakZone) breakZone.SetActive(true);
+                palletPivot.localRotation = droppedRotation; // Chốt hạ góc
                 break;
             case PalletState.Destroyed:
                 if (Object.HasStateAuthority) Runner.Despawn(Object);
@@ -74,62 +82,73 @@ public class PalletInteraction_Fusion : NetworkBehaviour
         }
     }
 
-    // --- LOGIC CHO SURVIVOR ---
-    private void OnTriggerStay(Collider other)
+    // 🚨 TỐI ƯU 2: Chuyển Input ra Update để NHẠY BẤM 100%
+    private void Update()
     {
-        if (State != PalletState.Up) return;
-
-        // Nếu là Player (Survivor) và có quyền điều khiển
-        if (other.CompareTag("Player"))
+        if (_isLocalPlayerInZone && State == PalletState.Up)
         {
-            var networkObj = other.GetComponentInParent<NetworkObject>();
-            if (networkObj != null && networkObj.HasInputAuthority)
+            if (Input.GetKeyDown(KeyCode.Space))
             {
-                if (spaceUI != null) spaceUI.SetActive(true);
-
-                // Kiểm tra bấm nút Space (Sử dụng hệ thống Input cũ hoặc mới tùy bạn)
-                if (Input.GetKeyDown(KeyCode.Space))
-                {
-                    Rpc_RequestDropPallet();
-                }
-            }
-        }
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        if (other.CompareTag("Player"))
-        {
-            var networkObj = other.GetComponentInParent<NetworkObject>();
-            if (networkObj != null && networkObj.HasInputAuthority)
-            {
+                Rpc_RequestDropPallet();
+                
+                // Tắt UI ngay lập tức ở client để chống spam bấm nhiều lần
+                _isLocalPlayerInZone = false; 
                 if (spaceUI != null) spaceUI.SetActive(false);
             }
         }
     }
 
+    // --- LOGIC NHẬN DIỆN PLAYER VÀ HUNTER ---
+    private void OnTriggerEnter(Collider other)
+    {
+        CheckLocalPlayerTrigger(other, true);
+
+        // Kiểm tra Hunter bị đập ván trúng đầu
+        if (State == PalletState.Falling && other.CompareTag("Hunter"))
+        {
+            var hunter = other.GetComponentInParent<HunterInteraction>();
+            if (hunter != null)
+            {
+                hunter.ApplyStun(3.0f); // Gây choáng 3 giây
+            }
+        }
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        CheckLocalPlayerTrigger(other, true);
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        CheckLocalPlayerTrigger(other, false);
+    }
+
+    // Hàm dùng chung để bật/tắt UI khi Player ra/vào vùng
+    private void CheckLocalPlayerTrigger(Collider other, bool isInside)
+    {
+        if (State != PalletState.Up) return;
+
+        if (other.CompareTag("Player"))
+        {
+            var networkObj = other.GetComponentInParent<NetworkObject>();
+            if (networkObj != null && networkObj.HasInputAuthority)
+            {
+                _isLocalPlayerInZone = isInside;
+                if (spaceUI != null) spaceUI.SetActive(isInside);
+            }
+        }
+    }
+
+    // --- CÁC HÀM GỌI MẠNG (RPC) ---
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     public void Rpc_RequestDropPallet()
     {
         if (State == PalletState.Up)
         {
             State = PalletState.Falling;
-        }
-    }
-
-    // --- LOGIC GÂY CHOÁNG HUNTER (Gắn vào StunZone) ---
-    // Hàm này sẽ được gọi từ script con hoặc xử lý trực tiếp nếu Hunter chạm vào Falling Pallet
-    public void NotifyHunterStun(GameObject hunterObj)
-    {
-        if (!Object.HasStateAuthority) return;
-
-        // Giả sử Hunter có script tên là HunterInteraction như bạn đã gửi
-        var hunter = hunterObj.GetComponentInParent<HunterInteraction>();
-        if (hunter != null)
-        {
-            // Bạn cần thêm hàm ApplyStun vào script HunterInteraction
-            // hunter.ApplyStun(); 
-            Debug.Log("Hunter bị choáng bởi ván!");
+            // Kích hoạt bộ đếm thời gian
+            FallTimer = TickTimer.CreateFromSeconds(Runner, fallTime); 
         }
     }
 
@@ -139,19 +158,6 @@ public class PalletInteraction_Fusion : NetworkBehaviour
         if (State == PalletState.Dropped)
         {
             State = PalletState.Destroyed;
-        }
-    }
-    // Trong PalletInteraction_Fusion.cs
-    private void OnTriggerEnter(Collider other)
-    {
-        if (State == PalletState.Falling && other.CompareTag("Hunter"))
-        {
-            var hunter = other.GetComponentInParent<HunterInteraction>();
-            if (hunter != null)
-            {
-                // Gây choáng 3 giây
-                hunter.ApplyStun(3.0f);
-            }
         }
     }
 }
