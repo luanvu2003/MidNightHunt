@@ -240,7 +240,8 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
 
     private void HandleMovement(MrBeanGameplayInput input)
     {
-        // 🚨 Đã xóa phần tắt/bật CharacterController liên tục để tránh giật lag khi chơi mạng
+        _characterController.enabled = false;
+        _characterController.enabled = true;
 
         Vector3 direction = CalculateDirection(input.moveDirection, input.camForward, input.camRight);
 
