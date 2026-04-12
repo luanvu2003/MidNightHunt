@@ -8,7 +8,6 @@ public class PalletInteraction : NetworkBehaviour
 
     [Header("Cấu Hình Trạng Thái")]
     [Networked] public PalletState State { get; set; } = PalletState.Up;
-
     [Networked] private TickTimer FallTimer { get; set; }
 
     [Header("Tham Chiếu Render & Physics")]
@@ -17,9 +16,14 @@ public class PalletInteraction : NetworkBehaviour
     public GameObject breakZone;
     public GameObject spaceUI;
 
-    [Header("Thông Số")]
+    [Header("Thông Số Mới (Dễ chỉnh)")]
     public float fallTime = 0.25f;
-    public Quaternion droppedRotation = Quaternion.Euler(0, 0, 90);
+    [Tooltip("Góc gập xuống khi ngã. (Thử X=90 hoặc X=-90)")]
+    public Vector3 dropRotationOffset = new Vector3(90, 0, 0); 
+    
+    // Lưu trữ góc tự động tính toán
+    private Quaternion _startRotation;
+    private Quaternion _targetDroppedRotation;
 
     private ChangeDetector _changes;
     private bool _isLocalPlayerInZone = false;
@@ -27,14 +31,19 @@ public class PalletInteraction : NetworkBehaviour
     
     [Header("Âm Thanh (Audio)")]
     public AudioSource audioSource;
-    public AudioClip dropSound;    // Tiếng ván ngã (ầm!)
-    public AudioClip breakSound;   // Tiếng ván bị Hunter đập vỡ (rắc!)
+    public AudioClip dropSound;    
+    public AudioClip breakSound;   
     public AudioClip stunSound;
 
     public override void Spawned()
     {
         _isSpawned = true;
         _changes = GetChangeDetector(ChangeDetector.Source.SnapshotFrom);
+
+        // 🚨 TỰ ĐỘNG TÍNH TOÁN GÓC NGÃ DỰA TRÊN THẾ ĐỨNG BAN ĐẦU
+        _startRotation = palletPivot.localRotation;
+        _targetDroppedRotation = _startRotation * Quaternion.Euler(dropRotationOffset);
+
         if (spaceUI != null) spaceUI.SetActive(false);
         UpdateVisuals();
     }
@@ -61,25 +70,22 @@ public class PalletInteraction : NetworkBehaviour
             if (change == nameof(State))
             {
                 UpdateVisuals();
-                PlayStateSound(); // 🔊 Phát âm thanh khi đổi trạng thái
+                PlayStateSound(); 
             }
         }
 
+        // 🚨 Dùng góc ngã tự động để Lerp
         if (State == PalletState.Falling || State == PalletState.Dropped)
         {
-            palletPivot.localRotation = Quaternion.Lerp(palletPivot.localRotation, droppedRotation, Time.deltaTime * 15f);
+            palletPivot.localRotation = Quaternion.Lerp(palletPivot.localRotation, _targetDroppedRotation, Time.deltaTime * 15f);
         }
     }
     
     private void PlayStateSound()
     {
         if (audioSource == null) return;
-
-        if (State == PalletState.Falling && dropSound != null)
-            audioSource.PlayOneShot(dropSound);
-
-        if (State == PalletState.Destroyed && breakSound != null)
-            audioSource.PlayOneShot(breakSound);
+        if (State == PalletState.Falling && dropSound != null) audioSource.PlayOneShot(dropSound);
+        if (State == PalletState.Destroyed && breakSound != null) audioSource.PlayOneShot(breakSound);
     }
 
     private void UpdateVisuals()
@@ -97,27 +103,20 @@ public class PalletInteraction : NetworkBehaviour
             case PalletState.Dropped:
                 if (stunZone) stunZone.SetActive(false);
                 if (breakZone) breakZone.SetActive(true);
-                palletPivot.localRotation = droppedRotation;
+                // Chốt góc
+                palletPivot.localRotation = _targetDroppedRotation;
                 break;
             case PalletState.Destroyed:
-                // 🚨 Tắt hiển thị Model ván và Trigger để người chơi đi qua được
                 if (palletPivot != null) palletPivot.gameObject.SetActive(false);
                 if (breakZone != null) breakZone.SetActive(false);
-
-                // 🚨 Delay 0.6 giây để phát xong âm thanh đập vỡ rồi mới hủy Object mạng
                 if (Object.HasStateAuthority) Invoke(nameof(DelayedDespawn), 0.6f);
                 break;
         }
     }
 
-    // 🚨 HÀM MỚI: Dùng để hủy Object sau khi Delay
     private void DelayedDespawn()
     {
-        // Kiểm tra xem Object có còn hợp lệ trên mạng không trước khi xóa
-        if (Object != null && Object.IsValid)
-        {
-            Runner.Despawn(Object);
-        }
+        if (Object != null && Object.IsValid) Runner.Despawn(Object);
     }
 
     private void Update()
@@ -127,12 +126,7 @@ public class PalletInteraction : NetworkBehaviour
         if (_isLocalPlayerInZone && State == PalletState.Up)
         {
             bool isSpacePressed = false;
-
-            if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
-            {
-                isSpacePressed = true;
-            }
-
+            if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame) isSpacePressed = true;
 #if ENABLE_LEGACY_INPUT_MANAGER
             if (Input.GetKeyDown(KeyCode.Space)) isSpacePressed = true;
 #endif
@@ -149,9 +143,7 @@ public class PalletInteraction : NetworkBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (!_isSpawned) return;
-
         CheckLocalPlayerTrigger(other, true);
-
         if (State == PalletState.Falling && other.CompareTag("Hunter"))
         {
             var hunter = other.GetComponentInParent<HunterInteraction>();
@@ -178,14 +170,10 @@ public class PalletInteraction : NetworkBehaviour
         if (other.CompareTag("Player"))
         {
             var netObj = other.GetComponentInParent<NetworkObject>();
-
-            if (netObj != null)
+            if (netObj != null && netObj.HasInputAuthority)
             {
-                if (netObj.HasInputAuthority)
-                {
-                    _isLocalPlayerInZone = isInside;
-                    if (spaceUI != null) spaceUI.SetActive(isInside);
-                }
+                _isLocalPlayerInZone = isInside;
+                if (spaceUI != null) spaceUI.SetActive(isInside);
             }
         }
     }
@@ -204,7 +192,6 @@ public class PalletInteraction : NetworkBehaviour
                 if (stunCol != null)
                 {
                     Collider[] hits = Physics.OverlapBox(stunCol.bounds.center, stunCol.bounds.extents, stunZone.transform.rotation);
-
                     foreach (Collider hit in hits)
                     {
                         if (hit.CompareTag("Hunter"))
