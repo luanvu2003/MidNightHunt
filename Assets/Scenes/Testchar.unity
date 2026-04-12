@@ -2345,10 +2345,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 42205005815189177, guid: f49449c111e98a04e9371b76ac04f9a7, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 2006207292993136333, guid: f49449c111e98a04e9371b76ac04f9a7, type: 3}
       propertyPath: mainCamera
       value: 
@@ -2549,94 +2545,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: Animator
-      value: 
-      objectReference: {fileID: 8988696663221292445}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: TotalWords
-      value: 4
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: StateHashes.Array.size
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: TriggerHashes.Array.size
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[3]'
-      value: -1266168557
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[4]'
-      value: 1225723640
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[5]'
-      value: -443105433
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[6]'
-      value: 1624961253
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[7]'
-      value: -1309812712
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[8]'
-      value: -1294043557
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[9]'
-      value: 611223901
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[10]'
-      value: -1685467656
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[11]'
-      value: 1360618153
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[12]'
-      value: -732615381
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[13]'
-      value: -1542608434
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[14]'
-      value: -1489107059
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[15]'
-      value: -4529525
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[16]'
-      value: 1495869682
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[17]'
-      value: -499022955
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[18]'
-      value: 158044004
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[19]'
-      value: -1083647744
-      objectReference: {fileID: 0}
-    - target: {fileID: 4293240204812007307, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: m_Controller
-      value: 
-      objectReference: {fileID: 9100000, guid: f96f2bc7675ff8049813adb7d556d6b2, type: 2}
     - target: {fileID: 4496159976589184080, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
       propertyPath: m_LocalPosition.x
       value: 39.5722
@@ -2681,18 +2589,6 @@ PrefabInstance:
       propertyPath: SortKey
       value: 275145653
       objectReference: {fileID: 0}
-    - target: {fileID: 7887082696286105073, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 100
-      objectReference: {fileID: 0}
-    - target: {fileID: 7887082696286105073, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 100
-      objectReference: {fileID: 0}
-    - target: {fileID: 7887082696286105073, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 100
-      objectReference: {fileID: 0}
     - target: {fileID: 8437323240024215010, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
       propertyPath: m_Name
       value: MrBeast
@@ -2702,11 +2598,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
---- !u!95 &8988696663221292445 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 4293240204812007307, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-  m_PrefabInstance: {fileID: 8988696663221292444}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
