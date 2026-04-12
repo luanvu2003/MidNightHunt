@@ -4,16 +4,17 @@ using UnityEngine;
 
 public class GameManager_Fusion : NetworkBehaviour
 {
-    // Tạo Singleton để các Máy phát điện dễ dàng tìm thấy GameManager
     public static GameManager_Fusion Instance;
 
     [Header("UI Reference")]
-    // Kéo Text (TMP) của "MáyPĐ" vào đây
     public TextMeshProUGUI generatorsRemainingText;
 
     [Header("Game Settings")]
-    // Số lượng máy tối đa cần sửa để mở cửa
     [Networked] public int GeneratorsRemaining { get; set; } = 4;
+
+    [Header("Âm Thanh Thông Báo Mở Cửa")]
+    public AudioSource globalAudioSource;
+    public AudioClip sirenSound; // Tiếng hú khi sửa xong 4 máy
 
     public override void Spawned()
     {
@@ -23,32 +24,43 @@ public class GameManager_Fusion : NetworkBehaviour
 
     public override void Render()
     {
-        // Fusion sẽ liên tục đồng bộ biến mạng này lên UI của tất cả Client
         if (generatorsRemainingText != null)
         {
             generatorsRemainingText.text = GeneratorsRemaining.ToString();
         }
     }
 
-    // Hàm này được gọi từ Generator khi tiến trình đạt 100%
     public void OnGeneratorRepaired()
     {
-        // 🚨 CHỈ SERVER mới có quyền trừ số máy
         if (!Object.HasStateAuthority) return; 
 
         if (GeneratorsRemaining > 0)
         {
-            GeneratorsRemaining--; // Trừ đi 1
+            GeneratorsRemaining--;
 
-            // Kiểm tra nếu đã về 0 (Chặn không cho xuống âm)
             if (GeneratorsRemaining <= 0)
             {
                 GeneratorsRemaining = 0;
-                
-                // Tiền đề cho cửa thoát hiểm sau này
-                Debug.Log("--- ĐÃ SỬA XONG 4 MÁY! SẴN SÀNG KÍCH HOẠT CỬA THOÁT HIỂM! ---");
-                // Mốt bạn sẽ viết code kích hoạt cửa ở đây
+                Debug.Log("--- ĐÃ SỬA XONG 4 MÁY! CẤP ĐIỆN CHO CỬA THOÁT HIỂM! ---");
+                RPC_PowerUpGates(); // Gọi lệnh phát tiếng còi và bật điện cửa
             }
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PowerUpGates()
+    {
+        // 1. Phát tiếng còi hú toàn map
+        if (globalAudioSource != null && sirenSound != null)
+        {
+            globalAudioSource.PlayOneShot(sirenSound);
+        }
+
+        // 2. Tìm tất cả các cửa trên Map và kích hoạt Aura
+        ExitGate_Fusion[] gates = FindObjectsOfType<ExitGate_Fusion>();
+        foreach (var gate in gates)
+        {
+            gate.OnGatesPoweredUp();
         }
     }
 }
