@@ -674,6 +674,24 @@ public class HunterInteraction : NetworkBehaviour
                 {
                     survivor.GetHooked(syncedTargetPos, syncedTargetRot);
                 }
+
+                // 🚨 FIX QUAN TRỌNG: Báo cho PlayerHookReceiver biết là đổi mục tiêu hút từ "Vai Hunter" sang "Cái Móc"
+                PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
+                if (receiver != null)
+                {
+                    NetworkObject hookObj = Runner.FindObject(syncedTargetId);
+                    if (hookObj != null)
+                    {
+                        Transform hookPoint = hookObj.transform.Find("HookPoint");
+                        receiver.GetPickedUpOrHooked(hookPoint != null ? hookPoint : hookObj.transform);
+                    }
+                    else
+                    {
+                        // Backup an toàn nếu lỡ mất kết nối hook
+                        receiver.ReleaseFromHunter();
+                    }
+                }
+
                 isCarryingPlayer = false;
             }
 
@@ -739,7 +757,12 @@ public class HunterInteraction : NetworkBehaviour
                 if (gen == null || !gen.CanBeDamagedByHunter()) return;
             }
 
-            // 🚨 ĐÃ SỬA: Xóa phần check IsDowned phức tạp dễ gây delay mạng. Chỉ cần Tag chuẩn là nhận diện.
+            if (other.CompareTag("Playerchet"))
+            {
+                // 🚨 FIX 1: Chống lỗi Rigidbody nhận diện sai. 
+                // Chỉ cho phép bắt trúng Collider có đánh dấu "Is Trigger" (Cục tương tác). Bỏ qua va chạm vật lý thân thể.
+                if (!other.isTrigger) return;
+            }
 
             currentInteractTarget = other;
 
@@ -821,9 +844,13 @@ public class HunterInteraction : NetworkBehaviour
 
     public void EventTreoMoc()
     {
-        if (isCarryingPlayer && interactAudioSource != null && clipTreoMoc != null)
+        if (isCarryingPlayer)
         {
-            interactAudioSource.PlayOneShot(clipTreoMoc, 1f * GetVFXVolume());
+            // Tách phát âm thanh ra riêng để không ảnh hưởng logic
+            if (interactAudioSource != null && clipTreoMoc != null)
+                interactAudioSource.PlayOneShot(clipTreoMoc, 1f * GetVFXVolume());
+
+            // 🚨 ĐÃ SỬA: Lệnh thực thi móc phải nằm ngoài cái Check Audio
             HookPlayerToHook();
         }
     }
