@@ -581,7 +581,7 @@ public class AttackController : NetworkBehaviour
     [HideInInspector] public GameObject uiContainer;
     [HideInInspector] public TextMeshProUGUI ammoText;
     [HideInInspector] public Image cooldownImage;
-    [HideInInspector] public TextMeshProUGUI cooldownText; 
+    [HideInInspector] public TextMeshProUGUI cooldownText;
 
     [HideInInspector] public GameObject imgHunter1;
     [HideInInspector] public GameObject imgHunter2;
@@ -604,7 +604,7 @@ public class AttackController : NetworkBehaviour
 
     [Tooltip("Kéo PREFAB của bẫy mờ (Trap Fake) vào đây")]
     public GameObject trapPreviewPrefab;
-    private GameObject trapPreviewInstance; 
+    private GameObject trapPreviewInstance;
 
     public float placeRange = 6.5f;
     public LayerMask groundLayer;
@@ -615,7 +615,7 @@ public class AttackController : NetworkBehaviour
     public string mouthPointName = "VomitSpawnPoint";
     [HideInInspector] public Transform mouthPoint;
 
-    public float vomitDuration = 2.5f;
+    public float vomitDuration = 3f;
     public float skillRechargeTime = 10f;
 
     [Range(0f, 1f)] public float vomitMoveSpeedMult = 0.5f;
@@ -765,7 +765,7 @@ public class AttackController : NetworkBehaviour
                 if (cooldownText != null)
                 {
                     if (!cooldownText.gameObject.activeSelf) cooldownText.gameObject.SetActive(true);
-                    cooldownText.text = Mathf.CeilToInt(remaining).ToString(); 
+                    cooldownText.text = Mathf.CeilToInt(remaining).ToString();
                 }
             }
             else
@@ -849,7 +849,7 @@ public class AttackController : NetworkBehaviour
             if (cooldownImage != null)
             {
                 cooldownImage.fillAmount = 0f;
-                cooldownImage.gameObject.SetActive(false); 
+                cooldownImage.gameObject.SetActive(false);
             }
 
             if (cooldownText != null) cooldownText.gameObject.SetActive(false);
@@ -902,7 +902,7 @@ public class AttackController : NetworkBehaviour
         if (Physics.Raycast(ray, out RaycastHit hit, placeRange, groundLayer))
         {
             if (!trapPreviewInstance.activeSelf) trapPreviewInstance.SetActive(true);
-            trapPreviewInstance.transform.position = hit.point + Vector3.up * 0.02f; 
+            trapPreviewInstance.transform.position = hit.point + Vector3.up * 0.02f;
             trapPreviewInstance.transform.rotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
 
             lockedTrapPos = hit.point;
@@ -973,7 +973,7 @@ public class AttackController : NetworkBehaviour
                 if (isVomiting)
                 {
                     // Lúc đang vận chiêu ói thì không đếm số (để trống)
-                    cooldownText.text = ""; 
+                    cooldownText.text = "";
                 }
                 else
                 {
@@ -997,10 +997,14 @@ public class AttackController : NetworkBehaviour
         if (vomitPrefab == null || mouthPoint == null) return;
 
         isVomiting = true;
-        Rpc_ToggleVomitVisuals(true);
-        StartCoroutine(UseSkillCoroutine());
-    }
+        currentSkillEnergy = 1f; // 🚨 SỬA LỖI: Lập tức gán Cooldown = 100% để khóa nút bấm lại
 
+        Rpc_ToggleVomitVisuals(true);
+
+        // SỬA LỖI: Dùng Invoke để hẹn giờ tắt xịt độc thay vì Coroutine dễ gây lỗi mạng
+        CancelInvoke(nameof(StopVomitEvent));
+        Invoke(nameof(StopVomitEvent), vomitDuration);
+    }
     public void StopVomitEvent()
     {
         if (!Object.HasStateAuthority || typeOfHunter != HunterType.Hunter3_OiDoc) return;
@@ -1020,31 +1024,36 @@ public class AttackController : NetworkBehaviour
                 currentVomitInstance = Instantiate(vomitPrefab, mouthPoint.position, mouthPoint.rotation);
                 currentVomitInstance.transform.SetParent(mouthPoint);
             }
-            if (attackSource != null && clipVomitStart != null)
+            if (attackSource != null)
             {
-                attackSource.PlayOneShot(clipVomitStart);
-                if (clipVomitingLoop != null) { attackSource.clip = clipVomitingLoop; attackSource.Play(); }
+                if (clipVomitStart != null) attackSource.PlayOneShot(clipVomitStart, 1f * GetVFXVolume());
+                if (clipVomitingLoop != null)
+                {
+                    attackSource.clip = clipVomitingLoop;
+                    attackSource.volume = GetVFXVolume(); // 🚨 Chỉnh volume của tiếng Loop
+                    attackSource.Play();
+                }
+            }
+            else
+            {
+                if (currentVomitInstance != null) Destroy(currentVomitInstance);
+                if (attackSource != null && attackSource.clip == clipVomitingLoop) attackSource.Stop();
             }
         }
-        else
-        {
-            if (currentVomitInstance != null) Destroy(currentVomitInstance);
-            if (attackSource != null && attackSource.clip == clipVomitingLoop) attackSource.Stop();
-        }
-    }
 
-    IEnumerator UseSkillCoroutine()
-    {
-        float timer = 0f;
-        float startEnergy = currentSkillEnergy;
-
-        while (timer < vomitDuration && isVomiting)
+        IEnumerator UseSkillCoroutine()
         {
-            timer += Runner.DeltaTime;
-            currentSkillEnergy = Mathf.Lerp(startEnergy, 1f, timer / vomitDuration);
-            yield return null;
+            float timer = 0f;
+            float startEnergy = currentSkillEnergy;
+
+            while (timer < vomitDuration && isVomiting)
+            {
+                timer += Runner.DeltaTime;
+                currentSkillEnergy = Mathf.Lerp(startEnergy, 1f, timer / vomitDuration);
+                yield return null;
+            }
+            currentSkillEnergy = 1f;
         }
-        currentSkillEnergy = 1f;
     }
 
     // =========================================================
@@ -1168,16 +1177,27 @@ public class AttackController : NetworkBehaviour
         {
             // 🚨 ĐÃ SỬA: Đảm bảo khi chọn Hunter 3 thì Text Đạn luôn bị tắt hoàn toàn
             ammoText.text = "";
-            ammoText.gameObject.SetActive(false); 
+            ammoText.gameObject.SetActive(false);
         }
     }
 
-    public void PlaySoundSwing() { if (attackSource != null && clipChemBua != null) attackSource.PlayOneShot(clipChemBua); }
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)] public void Rpc_PlayReleaseSound() { if (attackSource != null && clipReleaseSkill != null) attackSource.PlayOneShot(clipReleaseSkill); }
+    public void PlaySoundSwing() { if (attackSource != null && clipChemBua != null) attackSource.PlayOneShot(clipChemBua, 1f * GetVFXVolume()); }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void Rpc_PlayReleaseSound() { if (attackSource != null && clipReleaseSkill != null) attackSource.PlayOneShot(clipReleaseSkill, 1f * GetVFXVolume()); }
+
     public void PlaySoundRelease() { if (Object.HasStateAuthority) Rpc_PlayReleaseSound(); }
     public void PlaySoundDatTrap() { if (typeOfHunter == HunterType.Hunter2_DatTrap && Object.HasStateAuthority) Rpc_PlayReleaseSound(); }
     public void EnableDamageFrames() { if (Object.HasStateAuthority && meleeWeapon != null) meleeWeapon.TurnOnHitbox(); }
     public void DisableDamageFrames() { if (Object.HasStateAuthority && meleeWeapon != null) meleeWeapon.TurnOffHitbox(); }
     public void OnHitSuccess(GameObject victim) { if (Object.HasStateAuthority) Rpc_PlayHitSuccessSound(); }
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)] private void Rpc_PlayHitSuccessSound() { if (attackSource != null && clipHitSuccess != null) attackSource.PlayOneShot(clipHitSuccess); }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void Rpc_PlayHitSuccessSound() { if (attackSource != null && clipHitSuccess != null) attackSource.PlayOneShot(clipHitSuccess, 1f * GetVFXVolume()); }
+
+    // 🚨 HÀM LẤY ÂM LƯỢNG VFX
+    private float GetVFXVolume()
+    {
+        return AudioManager.Instance != null ? AudioManager.Instance.vfxVolume : 1f;
+    }
 }

@@ -10,15 +10,15 @@ public class RandomRoleManager : NetworkBehaviour
     [Header("== UI HIỂN THỊ ==")]
     public TextMeshProUGUI statusText;
     public TextMeshProUGUI resultText;
-    
+
     [Header("== DANH SÁCH NGƯỜI CHƠI ==")]
     public TextMeshProUGUI[] playerNameTexts;
 
     [Header("== HIỆU ỨNG VÒNG QUAY ==")]
     public RectTransform highlightFrame;
     public Color normalColor = Color.white;
-    public Color highlightColor = Color.yellow; 
-    public Color hunterColor = Color.red;       
+    public Color highlightColor = Color.yellow;
+    public Color hunterColor = Color.red;
 
     [Header("== ÂM THANH (AUDIO) ==")]
     public AudioSource audioSource;
@@ -109,8 +109,8 @@ public class RandomRoleManager : NetworkBehaviour
         if (highlightFrame != null) highlightFrame.gameObject.SetActive(true);
 
         // Tính toán tổng số bước nhảy sao cho điểm dừng cuối cùng khớp với winnerIndex
-        int totalSpins = (playerCount * extraSpins) + winnerIndex; 
-        float delayTime = 0.05f; 
+        int totalSpins = (playerCount * extraSpins) + winnerIndex;
+        float delayTime = 0.05f;
 
         // 🟢 VÒNG LẶP QUAY SỐ
         for (int i = 0; i <= totalSpins; i++)
@@ -129,14 +129,15 @@ public class RandomRoleManager : NetworkBehaviour
             // 🎵 PHÁT ÂM THANH QUAY (Spin)
             if (audioSource != null && spinSound != null)
             {
-                audioSource.PlayOneShot(spinSound, 0.5f); // Âm lượng 50% cho đỡ nhức đầu
+                // Nhân 0.5f với âm lượng cài đặt
+                audioSource.PlayOneShot(spinSound, 0.5f * GetVFXVolume());
             }
 
             // Hiệu ứng chậm dần đều
             int remainingSpins = totalSpins - i;
             if (remainingSpins < 3) delayTime += 0.2f;       // 3 ô cuối cực chậm
             else if (remainingSpins < 10) delayTime += 0.05f; // 10 ô cuối chậm dần
-            
+
             yield return new WaitForSeconds(delayTime);
         }
 
@@ -150,7 +151,7 @@ public class RandomRoleManager : NetworkBehaviour
         // 🎵 PHÁT ÂM THANH CHỐT (Dùng chung cho cả 2 phe)
         if (audioSource != null && resultSound != null)
         {
-            audioSource.PlayOneShot(resultSound, 1f); // Âm lượng 100%
+            audioSource.PlayOneShot(resultSound, 1f * GetVFXVolume());
         }
 
         // Hiện chữ to báo cho người chơi biết họ là phe nào
@@ -192,7 +193,7 @@ public class RandomRoleManager : NetworkBehaviour
                 lastTickSecond = timeLeft;
                 if (audioSource != null && tickSound != null)
                 {
-                    audioSource.PlayOneShot(tickSound, 0.7f);
+                    audioSource.PlayOneShot(tickSound, 0.7f * GetVFXVolume());
                 }
             }
         }
@@ -203,8 +204,17 @@ public class RandomRoleManager : NetworkBehaviour
         // Khi đồng hồ mạng hết giờ, Server sẽ lôi cả đám sang Scene 3 (Chọn tướng)
         if (IsRoleAssigned && Runner.IsServer && TransitionTimer.Expired(Runner))
         {
-            TransitionTimer = TickTimer.None; 
-            Runner.LoadScene(SceneRef.FromIndex(3)); 
+            TransitionTimer = TickTimer.None;
+            Runner.LoadScene(SceneRef.FromIndex(3));
         }
+    }
+    // HÀM MỚI: Lấy âm lượng VFX từ AudioManager (Nếu không có thì mặc định là 100%)
+    private float GetVFXVolume()
+    {
+        if (AudioManager.Instance != null)
+        {
+            return AudioManager.Instance.vfxVolume;
+        }
+        return 1f; // Chạy test 1 Scene không qua Menu thì nó vẫn kêu
     }
 }

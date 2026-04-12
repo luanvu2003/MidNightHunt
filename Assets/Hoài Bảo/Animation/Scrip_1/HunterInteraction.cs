@@ -489,7 +489,7 @@ public class HunterInteraction : NetworkBehaviour
                 if (controller != null && !controller.enabled)
                 {
                     // Ép Unity ghi nhận tọa độ mới trước khi bật va chạm
-                    Physics.SyncTransforms(); 
+                    Physics.SyncTransforms();
                     controller.enabled = true;
                 }
             }
@@ -583,7 +583,7 @@ public class HunterInteraction : NetworkBehaviour
         isInteracting = true;
         syncedTargetId = targetId;
         syncedTargetPos = targetPosition;
-        syncedTargetRot = targetRotation; 
+        syncedTargetRot = targetRotation;
         Rpc_PlayInteractionEffects(tag, targetPosition);
     }
 
@@ -612,7 +612,7 @@ public class HunterInteraction : NetworkBehaviour
         else if (tag == "Cuaso")
         {
             animator.SetTrigger("Treocuaso");
-            
+
             if (Object.HasStateAuthority)
             {
                 isVaulting = true;
@@ -710,7 +710,7 @@ public class HunterInteraction : NetworkBehaviour
         if (Object.HasInputAuthority)
         {
             if (fpsCameraScript != null) fpsCameraScript.isCameraLockedForAnim = false;
-            
+
             isSliderRunning = false;
             if (interactionSlider != null) { interactionSlider.value = 1f; interactionSlider.gameObject.SetActive(false); }
         }
@@ -719,8 +719,8 @@ public class HunterInteraction : NetworkBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (isInteracting || isSliderRunning) return;
-        
-        if (other.transform.root == transform.root) return; 
+
+        if (other.transform.root == transform.root) return;
 
         if (other.CompareTag("May") || other.CompareTag("Moc") || other.CompareTag("Playerchet") || other.CompareTag("Cuaso"))
         {
@@ -732,7 +732,7 @@ public class HunterInteraction : NetworkBehaviour
             {
                 Vector3 dirToWindow = (other.transform.position - transform.position).normalized;
                 float dot = Vector3.Dot(transform.forward, dirToWindow);
-                if (dot < 0.3f) return; 
+                if (dot < 0.3f) return;
             }
 
             if (other.CompareTag("May"))
@@ -804,7 +804,8 @@ public class HunterInteraction : NetworkBehaviour
     // --- ANIMATION EVENTS ---
     public void EventDapMay()
     {
-        if (interactAudioSource != null && clipDapMay != null) interactAudioSource.PlayOneShot(clipDapMay);
+        if (interactAudioSource != null && clipDapMay != null)
+            interactAudioSource.PlayOneShot(clipDapMay, 1f * GetVFXVolume());
 
         if (Object.HasStateAuthority)
         {
@@ -816,6 +817,25 @@ public class HunterInteraction : NetworkBehaviour
             }
         }
     }
-    public void EventVault() { if (isVaulting) { if (interactAudioSource != null && clipTreoCuaso != null) interactAudioSource.PlayOneShot(clipTreoCuaso); } }
-    public void EventTreoMoc() { if (isCarryingPlayer) { if (interactAudioSource != null && clipTreoMoc != null) interactAudioSource.PlayOneShot(clipTreoMoc); HookPlayerToHook(); } }
+
+    public void EventVault()
+    {
+        if (isVaulting && interactAudioSource != null && clipTreoCuaso != null)
+            interactAudioSource.PlayOneShot(clipTreoCuaso, 1f * GetVFXVolume());
+    }
+
+    public void EventTreoMoc()
+    {
+        if (isCarryingPlayer && interactAudioSource != null && clipTreoMoc != null)
+        {
+            interactAudioSource.PlayOneShot(clipTreoMoc, 1f * GetVFXVolume());
+            HookPlayerToHook();
+        }
+    }
+
+    // 🚨 HÀM LẤY ÂM LƯỢNG VFX
+    private float GetVFXVolume()
+    {
+        return AudioManager.Instance != null ? AudioManager.Instance.vfxVolume : 1f;
+    }
 }
