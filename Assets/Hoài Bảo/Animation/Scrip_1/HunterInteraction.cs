@@ -574,6 +574,16 @@ public class HunterInteraction : NetworkBehaviour
         isCarryingPlayer = false;
         carriedPlayerObject = null;
         Debug.Log("Hunter bị choáng và làm rơi Survivor!");
+        // 🚨 THÊM FIX AURA KHI BỊ RỚT NGƯỜI
+        if (Object.HasInputAuthority)
+        {
+            // Tắt màu Trắng của Máy, bật lại màu Đỏ cho Máy
+            ToggleAuraGroup(allGenerators, auraMatWhite, false);
+            ToggleAuraGroup(allGenerators, auraMatRed, true);
+
+            // Tắt màu Đỏ của Móc
+            ToggleAuraGroup(allHooks, auraMatRed, false);
+        }
     }
 
     public bool IsDoingAction() { bool isStunned = !StunTimer.ExpiredOrNotRunning(Runner); return isInteracting || isVaulting || isSliderRunning; }
@@ -790,6 +800,15 @@ public class HunterInteraction : NetworkBehaviour
                 if (s4 != null) s4.GetHooked(finalPos, finalRot);
 
                 isCarryingPlayer = false;
+            }
+            if (Object.HasInputAuthority)
+            {
+                // Tắt màu Trắng của Máy, bật lại màu Đỏ cho Máy
+                ToggleAuraGroup(allGenerators, auraMatWhite, false);
+                ToggleAuraGroup(allGenerators, auraMatRed, true);
+
+                // Tắt màu Đỏ của Móc
+                ToggleAuraGroup(allHooks, auraMatRed, false);
             }
 
             if (currentInteractTarget != null) currentInteractTarget.tag = "Untagged";
