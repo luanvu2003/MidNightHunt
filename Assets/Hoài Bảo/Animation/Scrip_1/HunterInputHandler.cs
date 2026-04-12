@@ -108,6 +108,9 @@ public class HunterInputHandler : NetworkBehaviour, INetworkRunnerCallbacks
     {
         if (!Object.HasInputAuthority) return;
 
+        // 🚨 CHỐT CHẶN: ĐANG BẬT SETTING -> KHÔNG ĐƯỢC ĐÁNH HAY BẤM TƯƠNG TÁC
+        if (SettingsUIManager.IsOpen) return;
+
         if (actions.HunterControllerS.Interact.WasPressedThisFrame())
         {
             interactScript.TryInteract();
@@ -135,8 +138,15 @@ public class HunterInputHandler : NetworkBehaviour, INetworkRunnerCallbacks
     {
         var myInput = new HunterMoveInput();
 
-        // Đọc WASD
-        myInput.moveDirection = actions.HunterControllerS.Move.ReadValue<Vector2>();
+        // 🚨 CHỐT CHẶN: ĐANG BẬT SETTING -> NHÂN VẬT ĐỨNG IM (Không nhận phím WASD)
+        if (SettingsUIManager.IsOpen)
+        {
+            myInput.moveDirection = Vector2.zero;
+        }
+        else
+        {
+            myInput.moveDirection = actions.HunterControllerS.Move.ReadValue<Vector2>();
+        }
 
         // Đọc góc quay Camera
         if (Camera.main != null)

@@ -49,6 +49,10 @@ public class GameCameraController : MonoBehaviour
     {
         if (targetBody == null || currentMode == CameraMode.None) return;
 
+        // 🚨 CHỐT CHẶN: NẾU ĐANG MỞ BẢNG SETTING -> DỪNG NGAY VIỆC QUAY CAMERA
+        if (SettingsUIManager.IsOpen) return;
+
+        // Đoạn code phía dưới của bạn giữ nguyên...
         if (Keyboard.current.leftAltKey.wasPressedThisFrame)
         {
             isMouseLocked = !isMouseLocked;
@@ -62,7 +66,6 @@ public class GameCameraController : MonoBehaviour
         cameraPitch -= mouseDelta.y * mouseSensitivity * Time.deltaTime;
         cameraPitch = Mathf.Clamp(cameraPitch, -maxLookAngle, maxLookAngle);
 
-        // Xoay Camera
         transform.localEulerAngles = new Vector3(cameraPitch, cameraYaw, 0f);
     }
 
