@@ -30,6 +30,12 @@ public class HunterAnimationBridge : MonoBehaviour
         if (interactionScript != null) interactionScript.EventDapMay();
     }
 
+    // 🚨 SỰ KIỆN ĐẬP VÁN
+    public void EventDapVan()
+    {
+        if (interactionScript != null) interactionScript.EventDapVan();
+    }
+
     public void EventVault()
     {
         if (interactionScript != null) interactionScript.EventVault();

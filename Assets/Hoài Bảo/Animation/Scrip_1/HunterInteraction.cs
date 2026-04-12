@@ -375,7 +375,6 @@ public class HunterInteraction : NetworkBehaviour
     [Header("Vượt Cửa Sổ")]
     [Tooltip("Khoảng cách phi thân qua cửa sổ. NHỚ CHỈNH ĐỦ XA ĐỂ KHÔNG BỊ KẸT TƯỜNG!")]
     public float vaultDistance = 2.5f;
-    // 🚨 THÊM BIẾN NÀY ĐỂ FIX LỖI KẸT CỬA SỔ
     [Header("Khoảng cách tương tác an toàn")]
     public float maxInteractDistance = 4.0f;
 
@@ -394,8 +393,9 @@ public class HunterInteraction : NetworkBehaviour
 
     private Collider currentInteractTarget;
     private float currentDuration = 1f;
+    
     [Header("Hệ Thống Choáng (Stun)")]
-    [Networked] public TickTimer StunTimer { get; set; } // Bộ đếm thời gian choáng mạng
+    [Networked] public TickTimer StunTimer { get; set; } 
     public string stunAnimationTrigger = "BeStunned";
 
     // --- BIẾN ĐỒNG BỘ MẠNG CƠ BẢN ---
@@ -409,7 +409,6 @@ public class HunterInteraction : NetworkBehaviour
     [Networked] private Vector3 vEnd { get; set; }
     [Networked] private float syncedDuration { get; set; }
 
-    // Tách riêng timer cho UI chạy mượt trên máy Client
     private bool isSliderRunning = false;
     private float sliderTimer = 0f;
 
@@ -464,30 +463,24 @@ public class HunterInteraction : NetworkBehaviour
         }
         return null;
     }
-    // 🚨 HỆ THỐNG VẬT LÝ MẠNG (ĐÃ FIX LỖI TRƯỢT XA VÀ GIẬT LÙI)
+
     public override void FixedUpdateNetwork()
     {
-        if (!StunTimer.ExpiredOrNotRunning(Runner))
-        {
-            return;
-        }
+        if (!StunTimer.ExpiredOrNotRunning(Runner)) return;
+        
         if (isVaulting)
         {
-            // 1. Ép tắt CharacterController liên tục để chống kẹt
             if (controller != null && controller.enabled) controller.enabled = false;
 
-            // 2. 🚨 ĐÃ SỬA: Cho phép cả Client và Server đều đếm thời gian
-            // (Fusion Client Prediction) giúp trượt cực mượt không bị khựng chờ mạng
             vaultTimer += Runner.DeltaTime;
 
             if (vaultTimer >= syncedDuration)
             {
                 isVaulting = false;
-                transform.position = vEnd; // Chốt hạ vị trí chính xác cuối cùng
+                transform.position = vEnd; 
             }
             else
             {
-                // 3. Trượt mượt mà theo thời gian thực
                 float safeDuration = Mathf.Max(0.1f, syncedDuration);
                 float t = Mathf.Clamp01(vaultTimer / safeDuration);
                 transform.position = Vector3.Lerp(vStart, vEnd, t);
@@ -495,12 +488,10 @@ public class HunterInteraction : NetworkBehaviour
         }
         else
         {
-            // CHỈ BẬT LẠI VA CHẠM KHI KHÔNG CÒN TƯƠNG TÁC
             if (!isInteracting && !isSliderRunning)
             {
                 if (controller != null && !controller.enabled)
                 {
-                    // Ép Unity ghi nhận tọa độ mới trước khi bật va chạm
                     Physics.SyncTransforms();
                     controller.enabled = true;
                 }
@@ -531,12 +522,10 @@ public class HunterInteraction : NetworkBehaviour
             }
         }
 
-        // 🚨 FIX KẸT TƯƠNG TÁC TỪ XA: Tự động xóa Target nếu đi quá xa
         if (currentInteractTarget != null && !isInteracting && !isSliderRunning)
         {
             float dist = Vector3.Distance(transform.position, currentInteractTarget.transform.position);
 
-            // Nếu vượt quá khoảng cách cho phép, ép clear target và tắt UI
             if (dist > maxInteractDistance)
             {
                 currentInteractTarget = null;
@@ -544,49 +533,58 @@ public class HunterInteraction : NetworkBehaviour
             }
         }
     }
-    // Hàm gọi từ phía Server hoặc qua RPC để gây choáng
+
     public void ApplyStun(float duration)
     {
         if (!Object.HasStateAuthority) return;
-
-        // Thiết lập thời gian choáng
         StunTimer = TickTimer.CreateFromSeconds(Runner, duration);
-
-        // Bắn RPC để tất cả mọi người cùng thấy Hunter bị choáng
         Rpc_PlayStunEffects();
     }
+
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void Rpc_PlayStunEffects()
     {
-        // Chạy Animation choáng
         if (animator != null) animator.SetTrigger(stunAnimationTrigger);
-
-        // Nếu Hunter đang vác người thì làm rớt người đó ra (Logic DBD)
-        if (isCarryingPlayer)
-        {
-            DropPlayerLogic();
-        }
+        if (isCarryingPlayer) DropPlayerLogic();
     }
+
     private void DropPlayerLogic()
     {
-        // Ở đây bạn gọi lại logic giải thoát cho Survivor
-        // Ví dụ: carriedPlayerObject.GetComponent<IShowSpeedController_Fusion>().GetRescued();
+        if (carriedPlayerObject != null)
+        {
+            PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
+            if (receiver != null) receiver.ReleaseFromHunter();
+
+            var s1 = carriedPlayerObject.GetComponent<IShowSpeedController_Fusion>();
+            if (s1 != null) s1.IsDowned = true;
+
+            var s2 = carriedPlayerObject.GetComponent<MrBeanController_Fusion>();
+            if (s2 != null) s2.IsDowned = true;
+
+            var s3 = carriedPlayerObject.GetComponent<MrBeastController_Fusion>();
+            if (s3 != null) s3.IsDowned = true;
+
+            var s4 = carriedPlayerObject.GetComponent<NurseController_Fusion>();
+            if (s4 != null) s4.IsDowned = true;
+        }
+
         isCarryingPlayer = false;
         carriedPlayerObject = null;
-        Debug.Log("Hunter bị choáng và làm rơi Survivor!");
-        // 🚨 THÊM FIX AURA KHI BỊ RỚT NGƯỜI
+        Debug.Log("💥 Hunter bị choáng và làm rơi Survivor!");
+
         if (Object.HasInputAuthority)
         {
-            // Tắt màu Trắng của Máy, bật lại màu Đỏ cho Máy
             ToggleAuraGroup(allGenerators, auraMatWhite, false);
             ToggleAuraGroup(allGenerators, auraMatRed, true);
-
-            // Tắt màu Đỏ của Móc
             ToggleAuraGroup(allHooks, auraMatRed, false);
         }
     }
 
-    public bool IsDoingAction() { bool isStunned = !StunTimer.ExpiredOrNotRunning(Runner); return isInteracting || isVaulting || isSliderRunning; }
+    public bool IsDoingAction()
+    {
+        bool isStunned = !StunTimer.ExpiredOrNotRunning(Runner);
+        return isInteracting || isVaulting || isSliderRunning || isStunned;
+    }
 
     public void TryInteract()
     {
@@ -597,7 +595,7 @@ public class HunterInteraction : NetworkBehaviour
         }
 
         if (currentInteractTarget == null) return;
-        // 🚨 FIX: Kiểm tra lại khoảng cách một lần nữa trước khi thực hiện hành động
+        
         float distToTarget = Vector3.Distance(transform.position, currentInteractTarget.transform.position);
         if (distToTarget > maxInteractDistance)
         {
@@ -612,14 +610,12 @@ public class HunterInteraction : NetworkBehaviour
         if (isCarryingPlayer && tag != "Moc") return;
         if (tag == "Moc" && !isCarryingPlayer) return;
 
-        // 🚨 CHẶN NGAY LÚC BẤM PHÍM: Nếu là Player thì phải check lại trạng thái
-        if (tag == "Playerchet")
+        if (tag == "Playerchet")
         {
             if (!currentInteractTarget.gameObject.activeInHierarchy) return;
 
             bool canPickUp = false;
 
-            // 🚨 KIỂM TRA XEM CÓ AI ĐANG GỤC MÀ CHƯA BỊ TREO KHÔNG
             var s1 = currentInteractTarget.GetComponentInParent<IShowSpeedController_Fusion>();
             if (s1 != null && s1.IsDowned && !s1.IsHooked) canPickUp = true;
 
@@ -643,7 +639,7 @@ public class HunterInteraction : NetworkBehaviour
         else if (tag == "May") currentDuration = timeDapMay;
         else if (tag == "Moc") currentDuration = timeTreoMoc;
         else if (tag == "Cuaso") currentDuration = timeTreoCUASO;
-        else if (tag == "VanDaNga") currentDuration = timeDapVan;
+        else if (tag == "VanDaNga") currentDuration = timeDapVan; // 🚨 XỬ LÝ ĐẬP VÁN
 
         if (Object.HasInputAuthority)
         {
@@ -674,19 +670,8 @@ public class HunterInteraction : NetworkBehaviour
                 exactTargetRot = hookPoint.rotation;
             }
         }
-        // Trong HunterInteraction.cs, phần xử lý Tag
-        if (tag == "VanDaNga")
-        {
-            // Bật Animation đập ván
-            animator.SetTrigger("Dapmay");
-            currentDuration = 2.0f; // Thời gian phá ván
 
-            // Gọi RPC để xóa ván sau khi xong (hoặc gọi qua Animation Event)
-            var pallet = currentInteractTarget.GetComponentInParent<PalletInteraction>();
-            if (pallet != null) pallet.Rpc_DestroyPallet();
-        }
-
-
+        // Gọi chung 1 luồng lên Server
         Rpc_RequestInteraction(tag, exactTargetPos, exactTargetRot, idToSend);
     }
 
@@ -714,18 +699,17 @@ public class HunterInteraction : NetworkBehaviour
         }
 
         if (tag == "May") animator.SetTrigger("Dapmay");
+        else if (tag == "VanDaNga") animator.SetTrigger("Dapmay"); // 🚨 DÙNG CHUNG ANIMATION VỚI ĐẬP MÁY
         else if (tag == "Moc") animator.SetTrigger("Treomoc");
         else if (tag == "Playerchet")
         {
             animator.SetTrigger("Nhacplayer");
-
             NetworkObject targetObj = Runner.FindObject(syncedTargetId);
             if (targetObj != null) carriedPlayerObject = targetObj.gameObject;
         }
         else if (tag == "Cuaso")
         {
             animator.SetTrigger("Treocuaso");
-
             if (Object.HasStateAuthority)
             {
                 isVaulting = true;
@@ -786,7 +770,6 @@ public class HunterInteraction : NetworkBehaviour
 
             if (Object.HasStateAuthority)
             {
-                // 🚨 KIỂM TRA VÀ GỌI HÀM TREO CHO AI ĐANG BỊ BẾ
                 var s1 = carriedPlayerObject.GetComponent<IShowSpeedController_Fusion>();
                 if (s1 != null) s1.GetHooked(finalPos, finalRot);
 
@@ -803,11 +786,8 @@ public class HunterInteraction : NetworkBehaviour
             }
             if (Object.HasInputAuthority)
             {
-                // Tắt màu Trắng của Máy, bật lại màu Đỏ cho Máy
                 ToggleAuraGroup(allGenerators, auraMatWhite, false);
                 ToggleAuraGroup(allGenerators, auraMatRed, true);
-
-                // Tắt màu Đỏ của Móc
                 ToggleAuraGroup(allHooks, auraMatRed, false);
             }
 
@@ -824,7 +804,6 @@ public class HunterInteraction : NetworkBehaviour
         return null;
     }
 
-    // GỌI BỞI ANIMATION EVENT TẠI KHUNG HÌNH CUỐI CÙNG CỦA HOẠT ẢNH
     public void FinishInteraction()
     {
         if (Object.HasStateAuthority)
@@ -846,7 +825,8 @@ public class HunterInteraction : NetworkBehaviour
         if (isInteracting || isSliderRunning) return;
         if (other.transform.root == transform.root) return;
 
-        if (other.CompareTag("May") || other.CompareTag("Moc") || other.CompareTag("Playerchet") || other.CompareTag("Cuaso"))
+        // 🚨 ĐÃ SỬA: Bổ sung VanDaNga vào chung một nhóm Trigger
+        if (other.CompareTag("May") || other.CompareTag("Moc") || other.CompareTag("Playerchet") || other.CompareTag("Cuaso") || other.CompareTag("VanDaNga"))
         {
             if (isCarryingPlayer && !other.CompareTag("Moc")) return;
             if (other.CompareTag("Moc") && !isCarryingPlayer) return;
@@ -868,7 +848,6 @@ public class HunterInteraction : NetworkBehaviour
             {
                 bool showUI = false;
 
-                // 🚨 KIỂM TRA ĐỂ HIỆN UI CHO ĐÚNG NGƯỜI
                 var s1 = other.GetComponentInParent<IShowSpeedController_Fusion>();
                 if (s1 != null && s1.IsDowned && !s1.IsHooked) showUI = true;
 
@@ -881,23 +860,7 @@ public class HunterInteraction : NetworkBehaviour
                 var s4 = other.GetComponentInParent<NurseController_Fusion>();
                 if (s4 != null && s4.IsDowned && !s4.IsHooked) showUI = true;
 
-                if (showUI)
-                {
-                    currentInteractTarget = other;
-                    if (Object.HasInputAuthority && interactImage != null)
-                    {
-                        interactImage.gameObject.SetActive(true);
-                    }
-                }
-            }
-            // Trong HunterInteraction.cs
-            if (other.CompareTag("VanDaNga")) // Tag của cái BreakZone
-            {
-                currentInteractTarget = other;
-                if (Object.HasInputAuthority && interactImage != null)
-                {
-                    interactImage.gameObject.SetActive(true); // Hiện UI đập ván
-                }
+                if (!showUI) return; 
             }
 
             currentInteractTarget = other;
@@ -913,8 +876,6 @@ public class HunterInteraction : NetworkBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        // 🚨 ĐÃ SỬA: Cửa sổ nhảy làm Hunter văng ra khỏi trigger, bắt buộc phải cho phép xóa Target.
-        // Nếu không xóa nó sẽ kẹt vĩnh viễn và đi ra chỗ khác bấm nhảy nó vẫn nhảy.
         if (isInteracting && !other.CompareTag("Cuaso")) return;
 
         if (currentInteractTarget == other)
@@ -972,6 +933,31 @@ public class HunterInteraction : NetworkBehaviour
         }
     }
 
+    // 🚨 HÀM MỚI: SỰ KIỆN ĐẬP VÁN (Nhớ gắn vào Animation Event)
+    public void EventDapVan()
+    {
+        if (interactAudioSource != null && clipDapVan != null)
+            interactAudioSource.PlayOneShot(clipDapVan, 1f * GetVFXVolume());
+
+        if (Object.HasStateAuthority)
+        {
+            NetworkObject targetObj = Runner.FindObject(syncedTargetId);
+            if (targetObj != null)
+            {
+                var pallet = targetObj.GetComponent<PalletInteraction>();
+                if (pallet != null) pallet.Rpc_DestroyPallet();
+            }
+        }
+
+        // Làm chậm Hunter 1 nhịp sau khi đập vỡ ván (Giống DBD)
+        HunterMovement movement = GetComponent<HunterMovement>();
+        if (movement != null)
+        {
+            movement.ApplySlow(0.1f);
+            movement.Invoke("ResetSlow", 0.5f);
+        }
+    }
+
     public void EventVault()
     {
         if (isVaulting && interactAudioSource != null && clipTreoCuaso != null)
@@ -982,16 +968,12 @@ public class HunterInteraction : NetworkBehaviour
     {
         if (isCarryingPlayer)
         {
-            // Tách phát âm thanh ra riêng để không ảnh hưởng logic
             if (interactAudioSource != null && clipTreoMoc != null)
                 interactAudioSource.PlayOneShot(clipTreoMoc, 1f * GetVFXVolume());
-
-            // 🚨 ĐÃ SỬA: Lệnh thực thi móc phải nằm ngoài cái Check Audio
             HookPlayerToHook();
         }
     }
 
-    // 🚨 HÀM LẤY ÂM LƯỢNG VFX
     private float GetVFXVolume()
     {
         return AudioManager.Instance != null ? AudioManager.Instance.vfxVolume : 1f;

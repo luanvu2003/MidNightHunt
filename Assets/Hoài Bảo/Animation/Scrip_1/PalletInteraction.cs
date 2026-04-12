@@ -24,6 +24,12 @@ public class PalletInteraction : NetworkBehaviour
     private ChangeDetector _changes;
     private bool _isLocalPlayerInZone = false;
     private bool _isSpawned = false;
+    
+    [Header("Âm Thanh (Audio)")]
+    public AudioSource audioSource;
+    public AudioClip dropSound;    // Tiếng ván ngã (ầm!)
+    public AudioClip breakSound;   // Tiếng ván bị Hunter đập vỡ (rắc!)
+    public AudioClip stunSound;
 
     public override void Spawned()
     {
@@ -52,13 +58,28 @@ public class PalletInteraction : NetworkBehaviour
 
         foreach (var change in _changes.DetectChanges(this))
         {
-            if (change == nameof(State)) UpdateVisuals();
+            if (change == nameof(State))
+            {
+                UpdateVisuals();
+                PlayStateSound(); // 🔊 Phát âm thanh khi đổi trạng thái
+            }
         }
 
         if (State == PalletState.Falling || State == PalletState.Dropped)
         {
             palletPivot.localRotation = Quaternion.Lerp(palletPivot.localRotation, droppedRotation, Time.deltaTime * 15f);
         }
+    }
+    
+    private void PlayStateSound()
+    {
+        if (audioSource == null) return;
+
+        if (State == PalletState.Falling && dropSound != null)
+            audioSource.PlayOneShot(dropSound);
+
+        if (State == PalletState.Destroyed && breakSound != null)
+            audioSource.PlayOneShot(breakSound);
     }
 
     private void UpdateVisuals()
@@ -79,8 +100,23 @@ public class PalletInteraction : NetworkBehaviour
                 palletPivot.localRotation = droppedRotation;
                 break;
             case PalletState.Destroyed:
-                if (Object.HasStateAuthority) Runner.Despawn(Object);
+                // 🚨 Tắt hiển thị Model ván và Trigger để người chơi đi qua được
+                if (palletPivot != null) palletPivot.gameObject.SetActive(false);
+                if (breakZone != null) breakZone.SetActive(false);
+
+                // 🚨 Delay 0.6 giây để phát xong âm thanh đập vỡ rồi mới hủy Object mạng
+                if (Object.HasStateAuthority) Invoke(nameof(DelayedDespawn), 0.6f);
                 break;
+        }
+    }
+
+    // 🚨 HÀM MỚI: Dùng để hủy Object sau khi Delay
+    private void DelayedDespawn()
+    {
+        // Kiểm tra xem Object có còn hợp lệ trên mạng không trước khi xóa
+        if (Object != null && Object.IsValid)
+        {
+            Runner.Despawn(Object);
         }
     }
 
@@ -135,20 +171,16 @@ public class PalletInteraction : NetworkBehaviour
         CheckLocalPlayerTrigger(other, false);
     }
 
-    // 🚨 ĐÃ FIX: DÙNG NETWORK OBJECT ĐỂ NHẬN DIỆN CẢ 4 NHÂN VẬT
     private void CheckLocalPlayerTrigger(Collider other, bool isInside)
     {
         if (State != PalletState.Up) return;
 
-        // Chỉ xét những vật thể có Tag là Player
         if (other.CompareTag("Player"))
         {
-            // Lấy thẳng NetworkObject thay vì script của từng nhân vật
             var netObj = other.GetComponentInParent<NetworkObject>();
 
             if (netObj != null)
             {
-                // Nếu đây là nhân vật do máy mình điều khiển
                 if (netObj.HasInputAuthority)
                 {
                     _isLocalPlayerInZone = isInside;
@@ -158,7 +190,6 @@ public class PalletInteraction : NetworkBehaviour
         }
     }
 
-    // 🚨 SỬA InputAuthority THÀNH All Ở ĐÂY:
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void Rpc_RequestDropPallet()
     {
@@ -166,6 +197,27 @@ public class PalletInteraction : NetworkBehaviour
         {
             State = PalletState.Falling;
             FallTimer = TickTimer.CreateFromSeconds(Runner, fallTime);
+
+            if (stunZone != null)
+            {
+                Collider stunCol = stunZone.GetComponent<Collider>();
+                if (stunCol != null)
+                {
+                    Collider[] hits = Physics.OverlapBox(stunCol.bounds.center, stunCol.bounds.extents, stunZone.transform.rotation);
+
+                    foreach (Collider hit in hits)
+                    {
+                        if (hit.CompareTag("Hunter"))
+                        {
+                            var hunter = hit.GetComponentInParent<HunterInteraction>();
+                            if (hunter != null && hunter.StunTimer.ExpiredOrNotRunning(Runner))
+                            {
+                                hunter.ApplyStun(3.0f);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
