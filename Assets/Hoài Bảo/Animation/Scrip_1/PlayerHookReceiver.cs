@@ -97,9 +97,22 @@ public class PlayerHookReceiver : NetworkBehaviour
     {
         if (controller != null)
         {
-            // 🚨 FIX TỪ BƯỚC TRƯỚC: Giữ cho Client cũng tắt vật lý chuẩn xác
-            IShowSpeedController_Fusion survivor = GetComponent<IShowSpeedController_Fusion>();
-            if (isBeingCarried || (survivor != null && survivor.IsHooked))
+            bool isHookedLocal = false;
+
+            // 🚨 KIỂM TRA CHO CẢ 4 NHÂN VẬT
+            var s1 = GetComponent<IShowSpeedController_Fusion>();
+            if (s1 != null && s1.IsHooked) isHookedLocal = true;
+
+            var s2 = GetComponent<MrBeanController_Fusion>();
+            if (s2 != null && s2.IsHooked) isHookedLocal = true;
+
+            var s3 = GetComponent<MrBeastController_Fusion>();
+            if (s3 != null && s3.IsHooked) isHookedLocal = true;
+
+            var s4 = GetComponent<NurseController_Fusion>();
+            if (s4 != null && s4.IsHooked) isHookedLocal = true;
+
+            if (isBeingCarried || isHookedLocal)
             {
                 controller.enabled = false;
             }
