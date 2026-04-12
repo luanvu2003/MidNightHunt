@@ -2436,7 +2436,7 @@ MonoBehaviour:
   hookSlider: {fileID: 9185138085900452561}
   mainCamera: {fileID: 0}
   PlayerDeadthBox: {fileID: 4053483981459488938}
-  reviveTime: 90
+  reviveTime: 30
   revivingAnimBool: IsReviving
   interactInput: {fileID: 522166277110484590, guid: 4e74303c32ff52d49baaf909e103bc4a, type: 3}
   revivePrompt: {fileID: 4353058060058455384}
@@ -2456,6 +2456,8 @@ MonoBehaviour:
   _IsGameStarted:
     _value: 0
   _AnimSpeedValue: 0
+  _IsRepairingAnim:
+    _value: 0
 --- !u!114 &-7897685684272927585
 MonoBehaviour:
   m_ObjectHideFlags: 0

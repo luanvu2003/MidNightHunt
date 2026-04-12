@@ -1,14 +1,13 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Fusion; // Thư viện Fusion
+using Fusion;
 using UnityEngine.UI;
 using TMPro;
-using System; // 🚨 Đã thêm
+using System;
 using System.Collections.Generic;
-using Fusion.Sockets; // 🚨 Đã thêm
+using Fusion.Sockets;
 
 [RequireComponent(typeof(CharacterController))]
-// 🚨 Đã thêm INetworkRunnerCallbacks vào đây
 public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks, ISurvivor
 {
     [Header("Animator Settings")]
@@ -26,6 +25,7 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     public InputActionReference walkInput;
     public InputActionReference vaultInput;
     public InputActionReference skillInput;
+    public InputActionReference interactInput;
     private bool _vaultPressed;
     private bool _skillPressed;
 
@@ -39,15 +39,8 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     [Range(0, 360)] public float scanAngle = 90f;
     public float skillDuration = 5f;
     public float skillCooldown = 30f;
-
-
-    // 🚨 Kéo Prefab X-Ray/Bóng đỏ của bạn vào đây
     public GameObject redSilhouettePrefab;
-
-    // 🚨 QUẢN LÝ THEO DANH SÁCH: Lưu trữ con Hunter (Key) và cái Bóng đỏ đang gắn trên nó (Value)
     private Dictionary<GameObject, GameObject> _activeSilhouettes = new Dictionary<GameObject, GameObject>();
-
-
 
     [Header("Health & States")]
     public string hitAnimationTrigger = "AnHit";
@@ -72,36 +65,31 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     [Header("Revive Settings")]
     public float reviveTime = 90f;
     public string revivingAnimBool = "IsReviving";
-    private MrBeastController_Fusion _targetToRevive;
-    public InputActionReference interactInput;
     public GameObject revivePrompt;
     public Slider reviveSlider;
     [Header("Tùy Chỉnh Lệch Móc")]
-    public Vector3 hookOffset = Vector3.zero; // Chỉnh X, Y, Z trong Unity để bù trừ vị trí
+    public Vector3 hookOffset = Vector3.zero;
 
     [Networked] public NetworkBool IsBeingRevived { get; set; }
     [Networked] public NetworkBool IsReviving { get; set; }
-    [Networked] private TickTimer ReviveTimer { get; set; }
-    [Networked] private NetworkObject ReviverObject { get; set; }
+    [Networked] public TickTimer ReviveTimer { get; set; }
+    [Networked] public NetworkId TargetReviveId { get; set; }
 
     private CharacterController _characterController;
     private bool _isNearWindow = false;
     private bool _isLocalRepairing = false;
 
-    // --- CÁC BIẾN ĐỒNG BỘ MẠNG (NETWORKED) ---
     [Networked] public NetworkBool IsDowned { get; set; }
     [Networked] public NetworkBool IsHooked { get; set; }
     [Networked] public int CurrentHits { get; set; }
     [Networked] public NetworkBool IsVaulting { get; set; }
 
-    // --- BỘ ĐẾM THỜI GIAN MẠNG (TICKTIMER) ---
     [Networked] private TickTimer HitDecayTimer { get; set; }
     [Networked] private TickTimer SkillDurationTimer { get; set; }
     [Networked] private TickTimer SkillCooldownTimer { get; set; }
     [Networked] private TickTimer VaultTimer { get; set; }
     [Networked] private TickTimer SacrificeTimer { get; set; }
 
-    // Lưu vị trí nhảy để đồng bộ mượt mà
     [Networked] private Vector3 VaultStartPos { get; set; }
     [Networked] private Vector3 VaultTargetPos { get; set; }
     [Networked] public NetworkBool IsGameStarted { get; set; } = false;
@@ -114,16 +102,11 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         _characterController = GetComponent<CharacterController>();
         animator = GetComponentInChildren<Animator>();
 
-        // TẮT NGAY LẬP TỨC ĐỂ TRÁNH XUNG ĐỘT
         if (_characterController != null) _characterController.enabled = false;
 
         if (Object.HasInputAuthority)
         {
-            if (mainCamera == null)
-            {
-                if (Camera.main != null) mainCamera = Camera.main.transform;
-                else Debug.LogWarning("Không tìm thấy Camera.main! Di chuyển sẽ dùng World Space mặc định.");
-            }
+            if (mainCamera == null && Camera.main != null) mainCamera = Camera.main.transform;
             InitUI();
 
             if (moveInput) moveInput.action.Enable();
@@ -136,29 +119,17 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
             Runner.AddCallbacks(this);
         }
 
-        // 🚨 QUAN TRỌNG NHẤT LÀ ĐOẠN NÀY:
-        // Chỉ bật lại CharacterController nếu bạn là Host HOẶC bạn là chủ của nhân vật này.
-        // Còn nếu bạn đang nhìn nhân vật của người khác (Proxy), thì CC PHẢI BỊ TẮT!
-        if (Object.HasStateAuthority || Object.HasInputAuthority)
-        {
-            StartCoroutine(EnableCharacterControllerRoutine());
-        }
-
+        if (Object.HasStateAuthority || Object.HasInputAuthority) StartCoroutine(EnableCharacterControllerRoutine());
         if (Runner.IsServer) IsGameStarted = true;
     }
 
     private System.Collections.IEnumerator EnableCharacterControllerRoutine()
     {
-        yield return null; // Đợi 1 frame cho vị trí mạng đồng bộ xong
+        yield return null;
         if (_characterController != null) _characterController.enabled = true;
     }
 
-
-
-    public override void Despawned(NetworkRunner runner, bool hasState)
-    {
-        if (Object.HasInputAuthority) Runner.RemoveCallbacks(this);
-    }
+    public override void Despawned(NetworkRunner runner, bool hasState) { if (Object.HasInputAuthority) Runner.RemoveCallbacks(this); }
 
     private void Update()
     {
@@ -170,10 +141,11 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     private void InitUI()
     {
         if (interactUI) interactUI.SetActive(false);
-        if (durationSlider) durationSlider.gameObject.SetActive(false);
+        if (durationSlider) { durationSlider.gameObject.SetActive(false); durationSlider.maxValue = skillDuration; }
         if (cooldownImage) cooldownImage.gameObject.SetActive(false);
         if (cooldownText) { cooldownText.text = ""; cooldownText.gameObject.SetActive(false); }
-        if (hookSlider) hookSlider.gameObject.SetActive(false);
+        if (hookSlider) { hookSlider.gameObject.SetActive(false); hookSlider.maxValue = 1f; } // Ép về tỷ lệ 0-1
+        if (reviveSlider) { reviveSlider.gameObject.SetActive(false); reviveSlider.maxValue = 1f; }
     }
 
     public override void FixedUpdateNetwork()
@@ -187,8 +159,9 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         if (GetInput(out MrBeastGameplayInput input))
         {
             HandleSkillInput(input);
-            HandleMovement(input); // Chuyền input vào đây
+            HandleMovement(input);
             HandleWindowInput(input);
+            HandleReviveInput(input);
         }
 
         HandleReviveLogic();
@@ -204,11 +177,10 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         float currentAnimSpeed = animator.GetFloat("Speed");
         animator.SetFloat("Speed", Mathf.Lerp(currentAnimSpeed, AnimSpeedValue, Time.deltaTime * 15f));
 
-        // 🚨 FIX LỖI DEADTH BOX: Đồng bộ hiển thị Box cho MỌI MÁY dựa trên trạng thái IsDowned
         if (PlayerDeadthBox != null)
         {
-            // Chỉ hiện Box khi đang gục và KHÔNG đang trong quá trình hồi sinh (đã đứng dậy)
-            PlayerDeadthBox.SetActive(IsDowned && !IsBeingRevived);
+            // 🚨 Bật box cứu khi GỤC hoặc BỊ TREO MÓC
+            PlayerDeadthBox.SetActive((IsDowned || IsHooked) && !IsBeingRevived);
         }
 
         if (Object.HasInputAuthority)
@@ -220,7 +192,6 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
             if (revivePrompt) revivePrompt.SetActive(canShowE);
 
             UpdateReviveProgressUI();
-
             HandleWallhackVisuals();
         }
     }
@@ -228,15 +199,12 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     private void HandleWallhackVisuals()
     {
         bool skillActive = !SkillDurationTimer.ExpiredOrNotRunning(Runner);
-
-        // Nếu hết thời gian skill -> Tắt toàn bộ bóng đỏ
         if (!skillActive)
         {
             ClearAllHighlights();
             return;
         }
 
-        // Danh sách các Hunter đang bị nhìn thấy trong Frame hiện tại
         List<GameObject> currentlyVisibleHunters = new List<GameObject>();
         Collider[] hits = Physics.OverlapSphere(transform.position, scanDistance);
 
@@ -250,12 +218,9 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
                 forward.y = 0;
                 float angle = Vector3.Angle(forward, directionToHunter);
 
-                // 1. Kiểm tra góc nhìn
                 if (angle <= scanAngle / 2f)
                 {
                     float distanceToHunter = Vector3.Distance(transform.position, hit.transform.position);
-
-                    // 2. Kiểm tra xem có bị tường che không
                     Vector3 rayStart = transform.position + Vector3.up * 1.5f;
                     Vector3 rayTarget = hit.transform.position + Vector3.up * 1.0f;
                     Vector3 rayDir = rayTarget - rayStart;
@@ -265,13 +230,10 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
                     if (isHiddenBehindWall)
                     {
                         currentlyVisibleHunters.Add(hit.gameObject);
-
-                        // Nếu Hunter này CHƯA có bóng đỏ -> Sinh ra Prefab bóng đỏ và gắn vào nó
                         if (!_activeSilhouettes.ContainsKey(hit.gameObject))
                         {
                             if (redSilhouettePrefab != null)
                             {
-                                // Instantiate làm con (child) của Hunter để nó tự động di chuyển theo
                                 GameObject silhouette = Instantiate(redSilhouettePrefab, hit.transform.position, hit.transform.rotation, hit.transform);
                                 _activeSilhouettes.Add(hit.gameObject, silhouette);
                             }
@@ -281,52 +243,34 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
             }
         }
 
-        // 3. XÓA PREFAB THEO DANH SÁCH: Lọc những Hunter đã ra khỏi tầm hoặc không bị tường che nữa
         List<GameObject> huntersToRemove = new List<GameObject>();
         foreach (var hunter in _activeSilhouettes.Keys)
         {
-            // Nếu Hunter bị Null (đã disconnect/destroy) hoặc không còn nằm trong tầm nhìn
             if (hunter == null || !currentlyVisibleHunters.Contains(hunter))
             {
-                if (_activeSilhouettes[hunter] != null)
-                {
-                    Destroy(_activeSilhouettes[hunter]); // Hủy Prefab bóng đỏ
-                }
-                huntersToRemove.Add(hunter); // Đánh dấu để xóa khỏi danh sách
+                if (_activeSilhouettes[hunter] != null) Destroy(_activeSilhouettes[hunter]);
+                huntersToRemove.Add(hunter);
             }
         }
 
-        // Xóa các Hunter khỏi danh sách quản lý
-        foreach (var hunter in huntersToRemove)
-        {
-            _activeSilhouettes.Remove(hunter);
-        }
+        foreach (var hunter in huntersToRemove) _activeSilhouettes.Remove(hunter);
     }
 
     private void ClearAllHighlights()
     {
-        // Phá hủy tất cả các Prefab bóng đỏ đang có trên Map
         foreach (var silhouette in _activeSilhouettes.Values)
         {
             if (silhouette != null) Destroy(silhouette);
         }
-
-        // Dọn dẹp danh sách
         _activeSilhouettes.Clear();
     }
 
-    public void SetRepairAnimation(bool isRepairing)
-    {
-        IsRepairingAnim = isRepairing;
-    }
+    public void SetRepairAnimation(bool isRepairing) => IsRepairingAnim = isRepairing;
 
     private bool IsNearDeadBody()
     {
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, 2f);
-        foreach (var hit in hitColliders)
-        {
-            if (hit.CompareTag("Playerchet")) return true;
-        }
+        foreach (var hit in hitColliders) if (hit.CompareTag("Playerchet")) return true;
         return false;
     }
 
@@ -335,45 +279,35 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         _characterController.enabled = false;
         _characterController.enabled = true;
         Vector3 direction = CalculateDirection(input.moveDirection, input.camForward, input.camRight);
-
         if (direction.magnitude > 1f) direction.Normalize();
 
         float speed = mediumRunSpeed;
         float targetAnimSpeed = 0.5f;
-        if (_isLocalRepairing || IsRepairingAnim)
+
+        if (_isLocalRepairing || IsRepairingAnim || IsReviving || IsBeingRevived)
         {
-            // Vẫn phải giữ trọng lực để nhân vật không rớt xuyên map
             if (_characterController.isGrounded && velocityY < 0) velocityY = -2f;
             velocityY += -9.81f * Runner.DeltaTime;
             _characterController.Move(new Vector3(0, velocityY, 0) * Runner.DeltaTime);
-
-            AnimSpeedValue = 0f; // Ép tắt animation chạy
-            return; // 🚨 KẾT THÚC HÀM TẠI ĐÂY, VÔ HIỆU HÓA WASD
+            AnimSpeedValue = 0f;
+            return;
         }
 
-        // BỎ logic skillActive ở đây vì skill không còn tăng tốc nữa
         if (input.isWalking) { speed = slowWalkSpeed; targetAnimSpeed = 0.2f; }
         else if (input.isSprinting) { speed = sprintSpeed; targetAnimSpeed = 1f; }
-
         if (direction.magnitude == 0) targetAnimSpeed = 0f;
 
-        // 🚨 THÊM TRỌNG LỰC: Ép nhân vật dính sát đất để Host và Client tính toán chính xác 100%
         if (_characterController.isGrounded && velocityY < 0) velocityY = -2f;
         velocityY += -9.81f * Runner.DeltaTime;
 
         if (direction.magnitude >= 0.1f)
         {
             Vector3 moveVelocity = direction * speed;
-            moveVelocity.y = velocityY; // Gắn trọng lực vào
-
+            moveVelocity.y = velocityY;
             _characterController.Move(moveVelocity * Runner.DeltaTime);
             transform.rotation = Quaternion.LookRotation(direction);
         }
-        else
-        {
-            // Vẫn phải rớt xuống đất kể cả khi đứng im
-            _characterController.Move(new Vector3(0, velocityY, 0) * Runner.DeltaTime);
-        }
+        else _characterController.Move(new Vector3(0, velocityY, 0) * Runner.DeltaTime);
 
         AnimSpeedValue = targetAnimSpeed;
     }
@@ -415,72 +349,134 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         }
     }
 
+    private void HandleReviveInput(MrBeastGameplayInput input)
+    {
+        if (!Object.HasStateAuthority) return;
+
+        if (input.isInteract)
+        {
+            if (!IsReviving)
+            {
+                Collider[] hits = Physics.OverlapSphere(transform.position, 2f);
+                foreach (var hit in hits)
+                {
+                    if (hit.CompareTag("Playerchet"))
+                    {
+                        var obj = hit.GetComponentInParent<NetworkObject>();
+                        if (obj != null && obj != this.Object)
+                        {
+                            IsReviving = true;
+                            TargetReviveId = obj.Id;
+                            CallStartReviveRPC(obj, reviveTime);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        else if (IsReviving)
+        {
+            IsReviving = false;
+            if (TargetReviveId.IsValid)
+            {
+                var obj = Runner.FindObject(TargetReviveId);
+                if (obj != null) CallStopReviveRPC(obj);
+            }
+            TargetReviveId = default;
+        }
+    }
+
+    private void HandleReviveLogic()
+    {
+        if (!Object.HasStateAuthority) return;
+        if (IsBeingRevived && ReviveTimer.Expired(Runner)) CompleteRevive();
+
+        if (IsReviving && TargetReviveId.IsValid)
+        {
+            var target = Runner.FindObject(TargetReviveId);
+            if (target != null)
+            {
+                bool stillNeedsRevive = false;
+
+                var speed = target.GetComponent<IShowSpeedController_Fusion>();
+                if (speed && (speed.IsDowned || speed.IsHooked)) stillNeedsRevive = true;
+
+                var bean = target.GetComponent<MrBeanController_Fusion>();
+                if (bean && (bean.IsDowned || bean.IsHooked)) stillNeedsRevive = true;
+
+                var beast = target.GetComponent<MrBeastController_Fusion>();
+                if (beast && (beast.IsDowned || beast.IsHooked)) stillNeedsRevive = true;
+
+                var nurse = target.GetComponent<NurseController_Fusion>();
+                if (nurse && (nurse.IsDowned || nurse.IsHooked)) stillNeedsRevive = true;
+
+                // Nếu nạn nhân đã đứng dậy và không còn trên móc -> Ngắt cứu
+                if (!stillNeedsRevive) IsReviving = false;
+            }
+            else IsReviving = false;
+        }
+    }
+
+    private void CompleteRevive()
+    {
+        IsDowned = false;
+        IsHooked = false; // 🚨 Gỡ nhân vật xuống khỏi móc
+        IsBeingRevived = false;
+        _characterController.enabled = true;
+        PlayerDeadthBox.SetActive(false);
+        CurrentHits = 1;
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)] public void RPC_StartBeingRevived(float time) { IsBeingRevived = true; ReviveTimer = TickTimer.CreateFromSeconds(Runner, time); }
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)] public void RPC_StopBeingRevived() { IsBeingRevived = false; ReviveTimer = TickTimer.None; }
+
+    private void CallStartReviveRPC(NetworkObject obj, float time)
+    {
+        var speed = obj.GetComponent<IShowSpeedController_Fusion>(); if (speed) { speed.RPC_StartBeingRevived(time); return; }
+        var bean = obj.GetComponent<MrBeanController_Fusion>(); if (bean) { bean.RPC_StartBeingRevived(time); return; }
+        var beast = obj.GetComponent<MrBeastController_Fusion>(); if (beast) { beast.RPC_StartBeingRevived(time); return; }
+        var nurse = obj.GetComponent<NurseController_Fusion>(); if (nurse) { nurse.RPC_StartBeingRevived(time); return; }
+    }
+
+    private void CallStopReviveRPC(NetworkObject obj)
+    {
+        var speed = obj.GetComponent<IShowSpeedController_Fusion>(); if (speed) { speed.RPC_StopBeingRevived(); return; }
+        var bean = obj.GetComponent<MrBeanController_Fusion>(); if (bean) { bean.RPC_StopBeingRevived(); return; }
+        var beast = obj.GetComponent<MrBeastController_Fusion>(); if (beast) { beast.RPC_StopBeingRevived(); return; }
+        var nurse = obj.GetComponent<NurseController_Fusion>(); if (nurse) { nurse.RPC_StopBeingRevived(); return; }
+    }
+
     public void TakeHit()
     {
         if (IsDowned || IsHooked || !Object.HasStateAuthority) return;
-
-        // 🚨 FIX LỖI SPAM HIT: Kiểm tra xem đã hết thời gian bất tử chưa
         if (!InvincibilityTimer.ExpiredOrNotRunning(Runner)) return;
-
         CurrentHits++;
-
-        // Bật trạng thái bất tử trong 1.5 giây sau khi ăn hit (tránh bị 1 chém dính 3 hit)
-        // Bạn có thể chỉnh 1.5f thành số khác tùy tốc độ vung rìu của Hunter
         InvincibilityTimer = TickTimer.CreateFromSeconds(Runner, 1.5f);
-
         bool isMoving = _characterController.velocity.magnitude > 0.1f;
         RPC_PlayHitAnim(isMoving);
 
         if (CurrentHits == 1) HitDecayTimer = TickTimer.CreateFromSeconds(Runner, 10f);
         else if (CurrentHits == 2) HitDecayTimer = TickTimer.CreateFromSeconds(Runner, 20f);
-        else if (CurrentHits >= 3)
-        {
-            IsDowned = true;
-            _characterController.enabled = false;
-            // 🚨 ĐÃ XÓA DÒNG BẬT BOX Ở ĐÂY VÌ ĐỂ ĐÂY CLIENT SẼ KHÔNG THẤY
-        }
+        else if (CurrentHits >= 3) { IsDowned = true; _characterController.enabled = false; }
     }
 
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_PlayHitAnim(NetworkBool isMoving)
-    {
-        animator.SetBool("IsMoving", isMoving);
-        animator.SetTrigger(hitAnimationTrigger);
-    }
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)] private void RPC_PlayHitAnim(NetworkBool isMoving) { animator.SetBool("IsMoving", isMoving); animator.SetTrigger(hitAnimationTrigger); }
 
-    // 🚨 Thêm Quaternion hookRot vào trong ngoặc
-    // 🚨 Thêm Quaternion hookRot vào trong ngoặc
     public void GetHooked(Vector3 hookPos, Quaternion hookRot)
     {
         if (IsHooked || !Object.HasStateAuthority) return;
-
-        IsDowned = false;
-        IsHooked = true;
-
+        IsDowned = false; IsHooked = true;
         PlayerHookReceiver hookReceiver = GetComponent<PlayerHookReceiver>();
         if (hookReceiver != null) hookReceiver.ReleaseFromHunter();
-
-        // 🚨 1. Bắt buộc tắt Character Controller trước khi dời đi
         if (_characterController != null) _characterController.enabled = false;
-
-        // 🚨 2. TÍNH TOÁN VỊ TRÍ MỚI (Cộng thêm offset theo hướng của cái móc)
         Vector3 adjustedPos = hookPos + (hookRot * hookOffset);
-
-        transform.position = adjustedPos;
-        transform.rotation = hookRot;
-
-        // 🚨 3. Báo cho Fusion biết nhân vật đã dịch chuyển
+        transform.position = adjustedPos; transform.rotation = hookRot;
         var networkTransform = GetComponent<NetworkTransform>();
-        if (networkTransform != null)
-        {
-            networkTransform.Teleport(adjustedPos, hookRot);
-        }
-
+        if (networkTransform != null) networkTransform.Teleport(adjustedPos, hookRot);
         SacrificeTimer = TickTimer.CreateFromSeconds(Runner, sacrificeTime);
     }
 
-    [Rpc(RpcSources.All, RpcTargets.All)]
-    private void RPC_PlayVaultAnim() => animator.SetTrigger(vaultAnimationTrigger);
+    [Rpc(RpcSources.All, RpcTargets.All)] private void RPC_PlayVaultAnim() => animator.SetTrigger(vaultAnimationTrigger);
 
     private void UpdateSkillUI()
     {
@@ -501,258 +497,94 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     private void UpdateHookUI()
     {
         hookSlider.gameObject.SetActive(IsHooked);
-        if (IsHooked) hookSlider.value = SacrificeTimer.RemainingTime(Runner) ?? 0;
-    }
-
-    private Vector3 CalculateDirection(Vector2 inputDir, Vector3 camFwd, Vector3 camRight)
-    {
-        // Nếu không có camera, đi theo trục thế giới mặc định để không bị kẹt
-        if (camFwd == Vector3.zero && camRight == Vector3.zero)
+        if (IsHooked)
         {
-            return new Vector3(inputDir.x, 0, inputDir.y).normalized;
+            float timeRemaining = SacrificeTimer.RemainingTime(Runner) ?? 0f;
+            hookSlider.value = timeRemaining / sacrificeTime; // Chạy từ 1 về 0 cực mượt
         }
-
-        Vector3 forward = Vector3.Scale(camFwd, new Vector3(1, 0, 1)).normalized;
-        Vector3 right = Vector3.Scale(camRight, new Vector3(1, 0, 1)).normalized;
-        return (forward * inputDir.y + right * inputDir.x);
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (!Object.HasStateAuthority) return;
-
-        if (other.CompareTag("Cuaso")) _isNearWindow = true;
-        else if (other.CompareTag("HuntetHit")) TakeHit();
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        if (other.CompareTag("Cuaso")) _isNearWindow = false;
-        else if (Object.HasInputAuthority && other.CompareTag("Playerchet"))
-        {
-            if (IsReviving) RPC_SetReviveState(false, default); // 🚨 Đổi default thành NetworkId.None cho chuẩn Fusion
-            _targetToRevive = null;
-        }
-    }
-
-    private void OnTriggerStay(Collider other)
-    {
-        if (!Object.HasInputAuthority) return;
-
-        if (!IsDowned && other.CompareTag("Playerchet"))
-        {
-            var target = other.GetComponentInParent<MrBeastController_Fusion>();
-            if (target != null && target.IsDowned)
-            {
-                _targetToRevive = target;
-
-                if (interactInput.action.IsPressed())
-                {
-                    if (!IsReviving) RPC_SetReviveState(true, target.Object.Id);
-                }
-                else
-                {
-                    if (IsReviving) RPC_SetReviveState(false, target.Object.Id);
-                }
-            }
-        }
-    }
-
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_SetReviveState(NetworkBool start, NetworkId targetId)
-    {
-        IsReviving = start;
-
-        if (targetId.IsValid)
-        {
-            var target = Runner.FindObject(targetId).GetComponent<MrBeastController_Fusion>();
-            if (target != null)
-            {
-                target.IsBeingRevived = start;
-                if (start)
-                    target.ReviveTimer = TickTimer.CreateFromSeconds(Runner, reviveTime);
-                else
-                    target.ReviveTimer = TickTimer.None;
-            }
-        }
-    }
-
-    private void HandleReviveLogic()
-    {
-        if (!Object.HasStateAuthority) return;
-
-        if (IsBeingRevived && ReviveTimer.Expired(Runner))
-        {
-            CompleteRevive();
-        }
-    }
-
-    private void CompleteRevive()
-    {
-        IsDowned = false;
-        IsBeingRevived = false;
-        _characterController.enabled = true;
-        PlayerDeadthBox.SetActive(false);
-        CurrentHits = 1;
     }
 
     private void UpdateReviveProgressUI()
     {
         if (reviveSlider == null) return;
-
         bool showingSlider = IsReviving || IsBeingRevived;
         reviveSlider.gameObject.SetActive(showingSlider);
-
         if (showingSlider)
         {
             float? remainingTime = 0;
-
-            if (IsBeingRevived)
-                remainingTime = ReviveTimer.RemainingTime(Runner);
-            else if (IsReviving)
-                remainingTime = _targetToRevive != null ? _targetToRevive.ReviveTimer.RemainingTime(Runner) : 0;
-
-            if (remainingTime.HasValue)
+            if (IsBeingRevived) remainingTime = ReviveTimer.RemainingTime(Runner);
+            else if (IsReviving && TargetReviveId.IsValid)
             {
-                float progress = 1f - (remainingTime.Value / reviveTime);
-                reviveSlider.value = progress;
+                var obj = Runner.FindObject(TargetReviveId);
+                if (obj != null)
+                {
+                    var speed = obj.GetComponent<IShowSpeedController_Fusion>(); if (speed) remainingTime = speed.ReviveTimer.RemainingTime(Runner);
+                    var bean = obj.GetComponent<MrBeanController_Fusion>(); if (bean) remainingTime = bean.ReviveTimer.RemainingTime(Runner);
+                    var beast = obj.GetComponent<MrBeastController_Fusion>(); if (beast) remainingTime = beast.ReviveTimer.RemainingTime(Runner);
+                    var nurse = obj.GetComponent<NurseController_Fusion>(); if (nurse) remainingTime = nurse.ReviveTimer.RemainingTime(Runner);
+                }
             }
+            if (remainingTime.HasValue) reviveSlider.value = 1f - (remainingTime.Value / reviveTime);
         }
     }
 
-    // --- INetworkRunnerCallbacks ---
+    private Vector3 CalculateDirection(Vector2 inputDir, Vector3 camFwd, Vector3 camRight)
+    {
+        if (camFwd == Vector3.zero && camRight == Vector3.zero) return new Vector3(inputDir.x, 0, inputDir.y).normalized;
+        Vector3 forward = Vector3.Scale(camFwd, new Vector3(1, 0, 1)).normalized;
+        Vector3 right = Vector3.Scale(camRight, new Vector3(1, 0, 1)).normalized;
+        return (forward * inputDir.y + right * inputDir.x);
+    }
+
+    private void OnTriggerEnter(Collider other) { if (!Object.HasStateAuthority) return; if (other.CompareTag("Cuaso")) _isNearWindow = true; else if (other.CompareTag("HuntetHit")) TakeHit(); }
+    private void OnTriggerExit(Collider other) { if (other.CompareTag("Cuaso")) _isNearWindow = false; }
+
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
         var myInput = new MrBeastGameplayInput();
-
         myInput.moveDirection = moveInput.action.ReadValue<Vector2>();
         myInput.isSprinting = sprintInput.action.IsPressed();
         myInput.isWalking = walkInput.action.IsPressed();
-
-        // 🚨 ĐỌC VÀ GỬI HƯỚNG CAMERA LÊN SERVER
-        if (mainCamera != null)
-        {
-            myInput.camForward = mainCamera.forward;
-            myInput.camRight = mainCamera.right;
-        }
-
-        myInput.isVaulting = _vaultPressed;
-        myInput.isSkill = _skillPressed;
-        _vaultPressed = false;
-        _skillPressed = false;
-
+        if (mainCamera != null) { myInput.camForward = mainCamera.forward; myInput.camRight = mainCamera.right; }
+        myInput.isVaulting = _vaultPressed; myInput.isSkill = _skillPressed; myInput.isInteract = interactInput.action.IsPressed();
+        _vaultPressed = false; _skillPressed = false;
         input.Set(myInput);
     }
-    public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player)
-    {
 
-    }
+    // --- CÁC HÀM RUNNER RỖNG ... ---
+    public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
+    public void OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
+    public void OnPlayerJoined(NetworkRunner runner, PlayerRef player) { }
+    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { }
+    public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason) { }
+    public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason) { }
+    public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token) { }
+    public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason) { }
+    public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message) { }
+    public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, ArraySegment<byte> data) { }
+    public void OnReliableDataProgress(NetworkRunner runner, PlayerRef player, ReliableKey key, float progress) { }
+    public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
+    public void OnConnectedToServer(NetworkRunner runner) { }
+    public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList) { }
+    public void OnCustomAuthenticationResponse(NetworkRunner runner, Dictionary<string, object> data) { }
+    public void OnHostMigration(NetworkRunner runner, HostMigrationToken hostMigrationToken) { }
+    public void OnSceneLoadDone(NetworkRunner runner) { }
+    public void OnSceneLoadStart(NetworkRunner runner) { }
 
-    public void OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player)
-    {
-
-    }
-
-    public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
-    {
-
-    }
-
-    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
-    {
-
-    }
-
-    public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
-    {
-
-    }
-
-    public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason)
-    {
-
-    }
-
-    public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token)
-    {
-
-    }
-
-    public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)
-    {
-
-    }
-
-    public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message)
-    {
-
-    }
-
-    public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, ArraySegment<byte> data)
-    {
-
-    }
-
-    public void OnReliableDataProgress(NetworkRunner runner, PlayerRef player, ReliableKey key, float progress)
-    {
-
-    }
-
-    public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input)
-    {
-
-    }
-
-    public void OnConnectedToServer(NetworkRunner runner)
-    {
-
-    }
-
-    public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList)
-    {
-
-    }
-
-    public void OnCustomAuthenticationResponse(NetworkRunner runner, Dictionary<string, object> data)
-    {
-
-    }
-
-    public void OnHostMigration(NetworkRunner runner, HostMigrationToken hostMigrationToken)
-    {
-
-    }
-
-    public void OnSceneLoadDone(NetworkRunner runner)
-    {
-
-    }
-
-    public void OnSceneLoadStart(NetworkRunner runner)
-    {
-
-    }
     public NetworkObject Object => base.Object;
-    public float GetRepairSpeedMultiplier() => 1f; // Tốc độ cơ bản 1x
-    public void OnStartRepair()
-    {
-        _isLocalRepairing = true; // Bấm E là khóa chân ngay
-    }
-    public void OnStopRepair()
-    {
-        _isLocalRepairing = false; // Thả E hoặc nổ máy là mở khóa
-    }
+    public float GetRepairSpeedMultiplier() => 1f;
+    public void OnStartRepair() { _isLocalRepairing = true; }
+    public void OnStopRepair() { _isLocalRepairing = false; }
 }
 
 public struct MrBeastGameplayInput : INetworkInput
 {
     public Vector2 moveDirection;
-    // 🚨 THÊM 2 BIẾN NÀY ĐỂ GỬI HƯỚNG CAMERA LÊN SERVER
     public Vector3 camForward;
     public Vector3 camRight;
-
     public NetworkBool isSprinting;
     public NetworkBool isWalking;
     public NetworkBool isVaulting;
     public NetworkBool isSkill;
+    public NetworkBool isInteract;
 }
