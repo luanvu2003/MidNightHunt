@@ -582,16 +582,26 @@ public class HunterInteraction : NetworkBehaviour
         {
             if (!currentInteractTarget.gameObject.activeInHierarchy) return;
 
-            IShowSpeedController_Fusion survivor = currentInteractTarget.GetComponentInParent<IShowSpeedController_Fusion>();
-            if (survivor != null)
+            bool canPickUp = false;
+
+            // 🚨 KIỂM TRA XEM CÓ AI ĐANG GỤC MÀ CHƯA BỊ TREO KHÔNG
+            var s1 = currentInteractTarget.GetComponentInParent<IShowSpeedController_Fusion>();
+            if (s1 != null && s1.IsDowned && !s1.IsHooked) canPickUp = true;
+
+            var s2 = currentInteractTarget.GetComponentInParent<MrBeanController_Fusion>();
+            if (s2 != null && s2.IsDowned && !s2.IsHooked) canPickUp = true;
+
+            var s3 = currentInteractTarget.GetComponentInParent<MrBeastController_Fusion>();
+            if (s3 != null && s3.IsDowned && !s3.IsHooked) canPickUp = true;
+
+            var s4 = currentInteractTarget.GetComponentInParent<NurseController_Fusion>();
+            if (s4 != null && s4.IsDowned && !s4.IsHooked) canPickUp = true;
+
+            if (!canPickUp)
             {
-                // 🚨 NẾU Survivor KHÔNG gục HOẶC ĐÃ bị treo rồi thì KHÔNG cho nhặt
-                if (!survivor.IsDowned || survivor.IsHooked)
-                {
-                    Debug.Log("❌ [Hunter] Mục tiêu không ở trạng thái gục hoặc đã bị treo!");
-                    currentInteractTarget = null; // Xóa mục tiêu để tránh lỗi
-                    return;
-                }
+                Debug.Log("❌ [Hunter] Mục tiêu không ở trạng thái gục hoặc đã bị treo!");
+                currentInteractTarget = null;
+                return;
             }
             currentDuration = timeNhatPlayer;
         }
@@ -735,24 +745,28 @@ public class HunterInteraction : NetworkBehaviour
     {
         if (carriedPlayerObject != null && currentInteractTarget != null)
         {
-            // 1. Tìm điểm HookPoint mà bạn đã chỉnh tay cực khổ
             Transform hookPoint = currentInteractTarget.transform.Find("HookPoint");
             Vector3 finalPos = hookPoint ? hookPoint.position : currentInteractTarget.transform.position;
             Quaternion finalRot = hookPoint ? hookPoint.rotation : currentInteractTarget.transform.rotation;
 
             if (Object.HasStateAuthority)
             {
-                // 2. 🚨 SỬA TẠI ĐÂY: Gọi đúng script IShowSpeedController_Fusion
-                IShowSpeedController_Fusion survivor = carriedPlayerObject.GetComponent<IShowSpeedController_Fusion>();
-                if (survivor != null)
-                {
-                    // Truyền cả vị trí và góc xoay chuẩn vào
-                    survivor.GetHooked(finalPos, finalRot);
-                }
+                // 🚨 KIỂM TRA VÀ GỌI HÀM TREO CHO AI ĐANG BỊ BẾ
+                var s1 = carriedPlayerObject.GetComponent<IShowSpeedController_Fusion>();
+                if (s1 != null) s1.GetHooked(finalPos, finalRot);
+
+                var s2 = carriedPlayerObject.GetComponent<MrBeanController_Fusion>();
+                if (s2 != null) s2.GetHooked(finalPos, finalRot);
+
+                var s3 = carriedPlayerObject.GetComponent<MrBeastController_Fusion>();
+                if (s3 != null) s3.GetHooked(finalPos, finalRot);
+
+                var s4 = carriedPlayerObject.GetComponent<NurseController_Fusion>();
+                if (s4 != null) s4.GetHooked(finalPos, finalRot);
+
                 isCarryingPlayer = false;
             }
 
-            // Dọn dẹp các biến sau khi treo xong
             if (currentInteractTarget != null) currentInteractTarget.tag = "Untagged";
             carriedPlayerObject = null;
             currentInteractTarget = null;
@@ -808,20 +822,27 @@ public class HunterInteraction : NetworkBehaviour
 
             if (other.CompareTag("Playerchet"))
             {
-                // Lấy script từ Survivor đang chạm phải
-                IShowSpeedController_Fusion survivor = other.GetComponentInParent<IShowSpeedController_Fusion>();
+                bool showUI = false;
 
-                if (survivor != null)
+                // 🚨 KIỂM TRA ĐỂ HIỆN UI CHO ĐÚNG NGƯỜI
+                var s1 = other.GetComponentInParent<IShowSpeedController_Fusion>();
+                if (s1 != null && s1.IsDowned && !s1.IsHooked) showUI = true;
+
+                var s2 = other.GetComponentInParent<MrBeanController_Fusion>();
+                if (s2 != null && s2.IsDowned && !s2.IsHooked) showUI = true;
+
+                var s3 = other.GetComponentInParent<MrBeastController_Fusion>();
+                if (s3 != null && s3.IsDowned && !s3.IsHooked) showUI = true;
+
+                var s4 = other.GetComponentInParent<NurseController_Fusion>();
+                if (s4 != null && s4.IsDowned && !s4.IsHooked) showUI = true;
+
+                if (showUI)
                 {
-                    // 🚨 CHỈ hiện UI nhặt người nếu Survivor đó đang gục VÀ chưa bị treo
-                    if (survivor.IsDowned && !survivor.IsHooked)
+                    currentInteractTarget = other;
+                    if (Object.HasInputAuthority && interactImage != null)
                     {
-                        currentInteractTarget = other;
-
-                        if (Object.HasInputAuthority)
-                        {
-                            if (interactImage != null) interactImage.gameObject.SetActive(true);
-                        }
+                        interactImage.gameObject.SetActive(true);
                     }
                 }
             }
