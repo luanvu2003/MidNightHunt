@@ -456,8 +456,7 @@ public class HunterInteraction : NetworkBehaviour
         }
         return null;
     }
-
-    // 🚨 HỆ THỐNG VẬT LÝ MẠNG (ĐÃ FIX LỖI GIẬT LÙI)
+    // 🚨 HỆ THỐNG VẬT LÝ MẠNG (ĐÃ FIX LỖI TRƯỢT XA VÀ GIẬT LÙI)
     public override void FixedUpdateNetwork()
     {
         if (isVaulting)
@@ -465,31 +464,31 @@ public class HunterInteraction : NetworkBehaviour
             // 1. Ép tắt CharacterController liên tục để chống kẹt
             if (controller != null && controller.enabled) controller.enabled = false;
 
-            // 2. Server chốt thời gian
-            if (Object.HasStateAuthority)
-            {
-                vaultTimer += Runner.DeltaTime;
-                if (vaultTimer >= syncedDuration)
-                {
-                    isVaulting = false;
-                    transform.position = vEnd; // Chốt hạ vị trí chính xác
-                }
-            }
+            // 2. 🚨 ĐÃ SỬA: Cho phép cả Client và Server đều đếm thời gian
+            // (Fusion Client Prediction) giúp trượt cực mượt không bị khựng chờ mạng
+            vaultTimer += Runner.DeltaTime;
 
-            // 3. Cho phép Client trượt mượt mà
-            float safeDuration = Mathf.Max(0.1f, syncedDuration);
-            float t = Mathf.Clamp01(vaultTimer / safeDuration);
-            transform.position = Vector3.Lerp(vStart, vEnd, t);
+            if (vaultTimer >= syncedDuration)
+            {
+                isVaulting = false;
+                transform.position = vEnd; // Chốt hạ vị trí chính xác cuối cùng
+            }
+            else
+            {
+                // 3. Trượt mượt mà theo thời gian thực
+                float safeDuration = Mathf.Max(0.1f, syncedDuration);
+                float t = Mathf.Clamp01(vaultTimer / safeDuration);
+                transform.position = Vector3.Lerp(vStart, vEnd, t);
+            }
         }
         else
         {
-            // 🚨 FIX QUAN TRỌNG: Chỉ bật lại va chạm khi KHÔNG CÒN tương tác VÀ thanh UI đã chạy xong
-            // Điều này chống lại độ trễ mạng (Network Delay) khi Client nhận biến false chậm hơn Server
+            // CHỈ BẬT LẠI VA CHẠM KHI KHÔNG CÒN TƯƠNG TÁC
             if (!isInteracting && !isSliderRunning)
             {
                 if (controller != null && !controller.enabled)
                 {
-                    // FIX CHỐT HẠ: Ép Unity ghi nhận tọa độ mới trước khi bật va chạm
+                    // Ép Unity ghi nhận tọa độ mới trước khi bật va chạm
                     Physics.SyncTransforms(); 
                     controller.enabled = true;
                 }
