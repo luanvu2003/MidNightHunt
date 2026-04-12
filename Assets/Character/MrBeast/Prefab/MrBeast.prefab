@@ -2083,6 +2083,8 @@ GameObject:
   - component: {fileID: 6890075402328209381}
   - component: {fileID: 2150203136033502237}
   - component: {fileID: 738574047444335955}
+  - component: {fileID: 8718187152564687234}
+  - component: {fileID: 2650824854551574159}
   m_Layer: 0
   m_Name: MrBeast
   m_TagString: Player
@@ -2162,9 +2164,7 @@ MonoBehaviour:
   scanAngle: 90
   skillDuration: 5
   skillCooldown: 30
-  obstacleMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
+  redSilhouettePrefab: {fileID: 4213640936615067255, guid: ba7b580ca5b99e74da2859e8e2150c1b, type: 3}
   hitAnimationTrigger: AnHit
   downedAnimationBool: BiGuc
   hookedAnimationBool: BiTreo
@@ -2178,7 +2178,7 @@ MonoBehaviour:
   PlayerDeadthBox: {fileID: 444642512099688221}
   reviveTime: 30
   revivingAnimBool: IsReviving
-  interactInput: {fileID: 0}
+  interactInput: {fileID: 5132784132948834667, guid: 736d8fd6813fd034fbdbb23b0d83f26c, type: 3}
   revivePrompt: {fileID: 8541635096044667353}
   reviveSlider: {fileID: 3932848394610259809}
   _IsBeingRevived:
@@ -2215,6 +2215,8 @@ MonoBehaviour:
   - {fileID: 7613728942639097995}
   - {fileID: 2150203136033502237}
   - {fileID: 738574047444335955}
+  - {fileID: 8718187152564687234}
+  - {fileID: 2650824854551574159}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &2150203136033502237
 MonoBehaviour:
@@ -2228,12 +2230,12 @@ MonoBehaviour:
   m_Script: {fileID: 506319458, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Animator: {fileID: 0}
+  Animator: {fileID: 4293240204812007307}
   ApplyTiming: 2
   SyncSettings: 79
-  StateHashes: 
-  TriggerHashes: 
-  TotalWords: 0
+  StateHashes: 000000001439c2ab278ae79c67bf96e5e5f0da60a96219512b2d55d4cea90da48d073ea713cd87b4f80e0f498be2bafff228295918d8edb15b76deb2958341e290e793e1f14e9948
+  TriggerHashes: 000000002566f13e67bf96e5
+  TotalWords: 4
 --- !u!114 &738574047444335955
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2251,6 +2253,38 @@ MonoBehaviour:
   SyncParent: 0
   _autoAOIOverride: 1
   DisableSharedModeInterpolation: 0
+--- !u!114 &8718187152564687234
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8437323240024215010}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94ba97aa2639c0e4b9e85dddf18647a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _isBeingCarried:
+    _value: 0
+  targetFollow: {fileID: 0}
+  followSpeed: 8
+--- !u!114 &2650824854551574159
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8437323240024215010}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fed702da464343b4a9bff20cbcd85301, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  isHunterPrefab: 0
+  headBoneName: mixamorig:Head
+  myFpsEyeOffset: {x: 0, y: 0.1, z: 0.2}
+  myTpsOffset: {x: 0.5, y: 1.5, z: -3}
 --- !u!1 &8541635096044667353
 GameObject:
   m_ObjectHideFlags: 0
