@@ -173,19 +173,25 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     public override void FixedUpdateNetwork()
     {
         if (!IsGameStarted) return;
+
+        // 🚨 CHUYỂN HÀM CHECK CỨU LÊN ĐÂY!
+        // Phải check cứu trước khi code bị ngắt bởi trạng thái gục/treo
+        HandleReviveLogic();
+
         if (CurrentHits > 0 && HitDecayTimer.Expired(Runner)) CurrentHits = 0;
         if (IsHooked && SacrificeTimer.Expired(Runner)) { Runner.Despawn(Object); return; }
+
+        // Code cũ của bạn sẽ ngắt ở đây nếu đang nằm gục
         if (IsDowned || IsHooked) return;
+
         if (IsVaulting) { HandleVaultingMovement(); return; }
 
-        if (GetInput(out IShowSpeedGameplayInput input))
+        if (GetInput(out IShowSpeedGameplayInput input)) // (Đổi tên input tùy nhân vật)
         {
             HandleSkillInput(input);
-            HandleMovement(input); // Chuyền input vào đây
+            HandleMovement(input);
             HandleWindowInput(input);
         }
-
-        HandleReviveLogic();
     }
 
     public override void Render()

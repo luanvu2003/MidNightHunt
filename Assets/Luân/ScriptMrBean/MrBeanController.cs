@@ -176,26 +176,25 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
     public override void FixedUpdateNetwork()
     {
         if (!IsGameStarted) return;
+
+        // 🚨 CHUYỂN HÀM CHECK CỨU LÊN ĐÂY!
+        // Phải check cứu trước khi code bị ngắt bởi trạng thái gục/treo
+        HandleReviveLogic();
+
         if (CurrentHits > 0 && HitDecayTimer.Expired(Runner)) CurrentHits = 0;
         if (IsHooked && SacrificeTimer.Expired(Runner)) { Runner.Despawn(Object); return; }
+
+        // Code cũ của bạn sẽ ngắt ở đây nếu đang nằm gục
         if (IsDowned || IsHooked) return;
+
         if (IsVaulting) { HandleVaultingMovement(); return; }
 
-        if (GetInput(out MrBeanGameplayInput input))
+        if (GetInput(out MrBeanGameplayInput input)) // (Đổi tên input tùy nhân vật)
         {
             HandleSkillInput(input);
             HandleMovement(input);
             HandleWindowInput(input);
         }
-
-        // 🚨 Hết thời gian skill -> Tắt skill và chạy Cooldown
-        if (IsSkillActive && SkillDurationTimer.Expired(Runner))
-        {
-            IsSkillActive = false;
-            SkillCooldownTimer = TickTimer.CreateFromSeconds(Runner, skillCooldown);
-        }
-
-        HandleReviveLogic();
     }
 
     public override void Render()
