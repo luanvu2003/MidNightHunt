@@ -38,6 +38,12 @@ public class RandomRoleManager : NetworkBehaviour
 
     public override void Spawned()
     {
+        if (AudioManager.Instance != null && AudioManager.Instance.musicSource != null)
+        {
+            // Nếu Scene này có nhạc nền riêng, bạn nên gán nó vào AudioManager.Instance.musicSource
+            // Còn nếu dùng chung nhạc từ Menu thì nó sẽ tự giữ mức âm lượng cũ.
+            Debug.Log($"[Random] Đồng bộ âm lượng nhạc: {AudioManager.Instance.musicSource.volume}");
+        }
         // 1. Dọn dẹp UI lúc mới vào
         foreach (var txt in playerNameTexts) if (txt != null) txt.text = "";
         if (highlightFrame != null) highlightFrame.gameObject.SetActive(false);
