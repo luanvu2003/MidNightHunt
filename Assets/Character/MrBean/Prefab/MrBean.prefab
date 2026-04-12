@@ -1991,7 +1991,7 @@ GameObject:
   - component: {fileID: 926144316674181572}
   - component: {fileID: 1609904749216570405}
   m_Layer: 0
-  m_Name: CanvasUINhay
+  m_Name: CanvasUI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2498,7 +2498,7 @@ MonoBehaviour:
   Animator: {fileID: 4080073567845634042}
   ApplyTiming: 2
   SyncSettings: 79
-  StateHashes: 000000001439c2ab278ae79c67bf96e5e5f0da60a96219512b2d55d418d8edb15b76deb2cea90da48d073ea713cd87b4f80e0f498be2bafff2282959958341e290e793e1f14e9948
+  StateHashes: 000000001439c2ab278ae79c67bf96e5e5f0da60a96219512b2d55d418d8edb15b76deb2cea90da48d073ea713cd87b4f80e0f498be2bafff22829595d896e24f8cd899b958341e290e793e1f14e9948
   TriggerHashes: 000000002566f13e67bf96e5
   TotalWords: 4
 --- !u!114 &110847039076100471

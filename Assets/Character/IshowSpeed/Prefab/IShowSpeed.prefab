@@ -992,7 +992,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &7318856669644216487
 Transform:
   m_ObjectHideFlags: 0
@@ -1795,7 +1795,7 @@ GameObject:
   - component: {fileID: 741922287991235141}
   - component: {fileID: 8983298476207601097}
   m_Layer: 0
-  m_Name: CanvasUINhay
+  m_Name: CanvasUI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2519,6 +2519,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fed702da464343b4a9bff20cbcd85301, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isHunterPrefab: 0
   headBoneName: mixamorig:Head
   myFpsEyeOffset: {x: 0, y: 0.1, z: 0.2}
   myTpsOffset: {x: 0.5, y: 1.5, z: -3}
