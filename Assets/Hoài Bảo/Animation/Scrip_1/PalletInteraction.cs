@@ -1,5 +1,6 @@
 using UnityEngine;
 using Fusion;
+using UnityEngine.InputSystem; // 🚨 Bắt buộc thêm dòng này để nhận diện phím Space mới
 
 public class PalletInteraction_Fusion : NetworkBehaviour
 {
@@ -22,14 +23,11 @@ public class PalletInteraction_Fusion : NetworkBehaviour
 
     private ChangeDetector _changes;
     private bool _isLocalPlayerInZone = false; 
-    
-    // 🚨 BIẾN CỜ ĐỂ FIX LỖI "CHƯA SPAWN MÀ ĐÃ GỌI NETWORK"
     private bool _isSpawned = false; 
 
     public override void Spawned()
     {
-        _isSpawned = true; // Đánh dấu Fusion đã khởi tạo xong ván này
-        
+        _isSpawned = true; 
         _changes = GetChangeDetector(ChangeDetector.Source.SnapshotFrom);
         if (spaceUI != null) spaceUI.SetActive(false);
         UpdateVisuals();
@@ -37,7 +35,7 @@ public class PalletInteraction_Fusion : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        if (!_isSpawned) return; // Chặn nếu chưa Spawn
+        if (!_isSpawned) return; 
 
         if (Object.HasStateAuthority && State == PalletState.Falling)
         {
@@ -50,7 +48,7 @@ public class PalletInteraction_Fusion : NetworkBehaviour
 
     public override void Render()
     {
-        if (!_isSpawned) return; // Chặn nếu chưa Spawn
+        if (!_isSpawned) return; 
 
         foreach (var change in _changes.DetectChanges(this))
         {
@@ -88,12 +86,26 @@ public class PalletInteraction_Fusion : NetworkBehaviour
 
     private void Update()
     {
-        if (!_isSpawned) return; // 🚨 Chặn Update gọi vào State khi chưa sẵn sàng
+        if (!_isSpawned) return; 
 
         if (_isLocalPlayerInZone && State == PalletState.Up)
         {
-            if (Input.GetKeyDown(KeyCode.Space))
+            // 🚨 TỐI ƯU INPUT: Dùng New Input System để đọc phím Space thay vì hàm cũ
+            bool isSpacePressed = false;
+            
+            if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
             {
+                isSpacePressed = true;
+            }
+
+            // Nếu dự án của bạn đang dùng cả 2 Input (Both), dự phòng thêm hàm cũ
+            #if ENABLE_LEGACY_INPUT_MANAGER
+            if (Input.GetKeyDown(KeyCode.Space)) isSpacePressed = true;
+            #endif
+
+            if (isSpacePressed)
+            {
+                Debug.Log("🟢 Đã bấm Space! Đang gửi lệnh ngã ván lên Server...");
                 Rpc_RequestDropPallet();
                 
                 _isLocalPlayerInZone = false; 
@@ -105,29 +117,29 @@ public class PalletInteraction_Fusion : NetworkBehaviour
     // --- LOGIC NHẬN DIỆN PLAYER VÀ HUNTER ---
     private void OnTriggerEnter(Collider other)
     {
-        if (!_isSpawned) return; // 🚨 Chặn Trigger chạy sớm
+        if (!_isSpawned) return; 
+        
+        // In ra Console để xem Ván có thực sự chạm vào Player không
+        Debug.Log("🟠 Có vật thể chạm vào Ván: " + other.name);
 
         CheckLocalPlayerTrigger(other, true);
 
         if (State == PalletState.Falling && other.CompareTag("Hunter"))
         {
             var hunter = other.GetComponentInParent<HunterInteraction>();
-            if (hunter != null)
-            {
-                hunter.ApplyStun(3.0f); 
-            }
+            if (hunter != null) hunter.ApplyStun(3.0f); 
         }
     }
 
     private void OnTriggerStay(Collider other)
     {
-        if (!_isSpawned) return; // 🚨 Chặn Trigger chạy sớm
+        if (!_isSpawned) return; 
         CheckLocalPlayerTrigger(other, true);
     }
 
     private void OnTriggerExit(Collider other)
     {
-        if (!_isSpawned) return; // 🚨 Chặn Trigger chạy sớm
+        if (!_isSpawned) return; 
         CheckLocalPlayerTrigger(other, false);
     }
 
@@ -139,8 +151,12 @@ public class PalletInteraction_Fusion : NetworkBehaviour
         
         if (playerScript != null)
         {
+            // Kiểm tra xem nhân vật này có phải do máy mình điều khiển không
             if (playerScript.Object != null && playerScript.Object.HasInputAuthority)
             {
+                if (isInside && !_isLocalPlayerInZone) 
+                    Debug.Log("✅ Player hợp lệ đã vào vùng ván! Bật UI.");
+                    
                 _isLocalPlayerInZone = isInside;
                 if (spaceUI != null) spaceUI.SetActive(isInside);
             }
