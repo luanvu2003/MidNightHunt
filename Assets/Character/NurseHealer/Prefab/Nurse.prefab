@@ -2348,6 +2348,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 6c115849636d07741b3afe203d483fe8, type: 3}
       insertIndex: -1
       addedObject: {fileID: -2183460530798544813}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 6c115849636d07741b3afe203d483fe8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5255160108856339583}
   m_SourcePrefab: {fileID: 100100000, guid: 6c115849636d07741b3afe203d483fe8, type: 3}
 --- !u!4 &1197032748752397809 stripped
 Transform:
@@ -2463,6 +2466,7 @@ MonoBehaviour:
   - {fileID: -362250094445081149}
   - {fileID: 8778292444764546065}
   - {fileID: -2183460530798544813}
+  - {fileID: 5255160108856339583}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &-362250094445081149
 MonoBehaviour:
@@ -2515,6 +2519,22 @@ MonoBehaviour:
   headBoneName: mixamorig:Head
   myFpsEyeOffset: {x: 0, y: 0.1, z: 0.2}
   myTpsOffset: {x: 0.5, y: 1.5, z: -3}
+--- !u!114 &5255160108856339583
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2006184711979089739}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94ba97aa2639c0e4b9e85dddf18647a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _isBeingCarried:
+    _value: 0
+  targetFollow: {fileID: 0}
+  followSpeed: 8
 --- !u!95 &5079103967105433483 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 6c115849636d07741b3afe203d483fe8, type: 3}
