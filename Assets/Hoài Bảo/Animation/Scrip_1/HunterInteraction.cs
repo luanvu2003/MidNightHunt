@@ -682,7 +682,7 @@ public class HunterInteraction : NetworkBehaviour
             currentDuration = 2.0f; // Thời gian phá ván
 
             // Gọi RPC để xóa ván sau khi xong (hoặc gọi qua Animation Event)
-            var pallet = currentInteractTarget.GetComponentInParent<PalletInteraction_Fusion>();
+            var pallet = currentInteractTarget.GetComponentInParent<PalletInteraction>();
             if (pallet != null) pallet.Rpc_DestroyPallet();
         }
 

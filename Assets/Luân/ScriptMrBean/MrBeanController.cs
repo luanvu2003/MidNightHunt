@@ -9,7 +9,7 @@ using Fusion.Sockets; // 🚨 Đã thêm
 
 [RequireComponent(typeof(CharacterController))]
 // 🚨 Đã thêm INetworkRunnerCallbacks vào đây
-public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
+public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks, ISurvivor
 {
     [Header("Animator Settings")]
     public Animator animator;
@@ -34,10 +34,13 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
     public float vaultDuration = 1.5f;
     public float vaultDistance = 2.5f;
 
-    [Header("Speed Skill Settings")]
-    public float skillSpeedBonus = 3f;
+    [Header("Fast Repair Skill Settings")]
+    public float repairSpeedMultiplier = 2f; // Tăng x2 tốc độ sửa
     public float skillDuration = 10f;
     public float skillCooldown = 30f;
+
+    [Networked] public NetworkBool IsSkillArmed { get; set; } // Đã ấn phím E, đang nạp sẵn chờ sửa
+    [Networked] public NetworkBool IsSkillActive { get; set; } // Đang ngồi sửa và thanh thời gian đang tụt
 
     [Header("Health & States")]
     public string hitAnimationTrigger = "AnHit";
@@ -96,6 +99,7 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
     [Networked] public NetworkBool IsGameStarted { get; set; } = false;
     [Networked] public float AnimSpeedValue { get; set; }
     [Networked] private float velocityY { get; set; }
+    [Networked] public NetworkBool IsRepairingAnim { get; set; }
 
     public override void Spawned()
     {
@@ -175,8 +179,15 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         if (GetInput(out MrBeanGameplayInput input))
         {
             HandleSkillInput(input);
-            HandleMovement(input); // Chuyền input vào đây
+            HandleMovement(input);
             HandleWindowInput(input);
+        }
+
+        // 🚨 Hết thời gian skill -> Tắt skill và chạy Cooldown
+        if (IsSkillActive && SkillDurationTimer.Expired(Runner))
+        {
+            IsSkillActive = false;
+            SkillCooldownTimer = TickTimer.CreateFromSeconds(Runner, skillCooldown);
         }
 
         HandleReviveLogic();
@@ -187,6 +198,7 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         animator.SetBool(downedAnimationBool, IsDowned);
         animator.SetBool(hookedAnimationBool, IsHooked);
         animator.SetBool(revivingAnimBool, IsReviving);
+        animator.SetBool("SuaMay", IsRepairingAnim);
 
         float currentAnimSpeed = animator.GetFloat("Speed");
         animator.SetFloat("Speed", Mathf.Lerp(currentAnimSpeed, AnimSpeedValue, Time.deltaTime * 15f));
@@ -210,6 +222,11 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         }
     }
 
+    public void SetRepairAnimation(bool isRepairing)
+    {
+        IsRepairingAnim = isRepairing;
+    }
+
     private bool IsNearDeadBody()
     {
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, 2f);
@@ -222,8 +239,8 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
 
     private void HandleMovement(MrBeanGameplayInput input)
     {
-        _characterController.enabled = false;
-        _characterController.enabled = true;
+        // 🚨 Đã xóa phần tắt/bật CharacterController liên tục để tránh giật lag khi chơi mạng
+
         Vector3 direction = CalculateDirection(input.moveDirection, input.camForward, input.camRight);
 
         // 🚨 CHUẨN HÓA: Chống lỗi đi chéo bị nhân đôi tốc độ (X2 Speed)
@@ -231,19 +248,22 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
 
         float speed = mediumRunSpeed;
         float targetAnimSpeed = 0.5f;
-        bool skillActive = !SkillDurationTimer.ExpiredOrNotRunning(Runner);
 
-        if (skillActive)
+        // 🚨 ĐÃ XÓA TOÀN BỘ LOGIC skillActive Ở ĐÂY (Vì skill giờ đã chuyển sang sửa máy)
+
+        // Chỉ còn check chạy bộ và đi bộ bình thường
+        if (input.isWalking)
         {
-            speed = sprintSpeed + skillSpeedBonus;
+            speed = slowWalkSpeed;
+            targetAnimSpeed = 0.2f;
+        }
+        else if (input.isSprinting)
+        {
+            speed = sprintSpeed;
             targetAnimSpeed = 1f;
         }
-        else
-        {
-            if (input.isWalking) { speed = slowWalkSpeed; targetAnimSpeed = 0.2f; }
-            else if (input.isSprinting) { speed = sprintSpeed; targetAnimSpeed = 1f; }
-        }
 
+        // Nếu đứng im thì tắt animation chạy/đi
         if (direction.magnitude == 0) targetAnimSpeed = 0f;
 
         // 🚨 THÊM TRỌNG LỰC: Ép nhân vật dính sát đất để Host và Client tính toán chính xác 100%
@@ -299,8 +319,41 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
     {
         if (input.isSkill && SkillCooldownTimer.ExpiredOrNotRunning(Runner))
         {
+            // Bấm lúc chưa sửa máy -> Đưa vào trạng thái chờ (Armed)
+            if (!IsSkillArmed && !IsSkillActive)
+            {
+                IsSkillArmed = true;
+            }
+        }
+    }
+
+    // ============================================
+    // THỰC THI INTERFACE ISURVIVOR
+    // ============================================
+    public NetworkObject Object => base.Object;
+
+    public float GetRepairSpeedMultiplier()
+    {
+        return IsSkillActive ? repairSpeedMultiplier : 1f;
+    }
+
+    public void OnStartRepair()
+    {
+        if (IsSkillArmed) // Nếu đã nạp sẵn skill -> Chuyển sang kích hoạt và tính giờ
+        {
+            IsSkillArmed = false;
+            IsSkillActive = true;
             SkillDurationTimer = TickTimer.CreateFromSeconds(Runner, skillDuration);
-            SkillCooldownTimer = TickTimer.CreateFromSeconds(Runner, skillDuration + skillCooldown);
+        }
+    }
+
+    public void OnStopRepair()
+    {
+        if (IsSkillActive) // Đang dùng skill mà thả tay ra -> Dừng luôn skill, hồi chiêu
+        {
+            IsSkillActive = false;
+            SkillCooldownTimer = TickTimer.CreateFromSeconds(Runner, skillCooldown);
+            SkillDurationTimer = TickTimer.None;
         }
     }
 
@@ -373,14 +426,23 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
 
     private void UpdateSkillUI()
     {
-        bool durationActive = !SkillDurationTimer.ExpiredOrNotRunning(Runner);
-        durationSlider.gameObject.SetActive(durationActive);
-        if (durationActive) durationSlider.value = SkillDurationTimer.RemainingTime(Runner).Value;
+        bool isArmed = IsSkillArmed;
+        bool isActive = IsSkillActive;
+
+        durationSlider.gameObject.SetActive(isArmed || isActive);
+        if (isArmed)
+        {
+            durationSlider.value = skillDuration; // Đầy thanh, chờ chạy
+        }
+        else if (isActive)
+        {
+            durationSlider.value = SkillDurationTimer.RemainingTime(Runner).Value; // Đang tụt dần
+        }
 
         float? cdLeft = SkillCooldownTimer.RemainingTime(Runner);
-        bool onCooldown = cdLeft > 0 && SkillDurationTimer.ExpiredOrNotRunning(Runner);
+        bool onCooldown = cdLeft > 0 && !isArmed && !isActive;
 
-        cooldownImage.gameObject.SetActive(cdLeft > 0);
+        cooldownImage.gameObject.SetActive(cdLeft > 0 && !isActive && !isArmed);
         if (cdLeft > 0) cooldownImage.fillAmount = cdLeft.Value / skillCooldown;
 
         cooldownText.gameObject.SetActive(onCooldown);

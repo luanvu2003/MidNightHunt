@@ -9,7 +9,7 @@ using Fusion.Sockets; // 🚨 Đã thêm
 
 [RequireComponent(typeof(CharacterController))]
 // 🚨 Đã thêm INetworkRunnerCallbacks vào đây
-public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
+public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks, ISurvivor
 {
     [Header("Animator Settings")]
     public Animator animator;
@@ -106,6 +106,7 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     [Networked] public NetworkBool IsGameStarted { get; set; } = false;
     [Networked] public float AnimSpeedValue { get; set; }
     [Networked] private float velocityY { get; set; }
+    [Networked] public NetworkBool IsRepairingAnim { get; set; }
 
     public override void Spawned()
     {
@@ -197,6 +198,7 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         animator.SetBool(downedAnimationBool, IsDowned);
         animator.SetBool(hookedAnimationBool, IsHooked);
         animator.SetBool(revivingAnimBool, IsReviving);
+        animator.SetBool("SuaMay", IsRepairingAnim);
 
         float currentAnimSpeed = animator.GetFloat("Speed");
         animator.SetFloat("Speed", Mathf.Lerp(currentAnimSpeed, AnimSpeedValue, Time.deltaTime * 15f));
@@ -310,6 +312,11 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
 
         // Dọn dẹp danh sách
         _activeSilhouettes.Clear();
+    }
+
+    public void SetRepairAnimation(bool isRepairing)
+    {
+        IsRepairingAnim = isRepairing;
     }
 
     private bool IsNearDeadBody()
@@ -714,6 +721,10 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     {
 
     }
+    public NetworkObject Object => base.Object;
+    public float GetRepairSpeedMultiplier() => 1f; // Tốc độ cơ bản 1x
+    public void OnStartRepair() { }
+    public void OnStopRepair() { }
 }
 
 public struct MrBeastGameplayInput : INetworkInput

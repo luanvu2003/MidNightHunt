@@ -9,7 +9,7 @@ using Fusion.Sockets; // 🚨 Đã thêm
 
 [RequireComponent(typeof(CharacterController))]
 // 🚨 Đã thêm INetworkRunnerCallbacks vào đây
-public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
+public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks, ISurvivor
 {
     [Header("Animator Settings")]
     public Animator animator;
@@ -96,6 +96,7 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     [Networked] public NetworkBool IsGameStarted { get; set; } = false;
     [Networked] public float AnimSpeedValue { get; set; }
     [Networked] private float velocityY { get; set; }
+    [Networked] public NetworkBool IsRepairingAnim { get; set; }
 
     public override void Spawned()
     {
@@ -187,6 +188,7 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         animator.SetBool(downedAnimationBool, IsDowned);
         animator.SetBool(hookedAnimationBool, IsHooked);
         animator.SetBool(revivingAnimBool, IsReviving);
+        animator.SetBool("SuaMay", IsRepairingAnim);
 
         float currentAnimSpeed = animator.GetFloat("Speed");
         animator.SetFloat("Speed", Mathf.Lerp(currentAnimSpeed, AnimSpeedValue, Time.deltaTime * 15f));
@@ -208,6 +210,11 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
 
             UpdateReviveProgressUI();
         }
+    }
+
+    public void SetRepairAnimation(bool isRepairing)
+    {
+        IsRepairingAnim = isRepairing;
     }
 
     private bool IsNearDeadBody()
@@ -621,7 +628,13 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     {
 
     }
+    public NetworkObject Object => base.Object;
+    public float GetRepairSpeedMultiplier() => 1f; // Tốc độ cơ bản 1x
+    public void OnStartRepair() { }
+    public void OnStopRepair() { }
 }
+
+
 
 public struct IShowSpeedGameplayInput : INetworkInput
 {
