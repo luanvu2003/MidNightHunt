@@ -2349,10 +2349,6 @@ PrefabInstance:
       propertyPath: mainCamera
       value: 
       objectReference: {fileID: 349725732}
-    - target: {fileID: 2235802805022690542, guid: f49449c111e98a04e9371b76ac04f9a7, type: 3}
-      propertyPath: m_Sprite
-      value: 
-      objectReference: {fileID: -529909601, guid: d2d2cd6ce1352884a84235a9763ed4de, type: 3}
     - target: {fileID: 3165707616130625318, guid: f49449c111e98a04e9371b76ac04f9a7, type: 3}
       propertyPath: SortKey
       value: 1095556375
@@ -2532,10 +2528,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 1800503714596571517, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: m_Sprite
-      value: 
-      objectReference: {fileID: -396765928, guid: 5ef8467307234124c8aa6a1bc0e31c76, type: 3}
     - target: {fileID: 2006184711979089739, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
       propertyPath: m_Name
       value: Nurse
@@ -2565,10 +2557,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 1012355811381491365, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: m_Sprite
-      value: 
-      objectReference: {fileID: -1332652823, guid: 17801dedf08293d43998b5a0b896d33a, type: 3}
     - target: {fileID: 4496159976589184080, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
       propertyPath: m_LocalPosition.x
       value: 39.5722
@@ -2616,6 +2604,10 @@ PrefabInstance:
     - target: {fileID: 8437323240024215010, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
       propertyPath: m_Name
       value: MrBeast
+      objectReference: {fileID: 0}
+    - target: {fileID: 8437323240024215010, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

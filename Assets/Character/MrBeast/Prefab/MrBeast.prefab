@@ -1671,7 +1671,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 551223828, guid: 0ce408228760a4e4e93e7f5a05b5616e, type: 3}
+  m_Sprite: {fileID: -1332652823, guid: 17801dedf08293d43998b5a0b896d33a, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2179,7 +2179,9 @@ MonoBehaviour:
   mainCamera: {fileID: 0}
   PlayerDeadthBox: {fileID: 444642512099688221}
   reviveTime: 30
+  unhookTime: 50
   revivingAnimBool: IsReviving
+  unhookingAnimBool: IsUnhooking
   interactInput: {fileID: 5132784132948834667, guid: 736d8fd6813fd034fbdbb23b0d83f26c, type: 3}
   revivePrompt: {fileID: 8541635096044667353}
   reviveSlider: {fileID: 3932848394610259809}
@@ -2187,6 +2189,8 @@ MonoBehaviour:
   _IsBeingRevived:
     _value: 0
   _IsReviving:
+    _value: 0
+  _IsUnhooking:
     _value: 0
   _IsDowned:
     _value: 0
@@ -2198,6 +2202,8 @@ MonoBehaviour:
   _IsGameStarted:
     _value: 0
   _AnimSpeedValue: 0
+  _IsRepairingAnim:
+    _value: 0
 --- !u!114 &6890075402328209381
 MonoBehaviour:
   m_ObjectHideFlags: 0

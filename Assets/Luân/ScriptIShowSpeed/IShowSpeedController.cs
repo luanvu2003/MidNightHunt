@@ -3,11 +3,12 @@ using UnityEngine.InputSystem;
 using Fusion; // Thư viện Fusion
 using UnityEngine.UI;
 using TMPro;
-using System;
+using System; // 🚨 Đã thêm
 using System.Collections.Generic;
-using Fusion.Sockets;
+using Fusion.Sockets; // 🚨 Đã thêm
 
 [RequireComponent(typeof(CharacterController))]
+// 🚨 Đã thêm INetworkRunnerCallbacks vào đây
 public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks, ISurvivor
 {
     [Header("Animator Settings")]
@@ -25,7 +26,6 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     public InputActionReference walkInput;
     public InputActionReference vaultInput;
     public InputActionReference skillInput;
-    public InputActionReference interactInput;
     private bool _vaultPressed;
     private bool _skillPressed;
 
@@ -59,36 +59,43 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     [Networked] private TickTimer InvincibilityTimer { get; set; }
     public GameObject PlayerDeadthBox;
 
-    [Header("Revive Settings")]
-    public float reviveTime = 90f;
+    [Header("Revive & Unhook Settings")]
+    public float reviveTime = 5f;  // Cứu gục dưới đất mất 5 giây
+    public float unhookTime = 2f;  // Tháo móc mất 2 giây
     public string revivingAnimBool = "IsReviving";
+    public string unhookingAnimBool = "IsUnhooking"; // 🚨 THÊM ANIMATION THÁO MÓC
+
+    private ISurvivor _targetToRevive; // 🚨 Đã đổi thành ISurvivor để cứu được mọi người
+    public InputActionReference interactInput;
     public GameObject revivePrompt;
     public Slider reviveSlider;
+
     [Header("Tùy Chỉnh Lệch Móc")]
     public Vector3 hookOffset = Vector3.zero;
 
     [Networked] public NetworkBool IsBeingRevived { get; set; }
     [Networked] public NetworkBool IsReviving { get; set; }
-    [Networked] public TickTimer ReviveTimer { get; set; }
-    [Networked] public NetworkId TargetReviveId { get; set; }
-
-    [Networked] private NetworkObject ReviverObject { get; set; }
+    [Networked] public NetworkBool IsUnhooking { get; set; } // 🚨 Đang đứng tháo móc
+    [Networked] private TickTimer ReviveTimer { get; set; }
 
     private CharacterController _characterController;
     private bool _isNearWindow = false;
     private bool _isLocalRepairing = false;
 
+    // --- CÁC BIẾN ĐỒNG BỘ MẠNG (NETWORKED) ---
     [Networked] public NetworkBool IsDowned { get; set; }
     [Networked] public NetworkBool IsHooked { get; set; }
     [Networked] public int CurrentHits { get; set; }
     [Networked] public NetworkBool IsVaulting { get; set; }
 
+    // --- BỘ ĐẾM THỜI GIAN MẠNG (TICKTIMER) ---
     [Networked] private TickTimer HitDecayTimer { get; set; }
     [Networked] private TickTimer SkillDurationTimer { get; set; }
     [Networked] private TickTimer SkillCooldownTimer { get; set; }
     [Networked] private TickTimer VaultTimer { get; set; }
     [Networked] private TickTimer SacrificeTimer { get; set; }
 
+    // Lưu vị trí nhảy để đồng bộ mượt mà
     [Networked] private Vector3 VaultStartPos { get; set; }
     [Networked] private Vector3 VaultTargetPos { get; set; }
     [Networked] public NetworkBool IsGameStarted { get; set; } = false;
@@ -101,6 +108,7 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         _characterController = GetComponent<CharacterController>();
         animator = GetComponentInChildren<Animator>();
 
+        // TẮT NGAY LẬP TỨC ĐỂ TRÁNH XUNG ĐỘT
         if (_characterController != null) _characterController.enabled = false;
 
         if (Object.HasInputAuthority)
@@ -122,6 +130,9 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
             Runner.AddCallbacks(this);
         }
 
+        // 🚨 QUAN TRỌNG NHẤT LÀ ĐOẠN NÀY:
+        // Chỉ bật lại CharacterController nếu bạn là Host HOẶC bạn là chủ của nhân vật này.
+        // Còn nếu bạn đang nhìn nhân vật của người khác (Proxy), thì CC PHẢI BỊ TẮT!
         if (Object.HasStateAuthority || Object.HasInputAuthority)
         {
             StartCoroutine(EnableCharacterControllerRoutine());
@@ -132,9 +143,11 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
 
     private System.Collections.IEnumerator EnableCharacterControllerRoutine()
     {
-        yield return null;
+        yield return null; // Đợi 1 frame cho vị trí mạng đồng bộ xong
         if (_characterController != null) _characterController.enabled = true;
     }
+
+
 
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
@@ -151,11 +164,10 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     private void InitUI()
     {
         if (interactUI) interactUI.SetActive(false);
-        if (durationSlider) { durationSlider.gameObject.SetActive(false); durationSlider.maxValue = skillDuration; }
+        if (durationSlider) durationSlider.gameObject.SetActive(false);
         if (cooldownImage) cooldownImage.gameObject.SetActive(false);
         if (cooldownText) { cooldownText.text = ""; cooldownText.gameObject.SetActive(false); }
-        if (hookSlider) { hookSlider.gameObject.SetActive(false); hookSlider.maxValue = 1f; } // Ép về tỷ lệ 0-1
-        if (reviveSlider) { reviveSlider.gameObject.SetActive(false); reviveSlider.maxValue = 1f; }
+        if (hookSlider) hookSlider.gameObject.SetActive(false);
     }
 
     public override void FixedUpdateNetwork()
@@ -169,95 +181,30 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         if (GetInput(out IShowSpeedGameplayInput input))
         {
             HandleSkillInput(input);
-            HandleMovement(input);
+            HandleMovement(input); // Chuyền input vào đây
             HandleWindowInput(input);
-            HandleReviveInput(input);
         }
 
         HandleReviveLogic();
-    }
-
-    private void HandleReviveInput(IShowSpeedGameplayInput input)
-    {
-        if (!Object.HasStateAuthority) return;
-
-        if (input.isInteract)
-        {
-            if (!IsReviving)
-            {
-                Collider[] hits = Physics.OverlapSphere(transform.position, 2f);
-                foreach (var hit in hits)
-                {
-                    if (hit.CompareTag("Playerchet"))
-                    {
-                        var obj = hit.GetComponentInParent<NetworkObject>();
-                        if (obj != null && obj != this.Object)
-                        {
-                            IsReviving = true;
-                            TargetReviveId = obj.Id;
-                            CallStartReviveRPC(obj, reviveTime);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        else if (IsReviving)
-        {
-            IsReviving = false;
-            if (TargetReviveId.IsValid)
-            {
-                var obj = Runner.FindObject(TargetReviveId);
-                if (obj != null) CallStopReviveRPC(obj);
-            }
-            TargetReviveId = default;
-        }
-    }
-
-    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_StartBeingRevived(float time)
-    {
-        IsBeingRevived = true;
-        ReviveTimer = TickTimer.CreateFromSeconds(Runner, time);
-    }
-
-    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_StopBeingRevived()
-    {
-        IsBeingRevived = false;
-        ReviveTimer = TickTimer.None;
-    }
-
-    private void CallStartReviveRPC(NetworkObject obj, float time)
-    {
-        var speed = obj.GetComponent<IShowSpeedController_Fusion>(); if (speed) { speed.RPC_StartBeingRevived(time); return; }
-        var bean = obj.GetComponent<MrBeanController_Fusion>(); if (bean) { bean.RPC_StartBeingRevived(time); return; }
-        var beast = obj.GetComponent<MrBeastController_Fusion>(); if (beast) { beast.RPC_StartBeingRevived(time); return; }
-        var nurse = obj.GetComponent<NurseController_Fusion>(); if (nurse) { nurse.RPC_StartBeingRevived(time); return; }
-    }
-
-    private void CallStopReviveRPC(NetworkObject obj)
-    {
-        var speed = obj.GetComponent<IShowSpeedController_Fusion>(); if (speed) { speed.RPC_StopBeingRevived(); return; }
-        var bean = obj.GetComponent<MrBeanController_Fusion>(); if (bean) { bean.RPC_StopBeingRevived(); return; }
-        var beast = obj.GetComponent<MrBeastController_Fusion>(); if (beast) { beast.RPC_StopBeingRevived(); return; }
-        var nurse = obj.GetComponent<NurseController_Fusion>(); if (nurse) { nurse.RPC_StopBeingRevived(); return; }
     }
 
     public override void Render()
     {
         animator.SetBool(downedAnimationBool, IsDowned);
         animator.SetBool(hookedAnimationBool, IsHooked);
-        animator.SetBool(revivingAnimBool, IsReviving);
+        animator.SetBool(revivingAnimBool, IsReviving);     // Anim cứu dưới đất
+        animator.SetBool(unhookingAnimBool, IsUnhooking);   // Anim tháo móc
+
         animator.SetBool("SuaMay", IsRepairingAnim);
 
         float currentAnimSpeed = animator.GetFloat("Speed");
         animator.SetFloat("Speed", Mathf.Lerp(currentAnimSpeed, AnimSpeedValue, Time.deltaTime * 15f));
 
+        // 🚨 FIX LỖI TỰ HỦY BOX: Phải luôn hiện Box khi gục HOẶC treo. 
+        // TUYỆT ĐỐI KHÔNG TẮT khi đang bị cứu, nếu tắt Trigger sẽ miss và ngắt cứu ngay lập tức!
         if (PlayerDeadthBox != null)
         {
-            // 🚨 Bật box cứu khi GỤC hoặc BỊ TREO MÓC
-            PlayerDeadthBox.SetActive((IsDowned || IsHooked) && !IsBeingRevived);
+            PlayerDeadthBox.SetActive(IsDowned || IsHooked);
         }
 
         if (Object.HasInputAuthority)
@@ -265,7 +212,8 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
             UpdateSkillUI();
             UpdateHookUI();
 
-            bool canShowE = !IsDowned && IsNearDeadBody() && !IsReviving;
+            // Chỉ hiện chữ E khi có xác/người bị treo và bản thân chưa bấm E
+            bool canShowE = !IsDowned && !IsHooked && IsNearDeadBody() && !IsReviving && !IsUnhooking;
             if (revivePrompt) revivePrompt.SetActive(canShowE);
 
             UpdateReviveProgressUI();
@@ -293,19 +241,21 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         _characterController.enabled = true;
         Vector3 direction = CalculateDirection(input.moveDirection, input.camForward, input.camRight);
 
+        // 🚨 CHUẨN HÓA: Chống lỗi đi chéo bị nhân đôi tốc độ (X2 Speed)
         if (direction.magnitude > 1f) direction.Normalize();
 
         float speed = mediumRunSpeed;
         float targetAnimSpeed = 0.5f;
         bool skillActive = !SkillDurationTimer.ExpiredOrNotRunning(Runner);
-
-        if (_isLocalRepairing || IsRepairingAnim || IsReviving || IsBeingRevived)
+        if (_isLocalRepairing || IsRepairingAnim || IsReviving || IsUnhooking)
         {
+            // Vẫn phải giữ trọng lực để nhân vật không rớt xuyên map
             if (_characterController.isGrounded && velocityY < 0) velocityY = -2f;
             velocityY += -9.81f * Runner.DeltaTime;
             _characterController.Move(new Vector3(0, velocityY, 0) * Runner.DeltaTime);
-            AnimSpeedValue = 0f;
-            return;
+
+            AnimSpeedValue = 0f; // Ép tắt animation chạy
+            return; // 🚨 KẾT THÚC HÀM TẠI ĐÂY, VÔ HIỆU HÓA WASD
         }
 
         if (skillActive)
@@ -321,19 +271,21 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
 
         if (direction.magnitude == 0) targetAnimSpeed = 0f;
 
+        // 🚨 THÊM TRỌNG LỰC: Ép nhân vật dính sát đất để Host và Client tính toán chính xác 100%
         if (_characterController.isGrounded && velocityY < 0) velocityY = -2f;
         velocityY += -9.81f * Runner.DeltaTime;
 
         if (direction.magnitude >= 0.1f)
         {
             Vector3 moveVelocity = direction * speed;
-            moveVelocity.y = velocityY;
+            moveVelocity.y = velocityY; // Gắn trọng lực vào
 
             _characterController.Move(moveVelocity * Runner.DeltaTime);
             transform.rotation = Quaternion.LookRotation(direction);
         }
         else
         {
+            // Vẫn phải rớt xuống đất kể cả khi đứng im
             _characterController.Move(new Vector3(0, velocityY, 0) * Runner.DeltaTime);
         }
 
@@ -381,10 +333,13 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     {
         if (IsDowned || IsHooked || !Object.HasStateAuthority) return;
 
+        // 🚨 FIX LỖI SPAM HIT: Kiểm tra xem đã hết thời gian bất tử chưa
         if (!InvincibilityTimer.ExpiredOrNotRunning(Runner)) return;
 
         CurrentHits++;
 
+        // Bật trạng thái bất tử trong 1.5 giây sau khi ăn hit (tránh bị 1 chém dính 3 hit)
+        // Bạn có thể chỉnh 1.5f thành số khác tùy tốc độ vung rìu của Hunter
         InvincibilityTimer = TickTimer.CreateFromSeconds(Runner, 1.5f);
 
         bool isMoving = _characterController.velocity.magnitude > 0.1f;
@@ -396,6 +351,7 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         {
             IsDowned = true;
             _characterController.enabled = false;
+            // 🚨 ĐÃ XÓA DÒNG BẬT BOX Ở ĐÂY VÌ ĐỂ ĐÂY CLIENT SẼ KHÔNG THẤY
         }
     }
 
@@ -406,6 +362,8 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         animator.SetTrigger(hitAnimationTrigger);
     }
 
+    // 🚨 Thêm Quaternion hookRot vào trong ngoặc
+    // 🚨 Thêm Quaternion hookRot vào trong ngoặc
     public void GetHooked(Vector3 hookPos, Quaternion hookRot)
     {
         if (IsHooked || !Object.HasStateAuthority) return;
@@ -416,13 +374,16 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         PlayerHookReceiver hookReceiver = GetComponent<PlayerHookReceiver>();
         if (hookReceiver != null) hookReceiver.ReleaseFromHunter();
 
+        // 🚨 1. Bắt buộc tắt Character Controller trước khi dời đi
         if (_characterController != null) _characterController.enabled = false;
 
+        // 🚨 2. TÍNH TOÁN VỊ TRÍ MỚI (Cộng thêm offset theo hướng của cái móc)
         Vector3 adjustedPos = hookPos + (hookRot * hookOffset);
 
         transform.position = adjustedPos;
         transform.rotation = hookRot;
 
+        // 🚨 3. Báo cho Fusion biết nhân vật đã dịch chuyển
         var networkTransform = GetComponent<NetworkTransform>();
         if (networkTransform != null)
         {
@@ -454,15 +415,12 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     private void UpdateHookUI()
     {
         hookSlider.gameObject.SetActive(IsHooked);
-        if (IsHooked)
-        {
-            float timeRemaining = SacrificeTimer.RemainingTime(Runner) ?? 0f;
-            hookSlider.value = timeRemaining / sacrificeTime; // Chạy từ 1 về 0 cực mượt
-        }
+        if (IsHooked) hookSlider.value = SacrificeTimer.RemainingTime(Runner) ?? 0;
     }
 
     private Vector3 CalculateDirection(Vector2 inputDir, Vector3 camFwd, Vector3 camRight)
     {
+        // Nếu không có camera, đi theo trục thế giới mặc định để không bị kẹt
         if (camFwd == Vector3.zero && camRight == Vector3.zero)
         {
             return new Vector3(inputDir.x, 0, inputDir.y).normalized;
@@ -484,42 +442,95 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Cuaso")) _isNearWindow = false;
+        else if (Object.HasInputAuthority && other.CompareTag("Playerchet"))
+        {
+            // Đi ra khỏi vùng Trigger -> Tự động hủy cứu
+            if (IsReviving || IsUnhooking) RPC_SetReviveState(false, default, false);
+            _targetToRevive = null;
+        }
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        if (!Object.HasInputAuthority) return;
+
+        // Nếu chạm vào Trigger của người bị nạn
+        if (!IsDowned && !IsHooked && other.CompareTag("Playerchet"))
+        {
+            // 🚨 Bất kể là ai, cứ là ISurvivor thì lấy
+            var target = other.GetComponentInParent<ISurvivor>();
+
+            // Nếu đúng là đang gục hoặc treo, VÀ KHÔNG PHẢI CHÍNH MÌNH (tránh tự cứu mình)
+            if (target != null && (target.GetIsDowned() || target.GetIsHooked()) && target.Object.Id != this.Object.Id)
+            {
+                _targetToRevive = target;
+                bool isTargetHooked = target.GetIsHooked();
+
+                if (interactInput.action.IsPressed())
+                {
+                    if (!IsReviving && !IsUnhooking)
+                    {
+                        // Gửi cờ lên Server báo: Tôi đang cứu thằng này, nó bị móc hay gục?
+                        RPC_SetReviveState(true, target.Object.Id, isTargetHooked);
+                    }
+                }
+                else
+                {
+                    if (IsReviving || IsUnhooking)
+                    {
+                        // Nhả E ra -> Hủy cứu
+                        RPC_SetReviveState(false, target.Object.Id, isTargetHooked);
+                    }
+                }
+            }
+        }
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_SetReviveState(NetworkBool start, NetworkId targetId, NetworkBool isUnhookingAction)
+    {
+        // 1. Gán Anim cho Người Cứu
+        if (isUnhookingAction)
+        {
+            IsUnhooking = start;
+            IsReviving = false;
+        }
+        else
+        {
+            IsReviving = start;
+            IsUnhooking = false;
+        }
+
+        // 2. Gán Thời gian và Trạng thái cho Nạn Nhân
+        if (targetId.IsValid)
+        {
+            var targetObj = Runner.FindObject(targetId);
+            if (targetObj != null)
+            {
+                var targetSurvivor = targetObj.GetComponent<ISurvivor>();
+                if (targetSurvivor != null)
+                {
+                    float requiredTime = isUnhookingAction ? unhookTime : reviveTime;
+                    targetSurvivor.SetBeingRescued(start, requiredTime);
+                }
+            }
+        }
     }
 
     private void HandleReviveLogic()
     {
         if (!Object.HasStateAuthority) return;
-        if (IsBeingRevived && ReviveTimer.Expired(Runner)) CompleteRevive();
 
-        if (IsReviving && TargetReviveId.IsValid)
+        // Nếu tôi đang bị cứu và thanh thời gian đã chạy xong
+        if (IsBeingRevived && ReviveTimer.Expired(Runner))
         {
-            var target = Runner.FindObject(TargetReviveId);
-            if (target != null)
-            {
-                bool stillNeedsRevive = false;
-
-                var speed = target.GetComponent<IShowSpeedController_Fusion>();
-                if (speed && (speed.IsDowned || speed.IsHooked)) stillNeedsRevive = true;
-
-                var bean = target.GetComponent<MrBeanController_Fusion>();
-                if (bean && (bean.IsDowned || bean.IsHooked)) stillNeedsRevive = true;
-
-                var beast = target.GetComponent<MrBeastController_Fusion>();
-                if (beast && (beast.IsDowned || beast.IsHooked)) stillNeedsRevive = true;
-
-                var nurse = target.GetComponent<NurseController_Fusion>();
-                if (nurse && (nurse.IsDowned || nurse.IsHooked)) stillNeedsRevive = true;
-
-                // Nếu nạn nhân đã đứng dậy và không còn trên móc -> Ngắt cứu
-                if (!stillNeedsRevive) IsReviving = false;
-            }
-            else IsReviving = false;
+            CompleteRescueFromOther();
         }
     }
+
     private void CompleteRevive()
     {
         IsDowned = false;
-        IsHooked = false; // 🚨 Gỡ nhân vật xuống khỏi móc
         IsBeingRevived = false;
         _characterController.enabled = true;
         PlayerDeadthBox.SetActive(false);
@@ -529,24 +540,26 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     private void UpdateReviveProgressUI()
     {
         if (reviveSlider == null) return;
-        bool showingSlider = IsReviving || IsBeingRevived;
+
+        bool showingSlider = IsReviving || IsUnhooking || IsBeingRevived;
         reviveSlider.gameObject.SetActive(showingSlider);
+
         if (showingSlider)
         {
             float? remainingTime = 0;
-            if (IsBeingRevived) remainingTime = ReviveTimer.RemainingTime(Runner);
-            else if (IsReviving && TargetReviveId.IsValid)
+            float totalTime = IsUnhooking ? unhookTime : reviveTime;
+
+            if (IsBeingRevived)
+                remainingTime = ReviveTimer.RemainingTime(Runner);
+            else if ((IsReviving || IsUnhooking) && _targetToRevive != null)
+                remainingTime = _targetToRevive.GetRescueTimer().RemainingTime(Runner);
+
+            if (remainingTime.HasValue)
             {
-                var obj = Runner.FindObject(TargetReviveId);
-                if (obj != null)
-                {
-                    var speed = obj.GetComponent<IShowSpeedController_Fusion>(); if (speed) remainingTime = speed.ReviveTimer.RemainingTime(Runner);
-                    var bean = obj.GetComponent<MrBeanController_Fusion>(); if (bean) remainingTime = bean.ReviveTimer.RemainingTime(Runner);
-                    var beast = obj.GetComponent<MrBeastController_Fusion>(); if (beast) remainingTime = beast.ReviveTimer.RemainingTime(Runner);
-                    var nurse = obj.GetComponent<NurseController_Fusion>(); if (nurse) remainingTime = nurse.ReviveTimer.RemainingTime(Runner);
-                }
+                // Công thức tính Slider an toàn tuyệt đối
+                float progress = 1f - (remainingTime.Value / Mathf.Max(0.1f, totalTime));
+                reviveSlider.value = progress;
             }
-            if (remainingTime.HasValue) reviveSlider.value = 1f - (remainingTime.Value / reviveTime);
         }
     }
 
@@ -559,6 +572,7 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         myInput.isSprinting = sprintInput.action.IsPressed();
         myInput.isWalking = walkInput.action.IsPressed();
 
+        // 🚨 ĐỌC VÀ GỬI HƯỚNG CAMERA LÊN SERVER
         if (mainCamera != null)
         {
             myInput.camForward = mainCamera.forward;
@@ -567,48 +581,142 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
 
         myInput.isVaulting = _vaultPressed;
         myInput.isSkill = _skillPressed;
-        myInput.isInteract = interactInput.action.IsPressed();
-
         _vaultPressed = false;
         _skillPressed = false;
 
         input.Set(myInput);
     }
+    public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player)
+    {
 
-    public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
-    public void OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
-    public void OnPlayerJoined(NetworkRunner runner, PlayerRef player) { }
-    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { }
-    public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason) { }
-    public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason) { }
-    public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token) { }
-    public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason) { }
-    public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message) { }
-    public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, ArraySegment<byte> data) { }
-    public void OnReliableDataProgress(NetworkRunner runner, PlayerRef player, ReliableKey key, float progress) { }
-    public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
-    public void OnConnectedToServer(NetworkRunner runner) { }
-    public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList) { }
-    public void OnCustomAuthenticationResponse(NetworkRunner runner, Dictionary<string, object> data) { }
-    public void OnHostMigration(NetworkRunner runner, HostMigrationToken hostMigrationToken) { }
-    public void OnSceneLoadDone(NetworkRunner runner) { }
-    public void OnSceneLoadStart(NetworkRunner runner) { }
+    }
 
+    public void OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player)
+    {
+
+    }
+
+    public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
+    {
+
+    }
+
+    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
+    {
+
+    }
+
+    public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
+    {
+
+    }
+
+    public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason)
+    {
+
+    }
+
+    public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token)
+    {
+
+    }
+
+    public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)
+    {
+
+    }
+
+    public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message)
+    {
+
+    }
+
+    public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, ArraySegment<byte> data)
+    {
+
+    }
+
+    public void OnReliableDataProgress(NetworkRunner runner, PlayerRef player, ReliableKey key, float progress)
+    {
+
+    }
+
+    public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input)
+    {
+
+    }
+
+    public void OnConnectedToServer(NetworkRunner runner)
+    {
+
+    }
+
+    public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList)
+    {
+
+    }
+
+    public void OnCustomAuthenticationResponse(NetworkRunner runner, Dictionary<string, object> data)
+    {
+
+    }
+
+    public void OnHostMigration(NetworkRunner runner, HostMigrationToken hostMigrationToken)
+    {
+
+    }
+
+    public void OnSceneLoadDone(NetworkRunner runner)
+    {
+
+    }
+
+    public void OnSceneLoadStart(NetworkRunner runner)
+    {
+
+    }
     public NetworkObject Object => base.Object;
-    public float GetRepairSpeedMultiplier() => 1f;
+    public float GetRepairSpeedMultiplier() => 1f; // Tốc độ cơ bản 1x
     public void OnStartRepair()
     {
-        _isLocalRepairing = true;
+        _isLocalRepairing = true; // Bấm E là khóa chân ngay
     }
     public void OnStopRepair()
     {
-        _isLocalRepairing = false;
+        _isLocalRepairing = false; // Thả E hoặc nổ máy là mở khóa
+    }
+
+    public bool GetIsDowned() => IsDowned;
+    public bool GetIsHooked() => IsHooked;
+    public TickTimer GetRescueTimer() => ReviveTimer;
+
+    public void SetBeingRescued(bool isStarting, float requiredTime)
+    {
+        IsBeingRevived = isStarting;
+        if (isStarting)
+            ReviveTimer = TickTimer.CreateFromSeconds(Runner, requiredTime);
+        else
+            ReviveTimer = TickTimer.None;
+    }
+
+    public void CompleteRescueFromOther()
+    {
+        IsDowned = false;
+        IsHooked = false;
+        IsBeingRevived = false;
+        _characterController.enabled = true;
+
+        CurrentHits = 1; // Hồi lại 1 máu khi được cứu
+        SacrificeTimer = TickTimer.None; // Xóa án tử hình trên móc
     }
 }
+
+
 
 public struct IShowSpeedGameplayInput : INetworkInput
 {
     public Vector2 moveDirection;
+    // 🚨 THÊM 2 BIẾN NÀY ĐỂ GỬI HƯỚNG CAMERA LÊN SERVER
     public Vector3 camForward;
     public Vector3 camRight;
 
@@ -616,5 +724,4 @@ public struct IShowSpeedGameplayInput : INetworkInput
     public NetworkBool isWalking;
     public NetworkBool isVaulting;
     public NetworkBool isSkill;
-    public NetworkBool isInteract;
 }

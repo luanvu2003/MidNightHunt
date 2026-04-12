@@ -421,7 +421,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 551223828, guid: 0ce408228760a4e4e93e7f5a05b5616e, type: 3}
+  m_Sprite: {fileID: -396765928, guid: 5ef8467307234124c8aa6a1bc0e31c76, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2310,7 +2310,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 6c115849636d07741b3afe203d483fe8, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 6c115849636d07741b3afe203d483fe8, type: 3}
       propertyPath: m_TagString
@@ -2433,7 +2433,9 @@ MonoBehaviour:
   mainCamera: {fileID: 0}
   PlayerDeadthBox: {fileID: 1231474607765860872}
   reviveTime: 30
+  unhookTime: 50
   revivingAnimBool: IsReviving
+  unhookingAnimBool: IsUnhooking
   interactInput: {fileID: -8641634458056426778, guid: 5a37795843509104bb7250bad636b6d5, type: 3}
   revivePrompt: {fileID: 8354549064018612700}
   reviveSlider: {fileID: 2201789088908171391}
@@ -2441,6 +2443,8 @@ MonoBehaviour:
   _IsBeingRevived:
     _value: 0
   _IsReviving:
+    _value: 0
+  _IsUnhooking:
     _value: 0
   _IsDowned:
     _value: 0
@@ -2452,6 +2456,8 @@ MonoBehaviour:
   _IsGameStarted:
     _value: 0
   _AnimSpeedValue: 0
+  _IsRepairingAnim:
+    _value: 0
 --- !u!114 &3112147768813184209
 MonoBehaviour:
   m_ObjectHideFlags: 0
