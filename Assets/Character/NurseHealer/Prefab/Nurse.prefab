@@ -205,7 +205,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &4984453888883849945
 Transform:
   m_ObjectHideFlags: 0
@@ -252,7 +252,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1871612037403265806}
   m_Layer: 5
-  m_Name: IShowSpeed
+  m_Name: Nurse
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -731,7 +731,7 @@ GameObject:
   - component: {fileID: 2560879341510967923}
   - component: {fileID: 1615926784833110006}
   m_Layer: 0
-  m_Name: CanvasUINhay
+  m_Name: CanvasUI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2312,6 +2312,10 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 6c115849636d07741b3afe203d483fe8, type: 3}
+      propertyPath: m_TagString
+      value: Player
+      objectReference: {fileID: 0}
     - target: {fileID: 5866666021909216657, guid: 6c115849636d07741b3afe203d483fe8, type: 3}
       propertyPath: m_Controller
       value: 
@@ -2435,6 +2439,9 @@ MonoBehaviour:
   _CurrentHits: 0
   _IsVaulting:
     _value: 0
+  _IsGameStarted:
+    _value: 0
+  _AnimSpeedValue: 0
 --- !u!114 &3112147768813184209
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2504,6 +2511,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fed702da464343b4a9bff20cbcd85301, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isHunterPrefab: 0
   headBoneName: mixamorig:Head
   myFpsEyeOffset: {x: 0, y: 0.1, z: 0.2}
   myTpsOffset: {x: 0.5, y: 1.5, z: -3}
