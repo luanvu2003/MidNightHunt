@@ -719,7 +719,6 @@ public class HunterInteraction : NetworkBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (isInteracting || isSliderRunning) return;
-
         if (other.transform.root == transform.root) return;
 
         if (other.CompareTag("May") || other.CompareTag("Moc") || other.CompareTag("Playerchet") || other.CompareTag("Cuaso"))
@@ -727,7 +726,6 @@ public class HunterInteraction : NetworkBehaviour
             if (isCarryingPlayer && !other.CompareTag("Moc")) return;
             if (other.CompareTag("Moc") && !isCarryingPlayer) return;
 
-            // FIX: Tránh quay lưng vào cửa sổ vẫn trèo được
             if (other.CompareTag("Cuaso"))
             {
                 Vector3 dirToWindow = (other.transform.position - transform.position).normalized;
@@ -741,18 +739,13 @@ public class HunterInteraction : NetworkBehaviour
                 if (gen == null || !gen.CanBeDamagedByHunter()) return;
             }
 
-            if (other.CompareTag("Playerchet"))
-            {
-                IShowSpeedController_Fusion survivor = other.GetComponentInParent<IShowSpeedController_Fusion>();
-                if (survivor == null || !survivor.IsDowned) return;
-            }
+            // 🚨 ĐÃ SỬA: Xóa phần check IsDowned phức tạp dễ gây delay mạng. Chỉ cần Tag chuẩn là nhận diện.
 
             currentInteractTarget = other;
 
             if (Object.HasInputAuthority)
             {
                 if (interactImage == null || interactionSlider == null) AutoFindUI();
-
                 if (interactImage != null) interactImage.gameObject.SetActive(true);
                 if (interactionSlider != null) interactionSlider.gameObject.SetActive(false);
             }
@@ -761,7 +754,9 @@ public class HunterInteraction : NetworkBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        if (isInteracting || isSliderRunning) return;
+        // 🚨 ĐÃ SỬA: Cửa sổ nhảy làm Hunter văng ra khỏi trigger, bắt buộc phải cho phép xóa Target.
+        // Nếu không xóa nó sẽ kẹt vĩnh viễn và đi ra chỗ khác bấm nhảy nó vẫn nhảy.
+        if (isInteracting && !other.CompareTag("Cuaso")) return;
 
         if (currentInteractTarget == other)
         {

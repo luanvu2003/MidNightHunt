@@ -1030,17 +1030,18 @@ public class AttackController : NetworkBehaviour
                 if (clipVomitingLoop != null)
                 {
                     attackSource.clip = clipVomitingLoop;
-                    attackSource.volume = GetVFXVolume(); // 🚨 Chỉnh volume của tiếng Loop
+                    attackSource.volume = GetVFXVolume();
                     attackSource.Play();
                 }
             }
-            else
-            {
-                if (currentVomitInstance != null) Destroy(currentVomitInstance);
-                if (attackSource != null && attackSource.clip == clipVomitingLoop) attackSource.Stop();
-            }
+        }
+        else // 🚨 Đã sửa: Chuyển else ra đúng vị trí của if (isOn)
+        {
+            if (currentVomitInstance != null) Destroy(currentVomitInstance);
+            if (attackSource != null && attackSource.clip == clipVomitingLoop) attackSource.Stop();
         }
 
+        // Cập nhật lại Coroutine (Đưa ra khỏi nhánh if-else)
         IEnumerator UseSkillCoroutine()
         {
             float timer = 0f;
