@@ -2528,18 +2528,10 @@ PrefabInstance:
       propertyPath: SortKey
       value: 2789218463
       objectReference: {fileID: 0}
-    - target: {fileID: 5255160108856339583, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: followSpeed
-      value: 5
-      objectReference: {fileID: 0}
     - target: {fileID: 8315465095852867494, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
       propertyPath: mainCamera
       value: 
       objectReference: {fileID: 349725732}
-    - target: {fileID: 8315465095852867494, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
-      propertyPath: hookOffset.z
-      value: -1.3
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2597,17 +2589,9 @@ PrefabInstance:
       propertyPath: SortKey
       value: 275145653
       objectReference: {fileID: 0}
-    - target: {fileID: 7613728942639097995, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: hookOffset.z
-      value: 2
-      objectReference: {fileID: 0}
     - target: {fileID: 8437323240024215010, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
       propertyPath: m_Name
       value: MrBeast
-      objectReference: {fileID: 0}
-    - target: {fileID: 8718187152564687234, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: followSpeed
-      value: 5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

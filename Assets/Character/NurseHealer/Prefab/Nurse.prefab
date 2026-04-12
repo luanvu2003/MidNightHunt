@@ -2434,6 +2434,7 @@ MonoBehaviour:
   interactInput: {fileID: -8641634458056426778, guid: 5a37795843509104bb7250bad636b6d5, type: 3}
   revivePrompt: {fileID: 8354549064018612700}
   reviveSlider: {fileID: 2201789088908171391}
+  hookOffset: {x: 0, y: 0, z: -1.3}
   _IsBeingRevived:
     _value: 0
   _IsReviving:
