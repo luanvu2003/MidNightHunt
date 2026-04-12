@@ -248,7 +248,7 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
                     Vector3 rayTarget = hit.transform.position + Vector3.up * 1.0f;
                     Vector3 rayDir = rayTarget - rayStart;
 
-                    bool isHiddenBehindWall = Physics.Raycast(rayStart, rayDir, distanceToHunter, obstacleMask);
+                    bool isHiddenBehindWall = Physics.Raycast(rayStart, rayDir, distanceToHunter);
 
                     if (isHiddenBehindWall)
                     {

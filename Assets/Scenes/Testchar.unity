@@ -2721,6 +2721,14 @@ PrefabInstance:
       propertyPath: 'NetworkedBehaviours.Array.data[4]'
       value: 
       objectReference: {fileID: 8988696663221292447}
+    - target: {fileID: 7613728942639097995, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
+      propertyPath: interactInput
+      value: 
+      objectReference: {fileID: 5132784132948834667, guid: 736d8fd6813fd034fbdbb23b0d83f26c, type: 3}
+    - target: {fileID: 7613728942639097995, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
+      propertyPath: redSilhouettePrefab
+      value: 
+      objectReference: {fileID: 4213640936615067255, guid: ba7b580ca5b99e74da2859e8e2150c1b, type: 3}
     - target: {fileID: 8437323240024215010, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
       propertyPath: m_Name
       value: MrBeast
