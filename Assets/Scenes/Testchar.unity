@@ -2573,98 +2573,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: Animator
-      value: 
-      objectReference: {fileID: 8988696663221292446}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: TotalWords
-      value: 4
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: StateHashes.Array.size
-      value: 18
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: TriggerHashes.Array.size
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[1]'
-      value: -1413334764
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[2]'
-      value: -1662547417
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[3]'
-      value: -443105433
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[4]'
-      value: 1624961253
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[5]'
-      value: 1360618153
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[6]'
-      value: -732615381
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[7]'
-      value: -1542608434
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[8]'
-      value: -1489107059
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[9]'
-      value: -1266168557
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[10]'
-      value: 1225723640
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[11]'
-      value: -4529525
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[12]'
-      value: 1495869682
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[13]'
-      value: -1309812712
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[14]'
-      value: -1294043557
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[15]'
-      value: -499022955
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[16]'
-      value: -510400624
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'StateHashes.Array.data[17]'
-      value: 1218006769
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'TriggerHashes.Array.data[1]'
-      value: 1056007717
-      objectReference: {fileID: 0}
-    - target: {fileID: 2150203136033502237, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'TriggerHashes.Array.data[2]'
-      value: -443105433
-      objectReference: {fileID: 0}
     - target: {fileID: 4496159976589184080, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
       propertyPath: m_LocalPosition.x
       value: 39.5722
@@ -2709,26 +2617,6 @@ PrefabInstance:
       propertyPath: SortKey
       value: 275145653
       objectReference: {fileID: 0}
-    - target: {fileID: 6890075402328209381, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: NetworkedBehaviours.Array.size
-      value: 5
-      objectReference: {fileID: 0}
-    - target: {fileID: 6890075402328209381, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'NetworkedBehaviours.Array.data[3]'
-      value: 
-      objectReference: {fileID: 8988696663221292448}
-    - target: {fileID: 6890075402328209381, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: 'NetworkedBehaviours.Array.data[4]'
-      value: 
-      objectReference: {fileID: 8988696663221292447}
-    - target: {fileID: 7613728942639097995, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: interactInput
-      value: 
-      objectReference: {fileID: 5132784132948834667, guid: 736d8fd6813fd034fbdbb23b0d83f26c, type: 3}
-    - target: {fileID: 7613728942639097995, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      propertyPath: redSilhouettePrefab
-      value: 
-      objectReference: {fileID: 4213640936615067255, guid: ba7b580ca5b99e74da2859e8e2150c1b, type: 3}
     - target: {fileID: 8437323240024215010, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
       propertyPath: m_Name
       value: MrBeast
@@ -2736,56 +2624,8 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 8437323240024215010, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 8988696663221292448}
-    - targetCorrespondingSourceObject: {fileID: 8437323240024215010, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 8988696663221292447}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
---- !u!1 &8988696663221292445 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 8437323240024215010, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-  m_PrefabInstance: {fileID: 8988696663221292444}
-  m_PrefabAsset: {fileID: 0}
---- !u!95 &8988696663221292446 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 4293240204812007307, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
-  m_PrefabInstance: {fileID: 8988696663221292444}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &8988696663221292447
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8988696663221292445}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fed702da464343b4a9bff20cbcd85301, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  isHunterPrefab: 0
-  headBoneName: mixamorig:Head
-  myFpsEyeOffset: {x: 0, y: 0.1, z: 0.2}
-  myTpsOffset: {x: 0.5, y: 1.5, z: -3}
---- !u!114 &8988696663221292448
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8988696663221292445}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 94ba97aa2639c0e4b9e85dddf18647a8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _isBeingCarried:
-    _value: 0
-  targetFollow: {fileID: 0}
-  followSpeed: 8
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
