@@ -79,6 +79,7 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
 
     private CharacterController _characterController;
     private bool _isNearWindow = false;
+    private bool _isLocalRepairing = false;
 
     // --- CÁC BIẾN ĐỒNG BỘ MẠNG (NETWORKED) ---
     [Networked] public NetworkBool IsDowned { get; set; }
@@ -249,7 +250,16 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         float speed = mediumRunSpeed;
         float targetAnimSpeed = 0.5f;
 
-        // 🚨 ĐÃ XÓA TOÀN BỘ LOGIC skillActive Ở ĐÂY (Vì skill giờ đã chuyển sang sửa máy)
+        if (_isLocalRepairing || IsRepairingAnim)
+        {
+            // Vẫn phải giữ trọng lực để nhân vật không rớt xuyên map
+            if (_characterController.isGrounded && velocityY < 0) velocityY = -2f;
+            velocityY += -9.81f * Runner.DeltaTime;
+            _characterController.Move(new Vector3(0, velocityY, 0) * Runner.DeltaTime);
+
+            AnimSpeedValue = 0f; // Ép tắt animation chạy
+            return; // 🚨 KẾT THÚC HÀM TẠI ĐÂY, VÔ HIỆU HÓA WASD
+        }
 
         // Chỉ còn check chạy bộ và đi bộ bình thường
         if (input.isWalking)
@@ -339,7 +349,8 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
 
     public void OnStartRepair()
     {
-        if (IsSkillArmed) // Nếu đã nạp sẵn skill -> Chuyển sang kích hoạt và tính giờ
+        _isLocalRepairing = true; // 🚨 THÊM DÒNG NÀY
+        if (IsSkillArmed)
         {
             IsSkillArmed = false;
             IsSkillActive = true;
@@ -349,7 +360,8 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
 
     public void OnStopRepair()
     {
-        if (IsSkillActive) // Đang dùng skill mà thả tay ra -> Dừng luôn skill, hồi chiêu
+        _isLocalRepairing = false; // 🚨 THÊM DÒNG NÀY
+        if (IsSkillActive)
         {
             IsSkillActive = false;
             SkillCooldownTimer = TickTimer.CreateFromSeconds(Runner, skillCooldown);

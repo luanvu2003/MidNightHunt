@@ -295,7 +295,12 @@ public class Generator : NetworkBehaviour
         Progress = repairTime;
         IsRepaired = true;
         ActiveRepairers.Clear();
-        // Gọi cho GameManager nếu có: GameManager.Instance.GeneratorFixed();
+
+        // 🚨 BÁO LÊN GAME MANAGER LÀ ĐÃ SỬA XONG 1 MÁY
+        if (GameManager_Fusion.Instance != null)
+        {
+            GameManager_Fusion.Instance.OnGeneratorRepaired();
+        }
     }
 
     // ========================================================
