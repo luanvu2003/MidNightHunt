@@ -56,6 +56,7 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
     public Transform mainCamera;
 
     [Header("PLayer State")]
+    [Networked] private TickTimer InvincibilityTimer { get; set; }
     public GameObject PlayerDeadthBox;
 
     [Header("Revive Settings")]
@@ -185,10 +186,15 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         animator.SetBool(hookedAnimationBool, IsHooked);
         animator.SetBool(revivingAnimBool, IsReviving);
 
-        // 🚨 ĐÃ FIX: Chạy Lerp Animation bằng Time.deltaTime ở hàm Render. 
-        // Đảm bảo 100% mượt mà và không bao giờ bị giật khung hình.
         float currentAnimSpeed = animator.GetFloat("Speed");
         animator.SetFloat("Speed", Mathf.Lerp(currentAnimSpeed, AnimSpeedValue, Time.deltaTime * 15f));
+
+        // 🚨 FIX LỖI DEADTH BOX: Đồng bộ hiển thị Box cho MỌI MÁY dựa trên trạng thái IsDowned
+        if (PlayerDeadthBox != null)
+        {
+            // Chỉ hiện Box khi đang gục và KHÔNG đang trong quá trình hồi sinh (đã đứng dậy)
+            PlayerDeadthBox.SetActive(IsDowned && !IsBeingRevived);
+        }
 
         if (Object.HasInputAuthority)
         {
@@ -300,7 +306,15 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
     {
         if (IsDowned || IsHooked || !Object.HasStateAuthority) return;
 
+        // 🚨 FIX LỖI SPAM HIT: Kiểm tra xem đã hết thời gian bất tử chưa
+        if (!InvincibilityTimer.ExpiredOrNotRunning(Runner)) return;
+
         CurrentHits++;
+
+        // Bật trạng thái bất tử trong 1.5 giây sau khi ăn hit (tránh bị 1 chém dính 3 hit)
+        // Bạn có thể chỉnh 1.5f thành số khác tùy tốc độ vung rìu của Hunter
+        InvincibilityTimer = TickTimer.CreateFromSeconds(Runner, 1.5f);
+
         bool isMoving = _characterController.velocity.magnitude > 0.1f;
         RPC_PlayHitAnim(isMoving);
 
@@ -310,7 +324,7 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         {
             IsDowned = true;
             _characterController.enabled = false;
-            PlayerDeadthBox.SetActive(true);
+            // 🚨 ĐÃ XÓA DÒNG BẬT BOX Ở ĐÂY VÌ ĐỂ ĐÂY CLIENT SẼ KHÔNG THẤY
         }
     }
 
