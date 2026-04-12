@@ -45,7 +45,7 @@ public class Generator : NetworkBehaviour
     private ISurvivor _localPlayer;
     private ChangeDetector _changeDetector;
     private float _localRepairStartTime;
-    public float spamThreshold = 10f; // Dưới 0.8s tính là spam
+    public float spamThreshold = 0.8f; // Dưới 0.8s tính là spam
 
     public override void Spawned()
     {
