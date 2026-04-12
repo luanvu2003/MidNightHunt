@@ -7,33 +7,33 @@ public class PalletInteraction_Fusion : NetworkBehaviour
 
     [Header("Cấu Hình Trạng Thái")]
     [Networked] public PalletState State { get; set; } = PalletState.Up;
-    
+
     // Đếm ngược thời gian ngã chuẩn mạng
-    [Networked] private TickTimer FallTimer { get; set; } 
+    [Networked] private TickTimer FallTimer { get; set; }
 
     [Header("Tham Chiếu Render & Physics")]
-    public Transform palletPivot; 
-    public GameObject stunZone;   
-    public GameObject breakZone;  
-    public GameObject spaceUI;    
+    public Transform palletPivot;
+    public GameObject stunZone;
+    public GameObject breakZone;
+    public GameObject spaceUI;
 
     [Header("Thông Số")]
     [Tooltip("Thời gian để ván ngã xuống đất (giây)")]
     public float fallTime = 0.25f; // Tối ưu: Dùng thời gian cố định thay vì tốc độ
-    public Quaternion droppedRotation = Quaternion.Euler(0, 0, 90); 
+    public Quaternion droppedRotation = Quaternion.Euler(0, 0, 90);
 
     private ChangeDetector _changes;
     private bool _isLocalPlayerInZone = false; // Biến kiểm tra xem Player đang ở gần ván không
 
-    public override void Spawned()
+    public override void Spawned()
     {
         _changes = GetChangeDetector(ChangeDetector.Source.SnapshotFrom);
         if (spaceUI != null) spaceUI.SetActive(false);
         UpdateVisuals();
     }
 
-    // 🚨 TỐI ƯU 1: Server quản lý việc chuyển trạng thái cực kỳ chuẩn xác
-    public override void FixedUpdateNetwork()
+    // 🚨 TỐI ƯU 1: Server quản lý việc chuyển trạng thái cực kỳ chuẩn xác
+    public override void FixedUpdateNetwork()
     {
         if (Object.HasStateAuthority && State == PalletState.Falling)
         {
@@ -46,14 +46,14 @@ public class PalletInteraction_Fusion : NetworkBehaviour
 
     public override void Render()
     {
-        // Nhận diện thay đổi trạng thái từ mạng
-        foreach (var change in _changes.DetectChanges(this))
+        // Nhận diện thay đổi trạng thái từ mạng
+        foreach (var change in _changes.DetectChanges(this))
         {
             if (change == nameof(State)) UpdateVisuals();
         }
 
-        // Xoay mượt mà (Chỉ ảnh hưởng phần nhìn)
-        if (State == PalletState.Falling || State == PalletState.Dropped)
+        // Xoay mượt mà (Chỉ ảnh hưởng phần nhìn)
+        if (State == PalletState.Falling || State == PalletState.Dropped)
         {
             palletPivot.localRotation = Quaternion.Lerp(palletPivot.localRotation, droppedRotation, Time.deltaTime * 15f);
         }
@@ -75,42 +75,42 @@ public class PalletInteraction_Fusion : NetworkBehaviour
                 if (stunZone) stunZone.SetActive(false);
                 if (breakZone) breakZone.SetActive(true);
                 palletPivot.localRotation = droppedRotation; // Chốt hạ góc
-                break;
+                break;
             case PalletState.Destroyed:
                 if (Object.HasStateAuthority) Runner.Despawn(Object);
                 break;
         }
     }
 
-    // 🚨 TỐI ƯU 2: Chuyển Input ra Update để NHẠY BẤM 100%
-    private void Update()
+    // 🚨 TỐI ƯU 2: Chuyển Input ra Update để NHẠY BẤM 100%
+    private void Update()
     {
         if (_isLocalPlayerInZone && State == PalletState.Up)
         {
             if (Input.GetKeyDown(KeyCode.Space))
             {
                 Rpc_RequestDropPallet();
-                
+
                 // Tắt UI ngay lập tức ở client để chống spam bấm nhiều lần
-                _isLocalPlayerInZone = false; 
+                _isLocalPlayerInZone = false;
                 if (spaceUI != null) spaceUI.SetActive(false);
             }
         }
     }
 
-    // --- LOGIC NHẬN DIỆN PLAYER VÀ HUNTER ---
-    private void OnTriggerEnter(Collider other)
+    // --- LOGIC NHẬN DIỆN PLAYER VÀ HUNTER ---
+    private void OnTriggerEnter(Collider other)
     {
         CheckLocalPlayerTrigger(other, true);
 
-        // Kiểm tra Hunter bị đập ván trúng đầu
-        if (State == PalletState.Falling && other.CompareTag("Hunter"))
+        // Kiểm tra Hunter bị đập ván trúng đầu
+        if (State == PalletState.Falling && other.CompareTag("Hunter"))
         {
             var hunter = other.GetComponentInParent<HunterInteraction>();
             if (hunter != null)
             {
                 hunter.ApplyStun(3.0f); // Gây choáng 3 giây
-            }
+            }
         }
     }
 
@@ -124,15 +124,20 @@ public class PalletInteraction_Fusion : NetworkBehaviour
         CheckLocalPlayerTrigger(other, false);
     }
 
-    // Hàm dùng chung để bật/tắt UI khi Player ra/vào vùng
+    // Hàm dùng chung để bật/tắt UI khi Player ra/vào vùng
+    // Hàm dùng chung để bật/tắt UI khi Player ra/vào vùng
     private void CheckLocalPlayerTrigger(Collider other, bool isInside)
     {
         if (State != PalletState.Up) return;
 
-        if (other.CompareTag("Player"))
+        // Bỏ CompareTag, thay bằng việc tìm thẳng Script của Player (tìm từ object con lên object cha)
+        var playerScript = other.GetComponentInParent<IShowSpeedController_Fusion>();
+
+        // Nếu đúng là Player chạm vào
+        if (playerScript != null)
         {
-            var networkObj = other.GetComponentInParent<NetworkObject>();
-            if (networkObj != null && networkObj.HasInputAuthority)
+            // Kiểm tra xem đây có phải là Player do máy tính này điều khiển không (HasInputAuthority)
+            if (playerScript.Object != null && playerScript.Object.HasInputAuthority)
             {
                 _isLocalPlayerInZone = isInside;
                 if (spaceUI != null) spaceUI.SetActive(isInside);
@@ -140,15 +145,15 @@ public class PalletInteraction_Fusion : NetworkBehaviour
         }
     }
 
-    // --- CÁC HÀM GỌI MẠNG (RPC) ---
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    // --- CÁC HÀM GỌI MẠNG (RPC) ---
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     public void Rpc_RequestDropPallet()
     {
         if (State == PalletState.Up)
         {
             State = PalletState.Falling;
-            // Kích hoạt bộ đếm thời gian
-            FallTimer = TickTimer.CreateFromSeconds(Runner, fallTime); 
+            // Kích hoạt bộ đếm thời gian
+            FallTimer = TickTimer.CreateFromSeconds(Runner, fallTime);
         }
     }
 
