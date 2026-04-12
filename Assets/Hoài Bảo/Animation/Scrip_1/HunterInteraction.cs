@@ -364,6 +364,7 @@ public class HunterInteraction : NetworkBehaviour
     public float timeTreoCUASO = 1.5f;
     public float timeTreoMoc = 3.0f;
     public float timeNhatPlayer = 1.5f;
+    public float timeDapVan = 2.0f;
 
     [Header("Hệ Thống Vác Người")]
     public Transform handPoint;
@@ -378,6 +379,7 @@ public class HunterInteraction : NetworkBehaviour
     [Header("Âm Thanh Tương Tác")]
     public AudioSource interactAudioSource;
     public AudioClip clipDapMay;
+    public AudioClip clipDapVan;
     public AudioClip clipTreoCuaso;
     public AudioClip clipTreoMoc;
 
@@ -389,6 +391,9 @@ public class HunterInteraction : NetworkBehaviour
 
     private Collider currentInteractTarget;
     private float currentDuration = 1f;
+    [Header("Hệ Thống Choáng (Stun)")]
+    [Networked] public TickTimer StunTimer { get; set; } // Bộ đếm thời gian choáng mạng
+    public string stunAnimationTrigger = "BeStunned";
 
     // --- BIẾN ĐỒNG BỘ MẠNG CƠ BẢN ---
     [Networked] private NetworkBool isInteracting { get; set; }
@@ -459,6 +464,10 @@ public class HunterInteraction : NetworkBehaviour
     // 🚨 HỆ THỐNG VẬT LÝ MẠNG (ĐÃ FIX LỖI TRƯỢT XA VÀ GIẬT LÙI)
     public override void FixedUpdateNetwork()
     {
+        if (!StunTimer.ExpiredOrNotRunning(Runner))
+        {
+            return;
+        }
         if (isVaulting)
         {
             // 1. Ép tắt CharacterController liên tục để chống kẹt
@@ -519,8 +528,39 @@ public class HunterInteraction : NetworkBehaviour
             }
         }
     }
+    // Hàm gọi từ phía Server hoặc qua RPC để gây choáng
+    public void ApplyStun(float duration)
+    {
+        if (!Object.HasStateAuthority) return;
 
-    public bool IsDoingAction() { return isInteracting || isVaulting || isSliderRunning; }
+        // Thiết lập thời gian choáng
+        StunTimer = TickTimer.CreateFromSeconds(Runner, duration);
+
+        // Bắn RPC để tất cả mọi người cùng thấy Hunter bị choáng
+        Rpc_PlayStunEffects();
+    }
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void Rpc_PlayStunEffects()
+    {
+        // Chạy Animation choáng
+        if (animator != null) animator.SetTrigger(stunAnimationTrigger);
+
+        // Nếu Hunter đang vác người thì làm rớt người đó ra (Logic DBD)
+        if (isCarryingPlayer)
+        {
+            DropPlayerLogic();
+        }
+    }
+    private void DropPlayerLogic()
+    {
+        // Ở đây bạn gọi lại logic giải thoát cho Survivor
+        // Ví dụ: carriedPlayerObject.GetComponent<IShowSpeedController_Fusion>().GetRescued();
+        isCarryingPlayer = false;
+        carriedPlayerObject = null;
+        Debug.Log("Hunter bị choáng và làm rơi Survivor!");
+    }
+
+    public bool IsDoingAction() { bool isStunned = !StunTimer.ExpiredOrNotRunning(Runner); return isInteracting || isVaulting || isSliderRunning; }
 
     public void TryInteract()
     {
@@ -558,6 +598,7 @@ public class HunterInteraction : NetworkBehaviour
         else if (tag == "May") currentDuration = timeDapMay;
         else if (tag == "Moc") currentDuration = timeTreoMoc;
         else if (tag == "Cuaso") currentDuration = timeTreoCUASO;
+        else if (tag == "VanDaNga") currentDuration = timeDapVan;
 
         if (Object.HasInputAuthority)
         {
@@ -588,6 +629,18 @@ public class HunterInteraction : NetworkBehaviour
                 exactTargetRot = hookPoint.rotation;
             }
         }
+        // Trong HunterInteraction.cs, phần xử lý Tag
+        if (tag == "VanDaNga")
+        {
+            // Bật Animation đập ván
+            animator.SetTrigger("Dapmay");
+            currentDuration = 2.0f; // Thời gian phá ván
+
+            // Gọi RPC để xóa ván sau khi xong (hoặc gọi qua Animation Event)
+            var pallet = currentInteractTarget.GetComponentInParent<PalletInteraction_Fusion>();
+            if (pallet != null) pallet.Rpc_DestroyPallet();
+        }
+
 
         Rpc_RequestInteraction(tag, exactTargetPos, exactTargetRot, idToSend);
     }
@@ -770,6 +823,15 @@ public class HunterInteraction : NetworkBehaviour
                             if (interactImage != null) interactImage.gameObject.SetActive(true);
                         }
                     }
+                }
+            }
+            // Trong HunterInteraction.cs
+            if (other.CompareTag("VanDaNga")) // Tag của cái BreakZone
+            {
+                currentInteractTarget = other;
+                if (Object.HasInputAuthority && interactImage != null)
+                {
+                    interactImage.gameObject.SetActive(true); // Hiện UI đập ván
                 }
             }
 

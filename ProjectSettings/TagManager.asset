@@ -11,6 +11,9 @@ TagManager:
   - AuraEffect
   - Playerchet
   - HuntetHit
+  - TreoMoc
+  - StunZone
+  - VanDaNga
   layers:
   - Default
   - TransparentFX
