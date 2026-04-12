@@ -248,29 +248,27 @@ public class HunterMovement : NetworkBehaviour // 2. Đổi thành NetworkBehavi
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void Rpc_PlayLandingSound()
     {
-        // Phát âm thanh trên máy của tất cả mọi người
+        // Phát âm thanh rơi mạnh
         if (audioSource != null && landingClip != null)
         {
-            audioSource.PlayOneShot(landingClip);
+            audioSource.PlayOneShot(landingClip, 1f * GetVFXVolume());
         }
     }
 
     public void PlayFootstep()
     {
-        // Footstep chạy bằng Animation Event nên chỉ cần chạy Local (Ai cũng tự thấy Hunter bước chân)
+        // Tiếng bước chân
         if (controller.isGrounded && Mathf.Abs(currentSpeed) > 0.2f && footstepClip != null)
         {
-            if (audioSource != null) audioSource.PlayOneShot(footstepClip, 0.6f);
+            if (audioSource != null) audioSource.PlayOneShot(footstepClip, 0.6f * GetVFXVolume());
         }
     }
 
-    public void ApplySlow(float mult)
+    public void ApplySlow(float mult) { currentSpeedMultiplier = mult; }
+    public void ResetSlow() { currentSpeedMultiplier = 1f; }
+    // 🚨 HÀM LẤY ÂM LƯỢNG VFX
+    private float GetVFXVolume()
     {
-        currentSpeedMultiplier = mult;
-    }
-
-    public void ResetSlow()
-    {
-        currentSpeedMultiplier = 1f;
+        return AudioManager.Instance != null ? AudioManager.Instance.vfxVolume : 1f;
     }
 }
