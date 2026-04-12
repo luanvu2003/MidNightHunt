@@ -37,6 +37,7 @@ public class ExitGate_Fusion : NetworkBehaviour
     private ISurvivor _localPlayer;
     private ChangeDetector _changeDetector;
     private Material auraMatRed;
+    private bool _isOpeningLocally = false;
 
     public override void Spawned()
     {
@@ -66,24 +67,35 @@ public class ExitGate_Fusion : NetworkBehaviour
 
         bool isHunter = false;
 
-        // 🚨 TÌM XEM MÁY NÀY LÀ HUNTER HAY SURVIVOR
-        // Giả sử Hunter của bạn có Tag là "Hunter" (nhớ set đúng Tag ngoài Unity nhé)
-        var localPlayerObj = Runner.GetPlayerObject(Runner.LocalPlayer);
-        if (localPlayerObj != null && localPlayerObj.CompareTag("Hunter"))
+        // CÁCH MỚI: Dùng hàm của Unity để tìm tất cả các NetworkObject trong màn chơi
+        NetworkObject[] allNetObjects = FindObjectsOfType<NetworkObject>();
+
+        foreach (var networkObj in allNetObjects)
         {
-            isHunter = true;
+            // Nếu object này là của mình đang điều khiển (máy local)
+            if (networkObj.HasInputAuthority)
+            {
+                // Kiểm tra xem nó có Tag Hunter hoặc có script HunterInteraction không
+                if (networkObj.CompareTag("Hunter") || networkObj.GetComponent<HunterInteraction>() != null)
+                {
+                    isHunter = true;
+                    break; // Tìm thấy mình là Hunter rồi thì dừng vòng lặp luôn
+                }
+            }
         }
 
         if (isHunter)
         {
             // HUNTER: Bật cục đỏ lè lên và để đó luôn
             auraSwitchObject.SetActive(true);
+            Debug.Log("[ExitGate] LÀ HUNTER: Đã bật Aura Cầu Dao vĩnh viễn.");
         }
         else
         {
             // SURVIVOR: Bật lên, sau đó đếm ngược 10 giây rồi gọi hàm tắt đi
             auraSwitchObject.SetActive(true);
             Invoke(nameof(HideAuraSwitch), 10f);
+            Debug.Log("[ExitGate] LÀ SURVIVOR: Bật Aura Cầu Dao 10 giây.");
         }
     }
 
@@ -99,8 +111,8 @@ public class ExitGate_Fusion : NetworkBehaviour
             }
         }
 
-        // 2. Cập nhật Slider UI cho người đang đứng gần
-        if (progressBar != null && (_inRange || ActiveOpeners.Contains(_localPlayer?.Object.Id ?? default)))
+        // 2. CHỈ CẬP NHẬT VALUE CHO SLIDER, VIỆC TẮT/BẬT ĐỂ HÀM UPDATE LO
+        if (progressBar != null && progressBar.gameObject.activeSelf)
         {
             progressBar.value = Progress / timeToOpen;
         }
@@ -120,7 +132,6 @@ public class ExitGate_Fusion : NetworkBehaviour
                 gateAudioSource.Stop();
             }
         }
-
         // 4. Bắt sự kiện khi cửa chính thức mở
         foreach (var change in _changeDetector.DetectChanges(this))
         {
@@ -130,7 +141,6 @@ public class ExitGate_Fusion : NetworkBehaviour
             }
         }
     }
-
     private void Update()
     {
         if (Object == null || !Object.IsValid || !IsPowered || IsOpened) return;
@@ -141,9 +151,12 @@ public class ExitGate_Fusion : NetworkBehaviour
             float dist = Vector3.Distance(switchBox.transform.position, _localPlayer.Object.transform.position);
             if (dist > interactDistance)
             {
-                if (ActiveOpeners.Contains(_localPlayer.Object.Id)) StopOpeningLocally();
+                if (_isOpeningLocally) StopOpeningLocally();
+
                 _inRange = false;
                 _localPlayer = null;
+                _isOpeningLocally = false;
+
                 if (interactText) interactText.SetActive(false);
                 if (progressBar) progressBar.gameObject.SetActive(false);
             }
@@ -151,14 +164,29 @@ public class ExitGate_Fusion : NetworkBehaviour
 
         if (_inRange)
         {
-            bool amIOpening = ActiveOpeners.Contains(_localPlayer.Object.Id);
+            // BẮT ĐẦU GIỮ PHÍM E
+            if (Input.GetKeyDown(KeyCode.E) && !_isOpeningLocally)
+            {
+                _isOpeningLocally = true;
 
-            // Ẩn Text "Giữ E" nếu mình đang kéo thanh rồi
-            if (interactText != null) interactText.SetActive(!amIOpening);
+                // Tắt Text, Bật Slider
+                if (interactText != null) interactText.SetActive(false);
+                if (progressBar != null) progressBar.gameObject.SetActive(true);
 
-            // Xử lý Input: GIỮ nút E
-            if (Input.GetKeyDown(KeyCode.E)) StartOpeningLocally();
-            if (Input.GetKeyUp(KeyCode.E) && amIOpening) StopOpeningLocally();
+                StartOpeningLocally();
+            }
+
+            // BUÔNG PHÍM E
+            if (Input.GetKeyUp(KeyCode.E) && _isOpeningLocally)
+            {
+                _isOpeningLocally = false;
+
+                // Bật lại Text, Tắt Slider
+                if (interactText != null) interactText.SetActive(true);
+                if (progressBar != null) progressBar.gameObject.SetActive(false);
+
+                StopOpeningLocally();
+            }
         }
     }
 
@@ -186,7 +214,6 @@ public class ExitGate_Fusion : NetworkBehaviour
     private void StartOpeningLocally()
     {
         if (_localPlayer == null) return;
-        if (progressBar) progressBar.gameObject.SetActive(true);
         RPC_SetOpeningState(_localPlayer.Object.Id, true);
     }
 
@@ -196,7 +223,8 @@ public class ExitGate_Fusion : NetworkBehaviour
         RPC_SetOpeningState(_localPlayer.Object.Id, false);
     }
 
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    // THAY ĐỔI Ở ĐÂY: Sửa RpcSources.InputAuthority thành RpcSources.All
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     private void RPC_SetOpeningState(NetworkId playerId, NetworkBool isOpening)
     {
         if (IsOpened) return;
@@ -209,8 +237,6 @@ public class ExitGate_Fusion : NetworkBehaviour
         {
             ActiveOpeners.Remove(playerId);
         }
-
-        // Tương tự Generator: bạn có thể gọi SetRepairAnimation(isOpening) cho nhân vật ở đây nếu muốn họ có Anim gạt cầu dao
     }
 
     // ===============================================
@@ -244,8 +270,11 @@ public class ExitGate_Fusion : NetworkBehaviour
             {
                 _inRange = true;
                 _localPlayer = player;
+                _isOpeningLocally = false; // Reset lại trạng thái
+
+                // Vừa bước vào thì CHỈ BẬT TEXT "Giữ E", Slider giữ nguyên tắt
                 if (interactText != null) interactText.SetActive(true);
-                if (progressBar != null) progressBar.gameObject.SetActive(true);
+                if (progressBar != null) progressBar.gameObject.SetActive(false);
             }
         }
     }
@@ -258,9 +287,16 @@ public class ExitGate_Fusion : NetworkBehaviour
             if (player != null && player.Object.HasInputAuthority)
             {
                 _inRange = false;
-                if (ActiveOpeners.Contains(player.Object.Id)) StopOpeningLocally();
+
+                // Nếu đang mở mà chạy ra ngoài thì phải báo Server ngắt
+                if (_isOpeningLocally) StopOpeningLocally();
+
+                _isOpeningLocally = false;
                 _localPlayer = null;
+
+                // Tắt sạch UI khi rời đi
                 if (interactText != null) interactText.SetActive(false);
+                if (progressBar != null) progressBar.gameObject.SetActive(false);
             }
         }
     }
