@@ -2532,6 +2532,14 @@ PrefabInstance:
       propertyPath: mainCamera
       value: 
       objectReference: {fileID: 349725732}
+    - target: {fileID: 8315465095852867494, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
+      propertyPath: hookOffset.x
+      value: -0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8315465095852867494, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
+      propertyPath: hookOffset.z
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2588,6 +2596,14 @@ PrefabInstance:
     - target: {fileID: 6890075402328209381, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
       propertyPath: SortKey
       value: 275145653
+      objectReference: {fileID: 0}
+    - target: {fileID: 7613728942639097995, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
+      propertyPath: hookOffset.x
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7613728942639097995, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
+      propertyPath: hookOffset.z
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8437323240024215010, guid: b388d6b11f1d3a44db7f5777687ff411, type: 3}
       propertyPath: m_Name
