@@ -270,7 +270,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 551223828, guid: 0ce408228760a4e4e93e7f5a05b5616e, type: 3}
+  m_Sprite: {fileID: -529909601, guid: d2d2cd6ce1352884a84235a9763ed4de, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2310,7 +2310,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 3b96b2553cf0f704eb432794bb9e3931, type: 3}
       propertyPath: m_TagString
@@ -2420,9 +2420,13 @@ MonoBehaviour:
   vaultAnimationTrigger: Vault
   vaultDuration: 1.1
   vaultDistance: 3
-  skillSpeedBonus: 3
+  repairSpeedMultiplier: 2
   skillDuration: 10
   skillCooldown: 30
+  _IsSkillArmed:
+    _value: 0
+  _IsSkillActive:
+    _value: 0
   hitAnimationTrigger: AnHit
   downedAnimationBool: BiGuc
   hookedAnimationBool: BiTreo
@@ -2435,7 +2439,9 @@ MonoBehaviour:
   mainCamera: {fileID: 0}
   PlayerDeadthBox: {fileID: 42205005815189177}
   reviveTime: 30
+  unhookTime: 50
   revivingAnimBool: IsReviving
+  unhookingAnimBool: IsUnhooking
   interactInput: {fileID: 7423052703018821967, guid: 5d3126308f258f146aa8efa2f820b362, type: 3}
   revivePrompt: {fileID: 7214776827326209686}
   reviveSlider: {fileID: 3837475137057698334}
@@ -2443,6 +2449,8 @@ MonoBehaviour:
   _IsBeingRevived:
     _value: 0
   _IsReviving:
+    _value: 0
+  _IsUnhooking:
     _value: 0
   _IsDowned:
     _value: 0
@@ -2454,6 +2462,8 @@ MonoBehaviour:
   _IsGameStarted:
     _value: 0
   _AnimSpeedValue: 0
+  _IsRepairingAnim:
+    _value: 0
 --- !u!114 &3165707616130625318
 MonoBehaviour:
   m_ObjectHideFlags: 0

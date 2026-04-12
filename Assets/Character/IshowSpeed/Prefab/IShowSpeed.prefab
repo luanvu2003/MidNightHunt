@@ -2437,7 +2437,9 @@ MonoBehaviour:
   mainCamera: {fileID: 0}
   PlayerDeadthBox: {fileID: 4053483981459488938}
   reviveTime: 30
+  unhookTime: 50
   revivingAnimBool: IsReviving
+  unhookingAnimBool: IsUnhooking
   interactInput: {fileID: 522166277110484590, guid: 4e74303c32ff52d49baaf909e103bc4a, type: 3}
   revivePrompt: {fileID: 4353058060058455384}
   reviveSlider: {fileID: 1968431311128778432}
@@ -2445,6 +2447,8 @@ MonoBehaviour:
   _IsBeingRevived:
     _value: 0
   _IsReviving:
+    _value: 0
+  _IsUnhooking:
     _value: 0
   _IsDowned:
     _value: 0
