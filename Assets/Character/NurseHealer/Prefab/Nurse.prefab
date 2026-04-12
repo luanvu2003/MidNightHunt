@@ -2431,6 +2431,7 @@ MonoBehaviour:
   interactInput: {fileID: -8641634458056426778, guid: 5a37795843509104bb7250bad636b6d5, type: 3}
   revivePrompt: {fileID: 8354549064018612700}
   reviveSlider: {fileID: 2201789088908171391}
+  hookOffset: {x: 0, y: 0, z: -1.3}
   _IsBeingRevived:
     _value: 0
   _IsReviving:
@@ -2534,7 +2535,7 @@ MonoBehaviour:
   _isBeingCarried:
     _value: 0
   targetFollow: {fileID: 0}
-  followSpeed: 8
+  followSpeed: 5
 --- !u!95 &5079103967105433483 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 6c115849636d07741b3afe203d483fe8, type: 3}
