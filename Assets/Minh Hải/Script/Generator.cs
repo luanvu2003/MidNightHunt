@@ -14,7 +14,7 @@ public class Generator : NetworkBehaviour
     public float hunterDamageAmount = 15f;
 
     [Header("UI & Minigame (Local Only)")]
-    public SkillCheck skillCheck; // Nhớ sửa script SkillCheck gọi hàm LocalFailSkillCheck() thay vì Explode() cũ
+    public SkillCheck skillCheck;
     public Slider progressBar;
     public GameObject repairText;
     public ParticleSystem explosionFX;

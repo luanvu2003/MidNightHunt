@@ -2349,6 +2349,10 @@ PrefabInstance:
       propertyPath: mainCamera
       value: 
       objectReference: {fileID: 349725732}
+    - target: {fileID: 2235802805022690542, guid: f49449c111e98a04e9371b76ac04f9a7, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: -529909601, guid: d2d2cd6ce1352884a84235a9763ed4de, type: 3}
     - target: {fileID: 3165707616130625318, guid: f49449c111e98a04e9371b76ac04f9a7, type: 3}
       propertyPath: SortKey
       value: 1095556375
@@ -2528,6 +2532,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1800503714596571517, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: -396765928, guid: 5ef8467307234124c8aa6a1bc0e31c76, type: 3}
     - target: {fileID: 2006184711979089739, guid: 1d2c73cdb30dbd44abba302e2382a78a, type: 3}
       propertyPath: m_Name
       value: Nurse
