@@ -450,6 +450,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fed702da464343b4a9bff20cbcd85301, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isHunterPrefab: 1
   headBoneName: mixamorig:Head
   myFpsEyeOffset: {x: 0, y: 0.1, z: 0.4}
   myTpsOffset: {x: 0.5, y: 1.5, z: -3}

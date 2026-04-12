@@ -261,7 +261,7 @@ MonoBehaviour:
   highlightColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   hunterColor: {r: 1, g: 0, b: 0, a: 1}
   audioSource: {fileID: 110629617}
-  spinSound: {fileID: 8300000, guid: 46a159e2f79377d46ad29ef65bebf02d, type: 3}
+  spinSound: {fileID: 0}
   resultSound: {fileID: 8300000, guid: 60125175e1b7c544e8effe72d6cc19de, type: 3}
   tickSound: {fileID: 8300000, guid: fabe5f4c9d467054bb5e8b132656b0c5, type: 3}
   _IsRoleAssigned:
@@ -1938,11 +1938,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2544974573010415750, guid: d5f0dee20409c1747a29a2b4434f471e, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 0
+      value: 228
       objectReference: {fileID: 0}
     - target: {fileID: 2544974573010415750, guid: d5f0dee20409c1747a29a2b4434f471e, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 0
+      value: 102
       objectReference: {fileID: 0}
     - target: {fileID: 2544974573010415750, guid: d5f0dee20409c1747a29a2b4434f471e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x

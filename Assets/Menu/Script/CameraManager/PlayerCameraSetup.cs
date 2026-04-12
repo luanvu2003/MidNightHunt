@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class PlayerCameraSetup : NetworkBehaviour
 {
+    [Header("== ĐỊNH DANH NHÂN VẬT ==")]
+    public bool isHunterPrefab; // 🚨 TICK TRUE trên Prefab của Hunter, để FALSE trên Survivor
+
     [Header("Cấu hình xương (Chỉ dùng cho Hunter)")]
     public string headBoneName = "mixamorig:Head"; 
     public Vector3 myFpsEyeOffset = new Vector3(0f, 0.1f, 0.2f); 
@@ -12,8 +15,7 @@ public class PlayerCameraSetup : NetworkBehaviour
 
     public override void Spawned()
     {
-        // 🚨 CHỐT CHẶN MẠNG: Chỉ gọi Camera tới nếu ĐÂY LÀ NHÂN VẬT TRÊN MÁY MÌNH
-        // Nếu không có dòng này, Camera sẽ nhảy loạn xạ giữa 4 người chơi
+        // 🚨 CHỐT CHẶN MẠNG
         if (Object.HasInputAuthority)
         {
             Invoke(nameof(CallCameraToMe), 0.1f);
@@ -25,17 +27,23 @@ public class PlayerCameraSetup : NetworkBehaviour
         GameCameraController mainCam = Camera.main.GetComponent<GameCameraController>();
         if (mainCam == null) return;
 
-        // Đọc thẻ căn cước xem mình là phe nào (dựa vào Index hoặc Role)
-        if (RoomPlayer.Local.RoomIndex == 0) // Hoặc RoomPlayer.Local.IsHunter
+        // Dùng biến bool định danh sẵn trên Prefab thay vì check RoomIndex
+        if (isHunterPrefab) 
         {
             // MÌNH LÀ HUNTER -> GỌI SETUP FPS
             Transform myHead = FindChildByName(transform, headBoneName);
-            if (myHead != null) mainCam.SetupFPS(this.transform, myHead, myFpsEyeOffset);
+            if (myHead != null) 
+            {
+                mainCam.SetupFPS(this.transform, myHead, myFpsEyeOffset);
+            }
+            else
+            {
+                Debug.LogError($"[Camera Setup] Lỗi: Không tìm thấy xương tên '{headBoneName}' trên Hunter!");
+            }
         }
         else 
         {
-            // MÌNH LÀ SURVIVOR (Index 1, 2, 3) -> GỌI SETUP TPS
-            // Tùy vào ID nhân vật (CharacterID 0, 1, 2, 3) mà myTpsOffset có thể khác nhau do bạn setup sẵn ở Prefab
+            // MÌNH LÀ SURVIVOR -> GỌI SETUP TPS
             mainCam.SetupTPS(this.transform, myTpsOffset);
         }
     }
