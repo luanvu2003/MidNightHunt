@@ -18,6 +18,8 @@ public class ExitGate_Fusion : NetworkBehaviour
     public GameObject gateBlocker; // Bức tường chặn cửa, sẽ bị tắt khi cửa mở
     public GameObject escapeZone;  // Vùng đi vào là Win (Ban đầu nên tắt)
     public GameObject[] indicatorLights = new GameObject[6]; // 6 cái Đèn (Object ánh sáng)
+    [Header("Hệ thống Aura Đỏ")]
+    public GameObject auraSwitchObject;
 
     [Header("Âm thanh")]
     public AudioSource gateAudioSource;
@@ -42,30 +44,30 @@ public class ExitGate_Fusion : NetworkBehaviour
 
         if (interactText != null) interactText.SetActive(false);
         if (progressBar != null) progressBar.gameObject.SetActive(false);
-        if (escapeZone != null) escapeZone.SetActive(false); // Tắt vùng Win đi
+        if (escapeZone != null) escapeZone.SetActive(false);
 
         foreach (var light in indicatorLights)
-            if (light != null) light.SetActive(false); // Tắt 6 đèn
+            if (light != null) light.SetActive(false);
 
-        // Load sẵn Shader đỏ xuyên tường (Đã có trong project của bạn)
-        auraMatRed = Resources.Load<Material>("Mat_AuraRed");
+        // Đảm bảo lúc mới vào game là cục đỏ lè bị tắt
+        if (auraSwitchObject != null) auraSwitchObject.SetActive(false);
     }
-
     // Hàm này được gọi từ GameManager khi 4 máy đã xong
     public void OnGatesPoweredUp()
     {
         if (Object.HasStateAuthority) IsPowered = true;
 
-        // Thực hiện logic Aura cho máy khách cục bộ (Local)
+        // Kích hoạt việc hiển thị cục đỏ
         HandleAuraVisibility();
     }
     private void HandleAuraVisibility()
     {
-        // 1. Xác định xem máy này là Hunter hay Survivor
-        // Cách kiểm tra tùy thuộc vào cách bạn đặt Tag hoặc Script trên Player
+        if (auraSwitchObject == null) return;
+
         bool isHunter = false;
 
-        // Giả sử Hunter của bạn có tag là "Hunter" hoặc có script HunterInteraction
+        // 🚨 TÌM XEM MÁY NÀY LÀ HUNTER HAY SURVIVOR
+        // Giả sử Hunter của bạn có Tag là "Hunter" (nhớ set đúng Tag ngoài Unity nhé)
         var localPlayerObj = Runner.GetPlayerObject(Runner.LocalPlayer);
         if (localPlayerObj != null && localPlayerObj.CompareTag("Hunter"))
         {
@@ -74,15 +76,14 @@ public class ExitGate_Fusion : NetworkBehaviour
 
         if (isHunter)
         {
-            // HUNTER: Thấy vĩnh viễn -> Chỉ cần bật lên
-            ApplyAuraToSwitch();
+            // HUNTER: Bật cục đỏ lè lên và để đó luôn
+            auraSwitchObject.SetActive(true);
         }
         else
         {
-            // SURVIVOR: Chỉ thấy 10 giây
-            ApplyAuraToSwitch();
-            // Sau 10 giây gọi hàm xóa Aura
-            Invoke(nameof(RemoveAuraFromSwitch), 10f);
+            // SURVIVOR: Bật lên, sau đó đếm ngược 10 giây rồi gọi hàm tắt đi
+            auraSwitchObject.SetActive(true);
+            Invoke(nameof(HideAuraSwitch), 10f);
         }
     }
 
@@ -219,22 +220,17 @@ public class ExitGate_Fusion : NetworkBehaviour
     {
         if (interactText) interactText.SetActive(false);
         if (progressBar) progressBar.gameObject.SetActive(false);
-
-        // Tắt bức tường chặn
         if (gateBlocker != null) gateBlocker.SetActive(false);
-
-        // Bật vùng Win
         if (escapeZone != null) escapeZone.SetActive(true);
 
-        // Phát tiếng cạch mở cửa
         if (gateAudioSource && openedSound)
         {
             gateAudioSource.Stop();
             gateAudioSource.PlayOneShot(openedSound);
         }
 
-        // Tắt lớp Aura đỏ của Cầu dao đi vì cửa đã mở rồi
-        RemoveAuraFromSwitch();
+        // Cửa đã mở rồi thì tắt luôn cục đỏ lè đi (nếu Hunter đến gần) cho sạch màn hình
+        HideAuraSwitch();
     }
 
     private void OnTriggerEnter(Collider other)
@@ -268,39 +264,9 @@ public class ExitGate_Fusion : NetworkBehaviour
             }
         }
     }
-
-    // ===============================================
-    // Hệ Thống Aura Đỏ (Dùng chung cách của Hunter)
-    // ===============================================
-    private void ApplyAuraToSwitch()
+    private void HideAuraSwitch()
     {
-        if (switchBox == null || auraMatRed == null) return;
-        Renderer[] renderers = switchBox.GetComponentsInChildren<Renderer>();
-        foreach (Renderer r in renderers)
-        {
-            Material[] mats = r.materials;
-            bool hasAura = false;
-            foreach (Material m in mats) { if (m.name.Contains(auraMatRed.name)) hasAura = true; }
-            if (!hasAura)
-            {
-                Material[] newMats = new Material[mats.Length + 1];
-                for (int i = 0; i < mats.Length; i++) newMats[i] = mats[i];
-                newMats[mats.Length] = auraMatRed;
-                r.materials = newMats;
-            }
-        }
-    }
-
-    private void RemoveAuraFromSwitch()
-    {
-        if (switchBox == null || auraMatRed == null) return;
-        Renderer[] renderers = switchBox.GetComponentsInChildren<Renderer>();
-        foreach (Renderer r in renderers)
-        {
-            Material[] mats = r.materials;
-            System.Collections.Generic.List<Material> cleanedMats = new System.Collections.Generic.List<Material>();
-            foreach (Material m in mats) { if (!m.name.Contains(auraMatRed.name)) cleanedMats.Add(m); }
-            r.materials = cleanedMats.ToArray();
-        }
+        // Hàm dùng để tắt cục đỏ lè
+        if (auraSwitchObject != null) auraSwitchObject.SetActive(false);
     }
 }
