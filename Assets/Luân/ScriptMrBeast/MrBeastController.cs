@@ -40,10 +40,12 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     public float skillDuration = 5f;
     public float skillCooldown = 30f;
 
-    // 🚨 THÊM BIẾN NÀY: Dùng để chọn Layer của Tường/Vật cản trong Unity
-    public LayerMask obstacleMask;
 
-    private List<GameObject> _highlightedHunters = new List<GameObject>();
+    // 🚨 Kéo Prefab X-Ray/Bóng đỏ của bạn vào đây
+    public GameObject redSilhouettePrefab;
+
+    // 🚨 QUẢN LÝ THEO DANH SÁCH: Lưu trữ con Hunter (Key) và cái Bóng đỏ đang gắn trên nó (Value)
+    private Dictionary<GameObject, GameObject> _activeSilhouettes = new Dictionary<GameObject, GameObject>();
 
 
 
@@ -215,13 +217,15 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     {
         bool skillActive = !SkillDurationTimer.ExpiredOrNotRunning(Runner);
 
+        // Nếu hết thời gian skill -> Tắt toàn bộ bóng đỏ
         if (!skillActive)
         {
             ClearAllHighlights();
             return;
         }
 
-        List<GameObject> currentHuntersInRange = new List<GameObject>();
+        // Danh sách các Hunter đang bị nhìn thấy trong Frame hiện tại
+        List<GameObject> currentlyVisibleHunters = new List<GameObject>();
         Collider[] hits = Physics.OverlapSphere(transform.position, scanDistance);
 
         foreach (var hit in hits)
@@ -234,88 +238,69 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
                 forward.y = 0;
                 float angle = Vector3.Angle(forward, directionToHunter);
 
+                // 1. Kiểm tra góc nhìn
                 if (angle <= scanAngle / 2f)
                 {
-                    // 🚨 1. TÍNH KHOẢNG CÁCH & ĐỘ RÕ (Alpha)
                     float distanceToHunter = Vector3.Distance(transform.position, hit.transform.position);
-                    // Càng gần thì Alpha tiến về 1, càng xa tiến về 0
-                    float alphaValue = 1f - (distanceToHunter / scanDistance);
-                    alphaValue = Mathf.Clamp01(alphaValue);
 
-                    // 🚨 2. KIỂM TRA TƯỜNG CHE KHUẤT
-                    Vector3 rayStart = transform.position + Vector3.up * 1.5f; // Vị trí mắt nhân vật
-                    Vector3 rayTarget = hit.transform.position + Vector3.up * 1.0f; // Vị trí giữa thân Hunter
+                    // 2. Kiểm tra xem có bị tường che không
+                    Vector3 rayStart = transform.position + Vector3.up * 1.5f;
+                    Vector3 rayTarget = hit.transform.position + Vector3.up * 1.0f;
                     Vector3 rayDir = rayTarget - rayStart;
 
-                    // Bắn tia từ mắt mình đến Hunter, xem có đụng Tường (obstacleMask) trước không
                     bool isHiddenBehindWall = Physics.Raycast(rayStart, rayDir, distanceToHunter, obstacleMask);
 
                     if (isHiddenBehindWall)
                     {
-                        // Bị tường che -> Bật hiệu ứng đỏ xuyên tường và áp dụng độ rõ
-                        currentHuntersInRange.Add(hit.gameObject);
-                        SetHunterHighlight(hit.gameObject, true, alphaValue);
-                    }
-                    else
-                    {
-                        // Thấy trực tiếp (không bị tường che) -> Tắt hiệu ứng, nhìn bình thường
-                        SetHunterHighlight(hit.gameObject, false, 0f);
+                        currentlyVisibleHunters.Add(hit.gameObject);
+
+                        // Nếu Hunter này CHƯA có bóng đỏ -> Sinh ra Prefab bóng đỏ và gắn vào nó
+                        if (!_activeSilhouettes.ContainsKey(hit.gameObject))
+                        {
+                            if (redSilhouettePrefab != null)
+                            {
+                                // Instantiate làm con (child) của Hunter để nó tự động di chuyển theo
+                                GameObject silhouette = Instantiate(redSilhouettePrefab, hit.transform.position, hit.transform.rotation, hit.transform);
+                                _activeSilhouettes.Add(hit.gameObject, silhouette);
+                            }
+                        }
                     }
                 }
             }
         }
-    }
 
-    // Hàm này sẽ được gọi từ HandleWallhackVisuals
-    private void SetHunterHighlight(GameObject hunter, bool isHighlighted, float alpha)
-    {
-        // 1. Tìm cái bóng đỏ mà chúng ta đã setup bên trong con Hunter
-        Transform xRayOverlay = hunter.transform.Find("XRayOverlay");
-
-        if (xRayOverlay != null)
+        // 3. XÓA PREFAB THEO DANH SÁCH: Lọc những Hunter đã ra khỏi tầm hoặc không bị tường che nữa
+        List<GameObject> huntersToRemove = new List<GameObject>();
+        foreach (var hunter in _activeSilhouettes.Keys)
         {
-            // Bật/Tắt dựa trên việc có bị tường che và nằm trong vùng quét hay không
-            xRayOverlay.gameObject.SetActive(isHighlighted);
-
-            // Nếu đang bật, ta sẽ cập nhật độ mờ (Alpha) theo khoảng cách
-            if (isHighlighted)
+            // Nếu Hunter bị Null (đã disconnect/destroy) hoặc không còn nằm trong tầm nhìn
+            if (hunter == null || !currentlyVisibleHunters.Contains(hunter))
             {
-                // Lấy tất cả Renderer của cái bóng đỏ (phòng trường hợp model có nhiều cục nhỏ)
-                Renderer[] renderers = xRayOverlay.GetComponentsInChildren<Renderer>();
-                foreach (Renderer r in renderers)
+                if (_activeSilhouettes[hunter] != null)
                 {
-                    // Xử lý đổi Alpha cho Material thường (Standard Pipeline)
-                    if (r.material.HasProperty("_Color"))
-                    {
-                        Color color = r.material.color;
-                        color.a = alpha; // Gán giá trị alpha từ 0 đến 1
-                        r.material.color = color;
-                    }
-                    // Xử lý đổi Alpha cho URP/HDRP (nếu project của bạn đang dùng)
-                    else if (r.material.HasProperty("_BaseColor"))
-                    {
-                        Color color = r.material.GetColor("_BaseColor");
-                        color.a = alpha;
-                        r.material.SetColor("_BaseColor", color);
-                    }
+                    Destroy(_activeSilhouettes[hunter]); // Hủy Prefab bóng đỏ
                 }
+                huntersToRemove.Add(hunter); // Đánh dấu để xóa khỏi danh sách
             }
         }
-        else
+
+        // Xóa các Hunter khỏi danh sách quản lý
+        foreach (var hunter in huntersToRemove)
         {
-            // Báo lỗi nhỏ để bạn biết nếu quên chưa setup bước 1
-            Debug.LogWarning($"[Skill Xuyên Tường] Không tìm thấy object 'XRayOverlay' bên trong Hunter {hunter.name}");
+            _activeSilhouettes.Remove(hunter);
         }
     }
 
     private void ClearAllHighlights()
     {
-        foreach (var hunter in _highlightedHunters)
+        // Phá hủy tất cả các Prefab bóng đỏ đang có trên Map
+        foreach (var silhouette in _activeSilhouettes.Values)
         {
-            // 🚨 Đã thêm số 0f vào cuối để khớp với hàm SetHunterHighlight mới
-            if (hunter != null) SetHunterHighlight(hunter, false, 0f);
+            if (silhouette != null) Destroy(silhouette);
         }
-        _highlightedHunters.Clear();
+
+        // Dọn dẹp danh sách
+        _activeSilhouettes.Clear();
     }
 
     private bool IsNearDeadBody()
