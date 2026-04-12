@@ -139,7 +139,7 @@ MonoBehaviour:
   palletPivot: {fileID: 9173098921066398651}
   stunZone: {fileID: 2476246144269490411}
   breakZone: {fileID: 6756074632695875198}
-  spaceUI: {fileID: 7143411665675131796}
+  spaceUI: {fileID: 0}
   fallSpeed: 10
   droppedRotation: {x: 0, y: 0, z: 0.70710677, w: 0.70710677}
 --- !u!114 &8312563430814065768
