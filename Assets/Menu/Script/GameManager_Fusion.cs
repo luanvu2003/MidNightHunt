@@ -10,7 +10,7 @@ public class GameManager_Fusion : NetworkBehaviour
     public TextMeshProUGUI generatorsRemainingText;
 
     [Header("Game Settings")]
-    [Networked] public int GeneratorsRemaining { get; set; } = 4;
+    [Networked] public int GeneratorsRemaining { get; set; } = 1;
 
     [Header("Âm Thanh Thông Báo Mở Cửa")]
     public AudioSource globalAudioSource;
