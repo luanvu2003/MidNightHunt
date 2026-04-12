@@ -2085,6 +2085,7 @@ GameObject:
   - component: {fileID: 738574047444335955}
   - component: {fileID: 8718187152564687234}
   - component: {fileID: 2650824854551574159}
+  - component: {fileID: 3195005362165579122}
   m_Layer: 0
   m_Name: MrBeast
   m_TagString: Player
@@ -2285,6 +2286,27 @@ MonoBehaviour:
   headBoneName: mixamorig:Head
   myFpsEyeOffset: {x: 0, y: 0.1, z: 0.2}
   myTpsOffset: {x: 0.5, y: 1.5, z: -3}
+--- !u!135 &3195005362165579122
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8437323240024215010}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 1
+  m_Center: {x: 0, y: 0.83, z: 0}
 --- !u!1 &8541635096044667353
 GameObject:
   m_ObjectHideFlags: 0
