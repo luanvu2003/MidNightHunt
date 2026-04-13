@@ -17,17 +17,19 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
 
     [Header("== UI TEXT (BẢNG TÊN) ==")]
     [Tooltip("Nhập chính xác tên GameObject text của Hunter vào đây")]
-    public string hunterTextGameObjectName = "HunterNameText";
+    public string hunterTextGameObjectName = "HunterNameText"; // <-- SỬA TẠI ĐÂY
     public TextMeshProUGUI[] survivorTexts;
 
     private Dictionary<PlayerRef, NetworkObject> spawnedCharacters = new Dictionary<PlayerRef, NetworkObject>();
 
+    // Server dùng biến này để đếm vị trí spawn cho Survivor
     private int survivorSpawnIndex = 0;
 
     public override void Spawned()
     {
         if (Runner.IsServer)
         {
+            // Reset index khi bắt đầu map
             survivorSpawnIndex = 0;
             foreach (var player in Runner.ActivePlayers)
             {
@@ -39,11 +41,13 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
         StartCoroutine(UpdatePlayerNamesRoutine());
     }
 
+    // HÀM MỚI: Tìm Text Hunter theo tên (Tìm được cả khi GameObject bị ẩn / SetActive = false)
     private TextMeshProUGUI FindHunterTextByName()
     {
         TextMeshProUGUI[] allTexts = Resources.FindObjectsOfTypeAll<TextMeshProUGUI>();
         foreach (var txt in allTexts)
         {
+            // Đảm bảo đúng tên và object đang thực sự có trong scene (tránh dính nhầm prefab chưa spawn trong folder)
             if (txt.gameObject.name == hunterTextGameObjectName && txt.gameObject.scene.isLoaded)
             {
                 return txt;
@@ -54,13 +58,16 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
 
     private void ResetAllText()
     {
+        // 1. Reset bảng tên Survivor (nếu Survivor vẫn dùng UI gắn cứng trên Scene)
         foreach (var txt in survivorTexts) if (txt != null) { txt.text = ""; txt.gameObject.SetActive(false); }
 
+        // 2. Reset bảng tên Hunter (Tìm trực tiếp bên trong các nhân vật đã được spawn)
         foreach (var kvp in spawnedCharacters)
         {
             NetworkObject spawnedObj = kvp.Value;
             if (spawnedObj != null)
             {
+                // Tìm tất cả Text bên trong nhân vật này (bao gồm cả các object đang bị ẩn)
                 var texts = spawnedObj.GetComponentsInChildren<TextMeshProUGUI>(true);
                 var hunterTxt = texts.FirstOrDefault(t => t.gameObject.name == hunterTextGameObjectName);
 
@@ -73,76 +80,60 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
         }
     }
 
-    // 🚨 THAY ĐỔI: Sử dụng Vòng lặp thử lại (Retry Loop) để đảm bảo Host/Client load xong 100%
     IEnumerator UpdatePlayerNamesRoutine()
     {
-        int retries = 10; // Thử tối đa 10 lần (tương đương 5 giây) để đợi UI load xong
-        
-        while (retries > 0)
+        // Đợi 1 thời gian để Client kịp tải xong các NetworkObject từ Server gửi về
+        yield return new WaitForSeconds(1.0f);
+        var allPlayers = FindObjectsOfType<RoomPlayer>().ToList();
+
+        // == CẬP NHẬT TÊN HUNTER ==
+        var hunterData = allPlayers.FirstOrDefault(p => p.IsHunter);
+
+        if (hunterData != null)
         {
-            yield return new WaitForSeconds(0.5f);
-            bool successAll = true;
+            NetworkObject hunterObj = null;
 
-            var allPlayers = FindObjectsOfType<RoomPlayer>().ToList();
-
-            // == CẬP NHẬT TÊN HUNTER ==
-            var hunterData = allPlayers.FirstOrDefault(p => p.IsHunter);
-            if (hunterData != null)
+            // ĐÃ SỬA: Bắt Host và Client dùng chung 1 logic tìm kiếm trực tiếp để tránh lỗi stale data trên Host
+            foreach (var networkObj in Runner.GetAllNetworkObjects())
             {
-                NetworkObject hunterObj = null;
+                // Tìm object thuộc quyền điều khiển của Hunter
+                if (networkObj.InputAuthority == hunterData.Object.InputAuthority && networkObj.GetComponent<RoomPlayer>() == null)
+                {
+                    var checkText = networkObj.GetComponentsInChildren<TextMeshProUGUI>(true)
+                        .FirstOrDefault(t => t.gameObject.name == hunterTextGameObjectName);
 
-                if (spawnedCharacters.TryGetValue(hunterData.Object.InputAuthority, out NetworkObject cachedObj))
-                {
-                    hunterObj = cachedObj;
-                }
-                else
-                {
-                    foreach (var networkObj in Runner.GetAllNetworkObjects())
+                    if (checkText != null)
                     {
-                        if (networkObj.InputAuthority == hunterData.Object.InputAuthority && networkObj.GetComponent<RoomPlayer>() == null)
-                        {
-                            hunterObj = networkObj;
-                            break;
-                        }
+                        hunterObj = networkObj;
+                        break;
                     }
-                }
-
-                if (hunterObj != null)
-                {
-                    var texts = hunterObj.GetComponentsInChildren<TextMeshProUGUI>(true);
-                    TextMeshProUGUI hunterTxt = texts.FirstOrDefault(t => t.gameObject.name == hunterTextGameObjectName);
-
-                    if (hunterTxt != null)
-                    {
-                        hunterTxt.gameObject.SetActive(true);
-                        hunterTxt.text = hunterData.PlayerName.ToString();
-                    }
-                    else
-                    {
-                        successAll = false; // UI chưa load xong, thử lại vòng lặp sau
-                    }
-                }
-                else
-                {
-                    successAll = false; // Model chưa load xong, thử lại vòng lặp sau
                 }
             }
 
-            // == CẬP NHẬT TÊN SURVIVOR ==
-            var survivorsData = allPlayers.Where(p => !p.IsHunter).OrderBy(p => p.Object.InputAuthority.PlayerId).ToList();
-            for (int i = 0; i < survivorsData.Count; i++)
+            // Nếu đã tìm thấy Prefab của Hunter trên map
+            if (hunterObj != null)
             {
-                if (i < survivorTexts.Length && survivorTexts[i] != null)
+                var texts = hunterObj.GetComponentsInChildren<TextMeshProUGUI>(true);
+                TextMeshProUGUI hunterTxt = texts.FirstOrDefault(t => t.gameObject.name == hunterTextGameObjectName);
+
+                if (hunterTxt != null)
                 {
-                    survivorTexts[i].gameObject.SetActive(true);
-                    survivorTexts[i].text = survivorsData[i].PlayerName.ToString();
+                    hunterTxt.gameObject.SetActive(true);
+                    hunterTxt.text = hunterData.PlayerName.ToString();
+                    Debug.Log($"[MapSpawner] Đã set tên cho Hunter thành công: {hunterTxt.text}");
                 }
             }
+        }
 
-            // Nếu mọi thứ (Cả model và Text) đã được tìm thấy và set thành công, kết thúc Coroutine
-            if (successAll) break;
-            
-            retries--;
+        // == CẬP NHẬT TÊN SURVIVOR ==
+        var survivorsData = allPlayers.Where(p => !p.IsHunter).OrderBy(p => p.Object.InputAuthority.PlayerId).ToList();
+        for (int i = 0; i < survivorsData.Count; i++)
+        {
+            if (i < survivorTexts.Length && survivorTexts[i] != null)
+            {
+                survivorTexts[i].gameObject.SetActive(true);
+                survivorTexts[i].text = survivorsData[i].PlayerName.ToString();
+            }
         }
     }
 
@@ -178,6 +169,7 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
 
             if (prefabToSpawn != null)
             {
+                // 🚨 ĐÃ SỬA: Bỏ thao tác với CharacterController ở đây. Để IShowSpeedController tự lo.
                 NetworkObject charObj = Runner.Spawn(prefabToSpawn, spawnPos, Quaternion.identity, player);
                 spawnedCharacters.Add(player, charObj);
             }
@@ -187,14 +179,14 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     public void PlayerJoined(PlayerRef player)
     {
         if (Runner.IsServer) SpawnCharacter(player);
-        // 🚨 THAY ĐỔI: Gọi lại update tên để đồng bộ cho người mới vào sau
-        StartCoroutine(UpdatePlayerNamesRoutine());
     }
 
     public void PlayerLeft(PlayerRef player)
     {
+        // Xử lý dọn dẹp khi người chơi thoát
         if (Runner.IsServer)
         {
+            // Tìm tất cả NetworkObject thuộc quyền của người chơi vừa thoát để Despawn
             foreach (var obj in Runner.GetAllNetworkObjects())
             {
                 if (obj.InputAuthority == player)

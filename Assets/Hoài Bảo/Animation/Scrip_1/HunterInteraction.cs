@@ -388,7 +388,8 @@ public class HunterInteraction : NetworkBehaviour
     [Header("Hệ Thống Aura (Tự Động)")]
     private Material auraMatRed;
     private Material auraMatWhite;
-    private bool initialAuraSet = false; // Đảm bảo Aura quét được ngay cả khi map load chậm
+    private GameObject[] allHooks;
+    private GameObject[] allGenerators;
 
     private Collider currentInteractTarget;
     private float currentDuration = 1f;
@@ -408,8 +409,9 @@ public class HunterInteraction : NetworkBehaviour
     [Networked] private Vector3 vEnd { get; set; }
     [Networked] private float syncedDuration { get; set; }
     [Header("Hệ Thống Vùng Vẫy (Wiggle)")]
-    public float struggleTime = 15.0f; 
+    public float struggleTime = 15.0f; // Thời gian tối đa giữ người
     [Networked] public TickTimer StruggleTimer { get; set; }
+    
 
     private bool isSliderRunning = false;
     private float sliderTimer = 0f;
@@ -430,7 +432,13 @@ public class HunterInteraction : NetworkBehaviour
 
         auraMatRed = Resources.Load<Material>("Mat_AuraRed");
         auraMatWhite = Resources.Load<Material>("Mat_AuraWhite");
-        initialAuraSet = false;
+
+        if (Object.HasInputAuthority)
+        {
+            allHooks = GameObject.FindGameObjectsWithTag("Moc");
+            allGenerators = GameObject.FindGameObjectsWithTag("May");
+            ToggleAuraGroup(allGenerators, auraMatRed, true);
+        }
     }
 
     private void AutoFindUI()
@@ -462,12 +470,14 @@ public class HunterInteraction : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
+        // 🚨 HỆ THỐNG WIGGLE: Kiểm tra nếu hết 15s mà chưa treo
         if (Object.HasStateAuthority && isCarryingPlayer)
         {
             if (StruggleTimer.Expired(Runner))
             {
-                StruggleTimer = TickTimer.None; 
-                ApplyStun(3.0f); 
+                Debug.Log("💥 [Hunter] Player vùng vẫy thoát được! Hunter bị choáng 3s.");
+                StruggleTimer = TickTimer.None; // Reset timer
+                ApplyStun(3.0f); // Tự động ép văng player và chạy Anim choáng
             }
         }
         if (!StunTimer.ExpiredOrNotRunning(Runner)) return;
@@ -507,22 +517,16 @@ public class HunterInteraction : NetworkBehaviour
     {
         if (!Object.HasInputAuthority) return;
 
-        // 🚨 KHỞI TẠO AURA TRỄ: Đợi đến khi MapSpawner load xong Máy/Móc mới bật Aura
-        if (!initialAuraSet)
-        {
-            GameObject[] checkGens = GameObject.FindGameObjectsWithTag("May");
-            if (checkGens.Length > 0)
-            {
-                UpdateAuras(isCarryingPlayer);
-                initialAuraSet = true;
-            }
-        }
-
+        // 1. Tự động ẩn UI chữ E nếu đang chạy một Slider tiến trình nào đó
         if (isSliderRunning && interactImage != null && interactImage.gameObject.activeSelf)
         {
             interactImage.gameObject.SetActive(false);
         }
 
+        // ==========================================
+        // PHẦN A: QUẢN LÝ SLIDER (TIẾN TRÌNH)
+        // ==========================================
+        // 🚨 ƯU TIÊN 1: Hunter đang làm hành động (Treo móc, đập máy, vượt rào...)
         if (isSliderRunning && interactionSlider != null)
         {
             if (!interactionSlider.gameObject.activeSelf) interactionSlider.gameObject.SetActive(true);
@@ -534,9 +538,11 @@ public class HunterInteraction : NetworkBehaviour
             if (sliderTimer >= safeDuration)
             {
                 isSliderRunning = false;
+                // Nếu đang vác người thì không tắt UI (để chừa chỗ cho UI 15s chạy tiếp)
                 if (!isCarryingPlayer) interactionSlider.gameObject.SetActive(false);
             }
         }
+        // 🚨 ƯU TIÊN 2: Đang vác người trên vai đi vòng vòng (Chạy Slider Wiggle 15s)
         else if (isCarryingPlayer && interactionSlider != null)
         {
             if (!interactionSlider.gameObject.activeSelf) interactionSlider.gameObject.SetActive(true);
@@ -544,19 +550,25 @@ public class HunterInteraction : NetworkBehaviour
             if (StruggleTimer.IsRunning)
             {
                 float remaining = StruggleTimer.RemainingTime(Runner) ?? 0f;
+                // Slider sẽ chạy đầy dần từ 0 lên 1 trong 15s
                 interactionSlider.value = 1f - (remaining / struggleTime);
             }
         }
+        // 🚨 DỌN DẸP: Không rảnh tay rảnh chân thì tự động ẩn Slider đi
         else if (!isCarryingPlayer && !isSliderRunning && interactionSlider != null && interactionSlider.gameObject.activeSelf)
         {
             interactionSlider.gameObject.SetActive(false);
         }
 
+        // ==========================================
+        // PHẦN B: QUẢN LÝ MỤC TIÊU VÀ UI CHỮ E (KHOẢNG CÁCH)
+        // ==========================================
         if (currentInteractTarget != null && !isInteracting && !isSliderRunning)
         {
+            // Tính toán khoảng cách (dist) và tính hợp lệ của máy (isInvalidGen) ở đây
             float dist = Vector3.Distance(transform.position, currentInteractTarget.transform.position);
-            bool isInvalidGen = false;
 
+            bool isInvalidGen = false;
             if (currentInteractTarget.CompareTag("May"))
             {
                 Generator gen = currentInteractTarget.GetComponent<Generator>();
@@ -566,6 +578,7 @@ public class HunterInteraction : NetworkBehaviour
                 }
             }
 
+            // Nếu đi quá xa HOẶC máy không còn hợp lệ -> Xóa mục tiêu và Tắt UI chữ E
             if (dist > maxInteractDistance || isInvalidGen)
             {
                 currentInteractTarget = null;
@@ -611,10 +624,13 @@ public class HunterInteraction : NetworkBehaviour
         isCarryingPlayer = false;
         carriedPlayerObject = null;
         if (Object.HasStateAuthority) StruggleTimer = TickTimer.None;
+        Debug.Log("💥 Hunter bị choáng và làm rơi Survivor!");
 
         if (Object.HasInputAuthority)
         {
-            UpdateAuras(false);
+            ToggleAuraGroup(allGenerators, auraMatWhite, false);
+            ToggleAuraGroup(allGenerators, auraMatRed, true);
+            ToggleAuraGroup(allHooks, auraMatRed, false);
         }
     }
 
@@ -626,12 +642,18 @@ public class HunterInteraction : NetworkBehaviour
 
     public void TryInteract()
     {
-        if (isInteracting || isSliderRunning) return;
+        if (isInteracting || isSliderRunning)
+        {
+            Debug.LogWarning("❌ [Hunter] Đang tương tác, không nhận lệnh!");
+            return;
+        }
+
         if (currentInteractTarget == null) return;
 
         float distToTarget = Vector3.Distance(transform.position, currentInteractTarget.transform.position);
         if (distToTarget > maxInteractDistance)
         {
+            Debug.Log("❌ [Hunter] Đã đi quá xa mục tiêu, tự động hủy!");
             currentInteractTarget = null;
             if (Object.HasInputAuthority && interactImage != null) interactImage.gameObject.SetActive(false);
             return;
@@ -641,12 +663,13 @@ public class HunterInteraction : NetworkBehaviour
 
         if (isCarryingPlayer && tag != "Moc") return;
         if (tag == "Moc" && !isCarryingPlayer) return;
-
+        // 🚨 THÊM MỚI: Chặn tận gốc việc bấm phím E nếu máy không thỏa mãn điều kiện
         if (tag == "May")
         {
             Generator gen = currentInteractTarget.GetComponent<Generator>();
             if (gen == null || !gen.CanBeDamagedByHunter())
             {
+                Debug.Log("❌ [Hunter] Máy chưa có tiến trình hoặc đã bị đạp rồi, không thể đạp spam!");
                 currentInteractTarget = null;
                 if (Object.HasInputAuthority && interactImage != null) interactImage.gameObject.SetActive(false);
                 return;
@@ -656,6 +679,7 @@ public class HunterInteraction : NetworkBehaviour
         if (tag == "Playerchet")
         {
             if (!currentInteractTarget.gameObject.activeInHierarchy) return;
+
             bool canPickUp = false;
 
             var s1 = currentInteractTarget.GetComponentInParent<IShowSpeedController_Fusion>();
@@ -672,6 +696,7 @@ public class HunterInteraction : NetworkBehaviour
 
             if (!canPickUp)
             {
+                Debug.Log("❌ [Hunter] Mục tiêu không ở trạng thái gục hoặc đã bị treo!");
                 currentInteractTarget = null;
                 return;
             }
@@ -680,7 +705,7 @@ public class HunterInteraction : NetworkBehaviour
         else if (tag == "May") currentDuration = timeDapMay;
         else if (tag == "Moc") currentDuration = timeTreoMoc;
         else if (tag == "Cuaso") currentDuration = timeTreoCUASO;
-        else if (tag == "VanDaNga") currentDuration = timeDapVan; 
+        else if (tag == "VanDaNga") currentDuration = timeDapVan; // 🚨 XỬ LÝ ĐẬP VÁN
 
         if (Object.HasInputAuthority)
         {
@@ -692,6 +717,7 @@ public class HunterInteraction : NetworkBehaviour
                 sliderTimer = 0f;
                 isSliderRunning = true;
             }
+
             if (controller != null) controller.enabled = false;
         }
 
@@ -711,6 +737,7 @@ public class HunterInteraction : NetworkBehaviour
             }
         }
 
+        // Gọi chung 1 luồng lên Server
         Rpc_RequestInteraction(tag, exactTargetPos, exactTargetRot, idToSend);
     }
 
@@ -737,7 +764,8 @@ public class HunterInteraction : NetworkBehaviour
             fpsCameraScript.SyncCameraAngles(transform.eulerAngles.y);
         }
 
-        if (tag == "May" || tag == "VanDaNga") animator.SetTrigger("Dapmay");
+        if (tag == "May") animator.SetTrigger("Dapmay");
+        else if (tag == "VanDaNga") animator.SetTrigger("Dapmay"); // 🚨 DÙNG CHUNG ANIMATION VỚI ĐẬP MÁY
         else if (tag == "Moc") animator.SetTrigger("Treomoc");
         else if (tag == "Playerchet")
         {
@@ -792,7 +820,9 @@ public class HunterInteraction : NetworkBehaviour
 
             if (Object.HasInputAuthority)
             {
-                UpdateAuras(true);
+                ToggleAuraGroup(allGenerators, auraMatRed, false);
+                ToggleAuraGroup(allGenerators, auraMatWhite, true);
+                ToggleAuraGroup(allHooks, auraMatRed, true);
             }
         }
     }
@@ -822,10 +852,12 @@ public class HunterInteraction : NetworkBehaviour
                 isCarryingPlayer = false;
                 StruggleTimer = TickTimer.None;
             }
-
             if (Object.HasInputAuthority)
             {
-                UpdateAuras(false);
+                ToggleAuraGroup(allGenerators, auraMatWhite, false);
+                ToggleAuraGroup(allGenerators, auraMatRed, true);
+                ToggleAuraGroup(allHooks, auraMatRed, false);
+
             }
 
             if (currentInteractTarget != null) currentInteractTarget.tag = "Untagged";
@@ -851,6 +883,7 @@ public class HunterInteraction : NetworkBehaviour
         if (Object.HasInputAuthority)
         {
             if (fpsCameraScript != null) fpsCameraScript.isCameraLockedForAnim = false;
+
             isSliderRunning = false;
             if (interactionSlider != null) { interactionSlider.value = 1f; interactionSlider.gameObject.SetActive(false); }
         }
@@ -861,6 +894,7 @@ public class HunterInteraction : NetworkBehaviour
         if (isInteracting || isSliderRunning) return;
         if (other.transform.root == transform.root) return;
 
+        // 🚨 ĐÃ SỬA: Bổ sung VanDaNga vào chung một nhóm Trigger
         if (other.CompareTag("May") || other.CompareTag("Moc") || other.CompareTag("Playerchet") || other.CompareTag("Cuaso") || other.CompareTag("VanDaNga"))
         {
             if (isCarryingPlayer && !other.CompareTag("Moc")) return;
@@ -882,14 +916,19 @@ public class HunterInteraction : NetworkBehaviour
             if (other.CompareTag("Playerchet"))
             {
                 bool showUI = false;
+
                 var s1 = other.GetComponentInParent<IShowSpeedController_Fusion>();
                 if (s1 != null && s1.IsDowned && !s1.IsHooked) showUI = true;
+
                 var s2 = other.GetComponentInParent<MrBeanController_Fusion>();
                 if (s2 != null && s2.IsDowned && !s2.IsHooked) showUI = true;
+
                 var s3 = other.GetComponentInParent<MrBeastController_Fusion>();
                 if (s3 != null && s3.IsDowned && !s3.IsHooked) showUI = true;
+
                 var s4 = other.GetComponentInParent<NurseController_Fusion>();
                 if (s4 != null && s4.IsDowned && !s4.IsHooked) showUI = true;
+
                 if (!showUI) return;
             }
 
@@ -912,28 +951,6 @@ public class HunterInteraction : NetworkBehaviour
         {
             currentInteractTarget = null;
             if (Object.HasInputAuthority && interactImage != null) interactImage.gameObject.SetActive(false);
-        }
-    }
-
-    // 🚨 QUẢN LÝ ĐỔI MÀU AURA (Tìm động để không lỗi do spawn trễ)
-    private void UpdateAuras(bool carrying)
-    {
-        if (!Object.HasInputAuthority) return;
-
-        GameObject[] currentGens = GameObject.FindGameObjectsWithTag("May");
-        GameObject[] currentHooks = GameObject.FindGameObjectsWithTag("Moc");
-
-        if (carrying)
-        {
-            ToggleAuraGroup(currentGens, auraMatRed, false);
-            ToggleAuraGroup(currentGens, auraMatWhite, true);
-            ToggleAuraGroup(currentHooks, auraMatRed, true);
-        }
-        else
-        {
-            ToggleAuraGroup(currentGens, auraMatWhite, false);
-            ToggleAuraGroup(currentGens, auraMatRed, true);
-            ToggleAuraGroup(currentHooks, auraMatRed, false);
         }
     }
 
@@ -968,6 +985,7 @@ public class HunterInteraction : NetworkBehaviour
         }
     }
 
+    // --- ANIMATION EVENTS ---
     public void EventDapMay()
     {
         if (interactAudioSource != null && clipDapMay != null)
@@ -984,6 +1002,7 @@ public class HunterInteraction : NetworkBehaviour
         }
     }
 
+    // 🚨 HÀM MỚI: SỰ KIỆN ĐẬP VÁN (Nhớ gắn vào Animation Event)
     public void EventDapVan()
     {
         if (interactAudioSource != null && clipDapVan != null)
@@ -999,6 +1018,7 @@ public class HunterInteraction : NetworkBehaviour
             }
         }
 
+        // Làm chậm Hunter 1 nhịp sau khi đập vỡ ván (Giống DBD)
         HunterMovement movement = GetComponent<HunterMovement>();
         if (movement != null)
         {
