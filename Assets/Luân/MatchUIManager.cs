@@ -2,8 +2,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Linq;
+using System.Collections.Generic;
 
-// 🚨 ĐÃ ĐỔI TỪ NetworkBehaviour thành MonoBehaviour
 public class MatchUIManager : MonoBehaviour
 {
     [System.Serializable]
@@ -18,40 +18,43 @@ public class MatchUIManager : MonoBehaviour
         public TextMeshProUGUI hookCooldownText; 
 
         [HideInInspector] public ISurvivor linkedSurvivor;
+        [HideInInspector] public bool isAssigned; // Đánh dấu slot đã có người chơi
     }
 
     public SurvivorUISlot[] survivorSlots;
-    private bool _isSetup = false;
-    private float maxHookTime = 90f; // Thời gian treo móc tối đa
+    private float maxHookTime = 90f; 
+    private int _lastPlayerCount = 0; // Biến đếm số lượng người chơi
 
     private void Start()
     {
-        // 1. Vừa vào game: Tắt sạch sẽ tất cả 4 khung Avatar đi
+        // Vừa vào game: Tắt sạch sẽ tất cả 4 khung Avatar đi
         foreach (var slot in survivorSlots)
         {
             if (slot.rootObj != null) slot.rootObj.SetActive(false);
         }
     }
 
-    // 🚨 SỬ DỤNG HÀM UPDATE CỦA UNITY ĐỂ LÚC NÀO CŨNG CHẠY ĐƯỢC MÀ KHÔNG CẦN CHỜ FUSION
     private void Update()
     {
-        // 2. Chờ mọi người load xong thì Bật đúng những khung đang có người chơi
-        if (!_isSetup)
+        // 1. Quét tìm tất cả người chơi trong phòng hiện tại
+        var roomPlayers = FindObjectsOfType<RoomPlayer>().ToList();
+
+        // 🚨 CHÌA KHÓA FIX LỖI THIẾU NGƯỜI: 
+        // Nếu thấy số người tăng lên hoặc giảm đi -> Bật/Tắt Avatar lại từ đầu!
+        if (roomPlayers.Count != _lastPlayerCount)
         {
-            var roomPlayers = FindObjectsOfType<RoomPlayer>().ToList();
-            if (roomPlayers.Count > 0) SetupUI(roomPlayers);
-            return;
+            SetupUI(roomPlayers);
+            _lastPlayerCount = roomPlayers.Count;
         }
 
-        // 3. Liên tục cập nhật trạng thái Móc cho từng Avatar
+        // 2. Liên tục cập nhật trạng thái Treo Móc
         foreach (var slot in survivorSlots)
         {
-            if (!slot.rootObj.activeSelf) continue;
+            if (!slot.rootObj.activeSelf || !slot.isAssigned) continue;
 
             if (slot.linkedSurvivor == null || ((Component)slot.linkedSurvivor).gameObject == null)
             {
-                FindLinkedSurvivor(slot);
+                FindLinkedSurvivor(slot, roomPlayers);
             }
 
             if (slot.linkedSurvivor != null)
@@ -66,9 +69,8 @@ public class MatchUIManager : MonoBehaviour
                     float timeLeft = slot.linkedSurvivor.GetSacrificeTimer();
                     
                     if (slot.hookCooldownText != null) 
-                        slot.hookCooldownText.text = Mathf.Ceil(timeLeft).ToString() + "s";
+                        slot.hookCooldownText.text = Mathf.Ceil(timeLeft).ToString();
                     
-                    // 🚨 Đã đảm bảo tỷ lệ là timeLeft / maxHookTime (chạy từ 1 về 0)
                     if (slot.hookOverlay != null) 
                         slot.hookOverlay.fillAmount = timeLeft / maxHookTime; 
                 }
@@ -76,30 +78,40 @@ public class MatchUIManager : MonoBehaviour
         }
     }
 
-    private void SetupUI(System.Collections.Generic.List<RoomPlayer> players)
+    private void SetupUI(List<RoomPlayer> players)
     {
-        foreach (var player in players)
+        // Reset: Tắt hết Avatar trước khi xếp lại
+        foreach (var slot in survivorSlots) 
         {
-            if (player.IsHunter) continue;
+            if (slot.rootObj != null) slot.rootObj.SetActive(false);
+            slot.isAssigned = false;
+        }
 
+        // Chỉ lọc ra những ai là Survivor
+        var survivors = players.Where(p => !p.IsHunter).ToList();
+
+        foreach (var player in survivors)
+        {
             int charID = player.CharacterID;
+            
+            // Tìm cái Slot có ID khớp với ID của người chơi
             var slot = survivorSlots.FirstOrDefault(s => s.characterID == charID);
             
             if (slot != null && slot.rootObj != null)
             {
-                slot.rootObj.SetActive(true); 
-                slot.rootObj.transform.SetAsLastSibling(); 
+                slot.rootObj.SetActive(true); // Bật hình lên
+                slot.rootObj.transform.SetAsLastSibling(); // Xếp nối đuôi nhau
+                slot.isAssigned = true;
                 
                 if (slot.nameText != null) 
-                    slot.nameText.text = player.PlayerName.ToString(); 
+                    slot.nameText.text = player.PlayerName.ToString(); // Đổi tên thật
             }
         }
-        _isSetup = true;
     }
 
-    private void FindLinkedSurvivor(SurvivorUISlot slot)
+    private void FindLinkedSurvivor(SurvivorUISlot slot, List<RoomPlayer> allRoomPlayers)
     {
-        var targetRoomPlayer = FindObjectsOfType<RoomPlayer>().FirstOrDefault(p => !p.IsHunter && p.CharacterID == slot.characterID);
+        var targetRoomPlayer = allRoomPlayers.FirstOrDefault(p => !p.IsHunter && p.CharacterID == slot.characterID);
         
         if (targetRoomPlayer != null)
         {
