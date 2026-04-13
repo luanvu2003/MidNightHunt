@@ -3,7 +3,6 @@ using UnityEngine.UI;
 using TMPro;
 using System.Linq;
 using System.Collections.Generic;
-using Fusion;
 
 public class MatchUIManager : MonoBehaviour
 {
@@ -27,7 +26,6 @@ public class MatchUIManager : MonoBehaviour
 
     private void Start()
     {
-        // Vừa vào game: Tắt sạch sẽ tất cả 4 khung Avatar đi
         foreach (var slot in survivorSlots)
         {
             if (slot.rootObj != null) slot.rootObj.SetActive(false);
@@ -42,18 +40,15 @@ public class MatchUIManager : MonoBehaviour
         bool needsRefresh = false;
         int activeSlotCount = survivorSlots.Count(s => s.isAssigned);
 
-        // 🚨 CHÌA KHÓA FIX LỖI: Liên tục kiểm tra xem số Avatar bật lên đã bằng số Nạn Nhân trong phòng chưa?
         if (survivors.Count != activeSlotCount)
         {
             needsRefresh = true;
         }
         else
         {
-            // Kiểm tra xem ID mạng đã tải xong và khớp với UI chưa
             foreach (var surv in survivors)
             {
-                if (surv.CharacterID == 0) continue; // Mạng chưa tải kịp -> Bỏ qua chờ frame sau
-
+                // 🚨 ĐÃ XÓA DÒNG CHẶN ID = 0 Ở ĐÂY ĐỂ Y TÁ CÓ THỂ XUẤT HIỆN
                 if (!survivorSlots.Any(s => s.isAssigned && s.characterID == surv.CharacterID))
                 {
                     needsRefresh = true;
@@ -62,10 +57,8 @@ public class MatchUIManager : MonoBehaviour
             }
         }
 
-        // Nếu phát hiện thiếu người hoặc ID mới -> Cập nhật lại toàn bộ UI!
         if (needsRefresh) SetupUI(survivors);
 
-        // Cập nhật trạng thái Treo Móc (Giữ nguyên)
         foreach (var slot in survivorSlots)
         {
             if (!slot.rootObj.activeSelf || !slot.isAssigned) continue;
@@ -94,7 +87,6 @@ public class MatchUIManager : MonoBehaviour
 
     private void SetupUI(List<RoomPlayer> survivors)
     {
-        // Tắt hết Avatar để xếp lại từ đầu
         foreach (var slot in survivorSlots) 
         {
             if (slot.rootObj != null) slot.rootObj.SetActive(false);
@@ -104,7 +96,7 @@ public class MatchUIManager : MonoBehaviour
         foreach (var player in survivors)
         {
             int charID = player.CharacterID;
-            if (charID == 0) continue; // Đợi mạng đồng bộ ID thật
+            // 🚨 ĐÃ XÓA DÒNG CHẶN ID = 0 Ở ĐÂY 
 
             var slot = survivorSlots.FirstOrDefault(s => s.characterID == charID);
             
@@ -128,7 +120,7 @@ public class MatchUIManager : MonoBehaviour
             var allSurvivors = FindObjectsOfType<MonoBehaviour>().OfType<ISurvivor>();
             foreach (var surv in allSurvivors)
             {
-                var netObj = ((Component)surv).GetComponent<NetworkObject>();
+                var netObj = ((Component)surv).GetComponent<Fusion.NetworkObject>();
                 if (netObj != null && netObj.InputAuthority == targetRoomPlayer.Object.InputAuthority)
                 {
                     slot.linkedSurvivor = surv;
