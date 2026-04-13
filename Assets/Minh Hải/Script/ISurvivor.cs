@@ -18,7 +18,7 @@ public interface ISurvivor
     float GetRescueProgressRatio(); 
 
     // 🚨 THAY ĐỔI: Đơn giản hóa tham số
-    void SetBeingRescued(bool isStarting, bool isUnhooking);
+    void SetBeingRescued(bool isStarting, bool isUnhooking, float rescuerSpeed);
     void CompleteRescueFromOther();
     bool GetIsBeingUnhooked(); 
 }

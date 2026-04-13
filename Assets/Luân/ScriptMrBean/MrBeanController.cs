@@ -81,6 +81,8 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
     [Networked] public NetworkBool IsBeingRevived { get; set; }
     [Networked] public NetworkBool IsBeingUnhooked { get; set; } // 🚨 Mới: Cờ khóa báo hiệu đang có người tháo móc
     [Networked] public int ReviverCount { get; set; }
+    [Networked] public NetworkId TargetReviveId { get; set; }
+    [Networked] public float BonusRescueSpeed { get; set; }
     [Networked] public NetworkBool IsReviving { get; set; }
     [Networked] public NetworkBool IsUnhooking { get; set; } // 🚨 Đang đứng tháo móc
     [Networked] public float ReviveProgress { get; set; } // Tiến trình cứu gục (có lưu)
@@ -696,41 +698,39 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         if (isUnhookingAction) { IsUnhooking = start; IsReviving = false; }
         else { IsReviving = start; IsUnhooking = false; }
 
+        TargetReviveId = start ? targetId : default;
+
         if (targetId.IsValid)
         {
             var targetObj = Runner.FindObject(targetId);
-            if (targetObj != null)
+            if (targetObj != null && targetObj.TryGetComponent(out ISurvivor targetSurvivor))
             {
-                var targetSurvivor = targetObj.GetComponent<ISurvivor>();
-                if (targetSurvivor != null)
-                {
-                    targetSurvivor.SetBeingRescued(start, isUnhookingAction);
-                }
+                targetSurvivor.SetBeingRescued(start, isUnhookingAction, 1f); // Cố định 1x Speed
             }
         }
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_SetBeingRescued(NetworkBool isStarting, NetworkBool isUnhooking)
+    public void RPC_SetBeingRescued(NetworkBool isStarting, NetworkBool isUnhooking, float speed)
     {
         if (isUnhooking)
         {
-            IsBeingUnhooked = isStarting; // Bật cờ khóa độc quyền cho móc
+            IsBeingUnhooked = isStarting;
+            BonusRescueSpeed = isStarting ? speed : 0f;
         }
         else
         {
-            // Cứu gục: Đếm số lượng người đang bấm E
-            if (isStarting) ReviverCount++;
-            else ReviverCount--;
-
-            if (ReviverCount < 0) ReviverCount = 0; // Chống lỗi đếm âm
+            if (isStarting) { ReviverCount++; BonusRescueSpeed += (speed - 1f); }
+            else { ReviverCount--; BonusRescueSpeed -= (speed - 1f); }
+            if (ReviverCount < 0) ReviverCount = 0;
+            if (BonusRescueSpeed < 0) BonusRescueSpeed = 0f;
             IsBeingRevived = (ReviverCount > 0);
         }
     }
 
-    public void SetBeingRescued(bool isStarting, bool isUnhooking)
+    public void SetBeingRescued(bool isStarting, bool isUnhooking, float rescuerSpeed)
     {
-        RPC_SetBeingRescued(isStarting, isUnhooking);
+        RPC_SetBeingRescued(isStarting, isUnhooking, rescuerSpeed);
     }
 
     public bool GetIsBeingUnhooked() => Object != null && Object.IsValid && IsBeingUnhooked;
@@ -747,79 +747,49 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
 
     private void HandleReviveLogic()
     {
-        // 1. DÀNH CHO NẠN NHÂN (Xử lý tiến trình cứu tập thể)
         if (Object.HasStateAuthority)
         {
+            if ((IsReviving || IsUnhooking) && TargetReviveId.IsValid)
+            {
+                var targetObj = Runner.FindObject(TargetReviveId);
+                if (targetObj == null || (targetObj.TryGetComponent(out ISurvivor tSurv) && !tSurv.GetIsDowned() && !tSurv.GetIsHooked()))
+                {
+                    IsReviving = false; IsUnhooking = false; TargetReviveId = default;
+                }
+            }
+
             if (IsBeingUnhooked)
             {
-                UnhookProgress += Runner.DeltaTime;
+                UnhookProgress += Runner.DeltaTime * BonusRescueSpeed;
                 if (UnhookProgress >= unhookTime) CompleteRescueFromOther();
             }
             else if (ReviverCount > 0)
             {
-                ReviveProgress += Runner.DeltaTime * ReviverCount; // N người cứu -> Nhanh gấp N lần
+                float totalSpeed = ReviverCount + BonusRescueSpeed;
+                ReviveProgress += Runner.DeltaTime * totalSpeed;
                 if (ReviveProgress >= reviveTime) CompleteRescueFromOther();
             }
-            else
-            {
-                UnhookProgress = 0f;
-            }
+            else { UnhookProgress = 0f; }
         }
 
-        // 2. DÀNH CHO NGƯỜI CỨU (Xử lý ngắt phím cực kỳ an toàn)
         if (Object.HasInputAuthority)
         {
             if (IsReviving || IsUnhooking)
             {
                 _isStartRpcSent = false;
-                bool shouldCancel = false;
+                bool shouldCancel = !interactInput.action.IsPressed();
 
-                // 1. Nếu người chơi thả phím E
-                if (!interactInput.action.IsPressed()) shouldCancel = true;
-
-                // 2. Kiểm tra nạn nhân cực kỳ chặt chẽ (Chống lỗi Null gây kẹt kĩ năng)
-                bool isTargetValid = false;
-                if (_targetToRevive != null)
-                {
-                    var netObj = _targetToRevive.Object;
-                    if (netObj != null && netObj.IsValid) // Đảm bảo object mạng chưa bị hủy
-                    {
-                        if (_targetToRevive.GetIsDowned() || _targetToRevive.GetIsHooked())
-                        {
-                            isTargetValid = true; // Nạn nhân vẫn đang gục/treo -> Vẫn hợp lệ
-                        }
-                    }
-                }
-
-                // Nếu nạn nhân đã tự đứng dậy (không còn hợp lệ), bắt buộc phải ngắt cứu!
-                if (!isTargetValid) shouldCancel = true;
-
-                // 3. Gửi lệnh ngắt cứu lên Server
                 if (shouldCancel && !_isCancelRpcSent)
                 {
-                    NetworkId targetId = default;
-                    // Chỉ lấy ID nếu nạn nhân vẫn còn tồn tại để tránh crash code
-                    if (isTargetValid && _targetToRevive != null && _targetToRevive.Object != null)
-                    {
-                        targetId = _targetToRevive.Object.Id;
-                    }
-
-                    // Gửi lệnh báo ngắt cứu
+                    NetworkId targetId = _targetToRevive != null && _targetToRevive.Object != null ? _targetToRevive.Object.Id : default;
                     RPC_SetReviveState(false, targetId, IsUnhooking);
-                    _targetToRevive = null; // Xóa mục tiêu ngay
-                    _isCancelRpcSent = true; // Khóa chốt an toàn
+                    _targetToRevive = null;
+                    _isCancelRpcSent = true;
                 }
             }
-            else
-            {
-                _isCancelRpcSent = false; // Mở chốt khi đã kết thúc anim
-            }
+            else { _isCancelRpcSent = false; }
 
-            // Bảo hiểm: Luôn mở khóa nút E nếu đã thả tay
-            if (!interactInput.action.IsPressed())
-            {
-                _isStartRpcSent = false;
-            }
+            if (!interactInput.action.IsPressed()) _isStartRpcSent = false;
         }
     }
 
@@ -847,23 +817,28 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
     // 🚨 2. CẬP NHẬT LẠI HÀM NÀY
     public void CompleteRescueFromOther()
     {
+        // 1. Mở khóa Cái Móc cho Quái có thể treo người khác
         RPC_ResetHookAtPosition(transform.position);
 
+        // 2. Tắt các trạng thái gục/treo
         IsDowned = false;
         IsHooked = false;
         IsBeingRevived = false;
 
-        // 🚨 PHẢI CÓ: Đặt lại số người cứu và cờ móc
+        // 3. 🚨 QUAN TRỌNG: Xóa sạch bộ đếm người cứu và Tốc độ Buff của Skill
         IsBeingUnhooked = false;
         ReviverCount = 0;
+        BonusRescueSpeed = 0f; // Dọn rác phần buff tốc độ
 
         ReviveProgress = 0f;
         UnhookProgress = 0f;
 
+        // 4. Dịch chuyển nhẹ để nhân vật rớt khỏi móc an toàn
         _characterController.enabled = false;
         transform.position += transform.forward * 1.2f;
         _characterController.enabled = true;
 
+        // 5. Hồi máu, xóa án tử hình và buff bất tử 3 giây chạy trốn
         CurrentHits = 1;
         SacrificeTimer = TickTimer.None;
         InvincibilityTimer = TickTimer.CreateFromSeconds(Runner, 3f);
