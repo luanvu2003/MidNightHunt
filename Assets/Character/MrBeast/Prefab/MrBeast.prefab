@@ -260,8 +260,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 392.0278, y: 98.8143, z: 396.82718}
-  m_Center: {x: -4.7945666, y: 30.428036, z: -1.9553483}
+  m_Size: {x: 145.58461, y: 98.8143, z: 173.19623}
+  m_Center: {x: -3.696961, y: 30.428036, z: 4.898743}
 --- !u!1 &1045640429513354571
 GameObject:
   m_ObjectHideFlags: 0
@@ -2179,7 +2179,7 @@ MonoBehaviour:
   mainCamera: {fileID: 0}
   PlayerDeadthBox: {fileID: 444642512099688221}
   reviveTime: 30
-  unhookTime: 50
+  unhookTime: 10
   revivingAnimBool: IsReviving
   unhookingAnimBool: IsUnhooking
   interactInput: {fileID: 5132784132948834667, guid: 736d8fd6813fd034fbdbb23b0d83f26c, type: 3}
@@ -2192,6 +2192,8 @@ MonoBehaviour:
     _value: 0
   _IsUnhooking:
     _value: 0
+  _ReviveProgress: 0
+  _UnhookProgress: 0
   _IsDowned:
     _value: 0
   _IsHooked:

@@ -64,6 +64,7 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     public float unhookTime = 2f;  // Tháo móc mất 2 giây
     public string revivingAnimBool = "IsReviving";
     public string unhookingAnimBool = "IsUnhooking"; // 🚨 THÊM ANIMATION THÁO MÓC
+    private bool _isCancelRpcSent = false; // Cờ khóa chống spam mạng
 
     private ISurvivor _targetToRevive; // 🚨 Đã đổi thành ISurvivor để cứu được mọi người
     public InputActionReference interactInput;
@@ -698,7 +699,7 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
             }
         }
 
-        // 2. DÀNH CHO NGƯỜI CỨU (Kiểm tra nhả phím mọi khung hình, không sợ mất Trigger)
+        // 2. DÀNH CHO NGƯỜI CỨU (Kiểm tra nhả phím E)
         if (Object.HasInputAuthority)
         {
             if (IsReviving || IsUnhooking)
@@ -707,18 +708,25 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
 
                 // 1. Nhả nút E
                 if (!interactInput.action.IsPressed()) shouldCancel = true;
-                // 2. Nạn nhân đã đứng dậy thành công hoặc bị ngắt kết nối
+
+                // 2. Nạn nhân đã đứng dậy hoặc ngắt kết nối (biến mất khỏi map)
                 if (_targetToRevive == null || (!_targetToRevive.GetIsDowned() && !_targetToRevive.GetIsHooked())) shouldCancel = true;
 
-                if (shouldCancel)
+                // 🚨 FIX LỖI KẸT MOVE: Bắt buộc phải có cờ khóa !_isCancelRpcSent
+                if (shouldCancel && !_isCancelRpcSent)
                 {
                     RPC_SetReviveState(false, default, false);
                     _targetToRevive = null;
+                    _isCancelRpcSent = true; // Khóa lại, chỉ gửi lệnh hủy đúng 1 lần duy nhất!
                 }
+            }
+            else
+            {
+                // Khi server đã xác nhận hủy xong và tắt IsReviving, ta mở khóa cờ này ra để dùng cho lần cứu sau
+                _isCancelRpcSent = false;
             }
         }
     }
-
     public void CompleteRescueFromOther()
     {
         IsDowned = false;
