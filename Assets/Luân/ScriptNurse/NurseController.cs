@@ -852,6 +852,28 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
         InvincibilityTimer = TickTimer.CreateFromSeconds(Runner, 3f);
     }
 
+    // 🚨 HÀM MỚI: Xử lý tẩu thoát khi Quái bị choáng (Đập ván / Vùng vẫy)
+    public void EscapeFromHunter()
+    {
+        IsDowned = false;
+        IsHooked = false;
+        IsBeingRevived = false;
+
+        // 1. Ép nhận 2 Hit (Thương nặng)
+        CurrentHits = 2;
+
+        // 2. 🚨 QUAN TRỌNG: Reset lại đồng hồ hồi máu để không bị hồi máu ảo
+        HitDecayTimer = TickTimer.CreateFromSeconds(Runner, 20f);
+
+        // 3. Cho 3 giây bất tử để cắm đầu chạy
+        InvincibilityTimer = TickTimer.CreateFromSeconds(Runner, 3f);
+
+        // 4. Dịch chuyển nhẹ để rớt khỏi vai Quái an toàn
+        _characterController.enabled = false;
+        transform.position += transform.forward * 1.5f;
+        _characterController.enabled = true;
+    }
+
 }
 
 public struct NurseGameplayInput : INetworkInput
