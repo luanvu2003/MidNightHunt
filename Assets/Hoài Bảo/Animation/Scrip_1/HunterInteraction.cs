@@ -456,6 +456,29 @@ public class HunterInteraction : NetworkBehaviour
             }
         }
     }
+    private void UpdateAurasLocally()
+    {
+        // Chỉ xử lý UI/Aura cho người đang chơi con Hunter này
+        if (!Object.HasInputAuthority) return;
+
+        allHooks = GameObject.FindGameObjectsWithTag("Moc");
+        allGenerators = GameObject.FindGameObjectsWithTag("May");
+
+        if (isCarryingPlayer)
+        {
+            // Đang vác: Tắt Đỏ Máy, Bật Trắng Máy, Bật Đỏ Móc
+            ToggleAuraGroup(allGenerators, auraMatRed, false);
+            ToggleAuraGroup(allGenerators, auraMatWhite, true);
+            ToggleAuraGroup(allHooks, auraMatRed, true);
+        }
+        else
+        {
+            // Rảnh tay: Tắt Trắng Máy, Bật Đỏ Máy, Tắt Đỏ Móc
+            ToggleAuraGroup(allGenerators, auraMatWhite, false);
+            ToggleAuraGroup(allGenerators, auraMatRed, true);
+            ToggleAuraGroup(allHooks, auraMatRed, false);
+        }
+    }
 
     private void AutoFindUI()
     {
