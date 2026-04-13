@@ -40,7 +40,6 @@ public class PalletInteraction : NetworkBehaviour
         _isSpawned = true;
         _changes = GetChangeDetector(ChangeDetector.Source.SnapshotFrom);
 
-        // 🚨 TỰ ĐỘNG TÍNH TOÁN GÓC NGÃ DỰA TRÊN THẾ ĐỨNG BAN ĐẦU
         _startRotation = palletPivot.localRotation;
         _targetDroppedRotation = _startRotation * Quaternion.Euler(dropRotationOffset);
 
@@ -74,7 +73,6 @@ public class PalletInteraction : NetworkBehaviour
             }
         }
 
-        // 🚨 Dùng góc ngã tự động để Lerp
         if (State == PalletState.Falling || State == PalletState.Dropped)
         {
             palletPivot.localRotation = Quaternion.Lerp(palletPivot.localRotation, _targetDroppedRotation, Time.deltaTime * 15f);
@@ -90,6 +88,14 @@ public class PalletInteraction : NetworkBehaviour
 
     private void UpdateVisuals()
     {
+        // 🚨 FIX ĐỒNG BỘ UI: Ngay khi ván không còn Up (đang rơi, đã ngã, bị phá), 
+        // ép buộc tắt UI Space cho TẤT CẢ client trong phòng.
+        if (State != PalletState.Up)
+        {
+            if (spaceUI != null) spaceUI.SetActive(false);
+            _isLocalPlayerInZone = false;
+        }
+
         switch (State)
         {
             case PalletState.Up:
@@ -103,7 +109,6 @@ public class PalletInteraction : NetworkBehaviour
             case PalletState.Dropped:
                 if (stunZone) stunZone.SetActive(false);
                 if (breakZone) breakZone.SetActive(true);
-                // Chốt góc
                 palletPivot.localRotation = _targetDroppedRotation;
                 break;
             case PalletState.Destroyed:
@@ -165,7 +170,14 @@ public class PalletInteraction : NetworkBehaviour
 
     private void CheckLocalPlayerTrigger(Collider other, bool isInside)
     {
-        if (State != PalletState.Up) return;
+        // 🚨 CHỐT CHẶN AN TOÀN KHI ĐI VÀO VÙNG TRIGGER:
+        // Nếu ván đã ngã mà có người cố tình đi vào vùng nhận diện, giấu UI luôn.
+        if (State != PalletState.Up) 
+        {
+            if (spaceUI != null) spaceUI.SetActive(false);
+            _isLocalPlayerInZone = false;
+            return;
+        }
 
         if (other.CompareTag("Player"))
         {
