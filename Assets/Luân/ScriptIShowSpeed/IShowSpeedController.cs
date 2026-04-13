@@ -76,7 +76,8 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     [Networked] public NetworkBool IsBeingRevived { get; set; }
     [Networked] public NetworkBool IsReviving { get; set; }
     [Networked] public NetworkBool IsUnhooking { get; set; } // 🚨 Đang đứng tháo móc
-    [Networked] private TickTimer ReviveTimer { get; set; }
+    [Networked] public float ReviveProgress { get; set; } // Tiến trình cứu gục (có lưu)
+    [Networked] public float UnhookProgress { get; set; } // Tiến trình tháo móc (không lưu)
 
     private CharacterController _characterController;
     private bool _isNearWindow = false;
@@ -460,107 +461,24 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     {
         if (!Object.HasInputAuthority) return;
 
-        // Nếu chạm vào Trigger của người bị nạn
         if (!IsDowned && !IsHooked && other.CompareTag("Playerchet"))
         {
-            // 🚨 Bất kể là ai, cứ là ISurvivor thì lấy
             var target = other.GetComponentInParent<ISurvivor>();
 
-            // Nếu đúng là đang gục hoặc treo, VÀ KHÔNG PHẢI CHÍNH MÌNH (tránh tự cứu mình)
             if (target != null && (target.GetIsDowned() || target.GetIsHooked()) && target.Object.Id != this.Object.Id)
             {
                 _targetToRevive = target;
                 bool isTargetHooked = target.GetIsHooked();
 
-                if (interactInput.action.IsPressed())
+                // Chỉ gọi lệnh CỨU ở đây. Lệnh NGẮT CỨU đã được đưa lên HandleReviveLogic
+                if (interactInput.action.IsPressed() && !IsReviving && !IsUnhooking)
                 {
-                    if (!IsReviving && !IsUnhooking)
-                    {
-                        // Gửi cờ lên Server báo: Tôi đang cứu thằng này, nó bị móc hay gục?
-                        RPC_SetReviveState(true, target.Object.Id, isTargetHooked);
-                    }
-                }
-                else
-                {
-                    if (IsReviving || IsUnhooking)
-                    {
-                        // Nhả E ra -> Hủy cứu
-                        RPC_SetReviveState(false, target.Object.Id, isTargetHooked);
-                    }
+                    RPC_SetReviveState(true, target.Object.Id, isTargetHooked);
                 }
             }
         }
     }
 
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_SetReviveState(NetworkBool start, NetworkId targetId, NetworkBool isUnhookingAction)
-    {
-        // 1. Gán Anim cho Người Cứu
-        if (isUnhookingAction)
-        {
-            IsUnhooking = start;
-            IsReviving = false;
-        }
-        else
-        {
-            IsReviving = start;
-            IsUnhooking = false;
-        }
-
-        // 2. Gán Thời gian và Trạng thái cho Nạn Nhân
-        if (targetId.IsValid)
-        {
-            var targetObj = Runner.FindObject(targetId);
-            if (targetObj != null)
-            {
-                var targetSurvivor = targetObj.GetComponent<ISurvivor>();
-                if (targetSurvivor != null)
-                {
-                    float requiredTime = isUnhookingAction ? unhookTime : reviveTime;
-                    targetSurvivor.SetBeingRescued(start, requiredTime);
-                }
-            }
-        }
-    }
-
-    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_SetBeingRescued(NetworkBool isStarting, float requiredTime)
-    {
-        IsBeingRevived = isStarting;
-        if (isStarting)
-            ReviveTimer = TickTimer.CreateFromSeconds(Runner, requiredTime);
-        else
-            ReviveTimer = TickTimer.None;
-    }
-
-    private void HandleReviveLogic()
-    {
-        // 1. DÀNH CHO NẠN NHÂN (Người đang bị nằm gục/treo)
-        if (Object.HasStateAuthority)
-        {
-            // Nếu tôi đang bị cứu và thanh thời gian trên máy tôi đã chạy xong
-            if (IsBeingRevived && ReviveTimer.Expired(Runner))
-            {
-                CompleteRescueFromOther();
-            }
-        }
-
-        // 2. DÀNH CHO NGƯỜI ĐI CỨU
-        if (Object.HasInputAuthority)
-        {
-            // Nếu mình đang bấm E cứu/tháo móc
-            if ((IsReviving || IsUnhooking) && _targetToRevive != null)
-            {
-                // Tự động kiểm tra: Nếu nạn nhân đã đứng dậy thành công
-                if (!_targetToRevive.GetIsDowned() && !_targetToRevive.GetIsHooked())
-                {
-                    // Tự động gọi RPC để hủy trạng thái Anim của bản thân
-                    RPC_SetReviveState(false, default, false);
-                    _targetToRevive = null;
-                }
-            }
-        }
-    }
 
     private void CompleteRevive()
     {
@@ -580,20 +498,14 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
 
         if (showingSlider)
         {
-            float? remainingTime = 0;
-            float totalTime = IsUnhooking ? unhookTime : reviveTime;
+            float progress = 0f;
 
             if (IsBeingRevived)
-                remainingTime = ReviveTimer.RemainingTime(Runner);
-            else if ((IsReviving || IsUnhooking) && _targetToRevive != null)
-                remainingTime = _targetToRevive.GetRescueTimer().RemainingTime(Runner);
+                progress = GetRescueProgressRatio();
+            else if (_targetToRevive != null)
+                progress = _targetToRevive.GetRescueProgressRatio();
 
-            if (remainingTime.HasValue)
-            {
-                // Công thức tính Slider an toàn tuyệt đối
-                float progress = 1f - (remainingTime.Value / Mathf.Max(0.1f, totalTime));
-                reviveSlider.value = progress;
-            }
+            reviveSlider.value = Mathf.Clamp01(progress);
         }
     }
 
@@ -722,12 +634,89 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
 
     public bool GetIsDowned() => IsDowned;
     public bool GetIsHooked() => IsHooked;
-    public TickTimer GetRescueTimer() => ReviveTimer;
-
-    public void SetBeingRescued(bool isStarting, float requiredTime)
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_SetReviveState(NetworkBool start, NetworkId targetId, NetworkBool isUnhookingAction)
     {
-        // Yêu cầu nạn nhân tự bật State và đếm giờ của chính họ
-        RPC_SetBeingRescued(isStarting, requiredTime);
+        if (isUnhookingAction) { IsUnhooking = start; IsReviving = false; }
+        else { IsReviving = start; IsUnhooking = false; }
+
+        if (targetId.IsValid)
+        {
+            var targetObj = Runner.FindObject(targetId);
+            if (targetObj != null)
+            {
+                var targetSurvivor = targetObj.GetComponent<ISurvivor>();
+                if (targetSurvivor != null)
+                {
+                    targetSurvivor.SetBeingRescued(start, isUnhookingAction);
+                }
+            }
+        }
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_SetBeingRescued(NetworkBool isStarting)
+    {
+        IsBeingRevived = isStarting;
+    }
+
+    // Kéo từ interface
+    public void SetBeingRescued(bool isStarting, bool isUnhookingAction)
+    {
+        RPC_SetBeingRescued(isStarting);
+    }
+
+    public float GetRescueProgressRatio()
+    {
+        if (IsHooked) return UnhookProgress / unhookTime;
+        if (IsDowned) return ReviveProgress / reviveTime;
+        return 0f;
+    }
+
+    private void HandleReviveLogic()
+    {
+        // 1. DÀNH CHO NẠN NHÂN (Chạy trên máy chủ)
+        if (Object.HasStateAuthority)
+        {
+            if (IsBeingRevived)
+            {
+                if (IsHooked)
+                {
+                    UnhookProgress += Runner.DeltaTime;
+                    if (UnhookProgress >= unhookTime) CompleteRescueFromOther();
+                }
+                else if (IsDowned)
+                {
+                    ReviveProgress += Runner.DeltaTime;
+                    if (ReviveProgress >= reviveTime) CompleteRescueFromOther();
+                }
+            }
+            else
+            {
+                // Ngắt cứu: Reset thanh treo móc, GIỮ NGUYÊN thanh gục (Lưu tiến trình)
+                UnhookProgress = 0f;
+            }
+        }
+
+        // 2. DÀNH CHO NGƯỜI CỨU (Kiểm tra nhả phím mọi khung hình, không sợ mất Trigger)
+        if (Object.HasInputAuthority)
+        {
+            if (IsReviving || IsUnhooking)
+            {
+                bool shouldCancel = false;
+
+                // 1. Nhả nút E
+                if (!interactInput.action.IsPressed()) shouldCancel = true;
+                // 2. Nạn nhân đã đứng dậy thành công hoặc bị ngắt kết nối
+                if (_targetToRevive == null || (!_targetToRevive.GetIsDowned() && !_targetToRevive.GetIsHooked())) shouldCancel = true;
+
+                if (shouldCancel)
+                {
+                    RPC_SetReviveState(false, default, false);
+                    _targetToRevive = null;
+                }
+            }
+        }
     }
 
     public void CompleteRescueFromOther()
@@ -735,10 +724,12 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         IsDowned = false;
         IsHooked = false;
         IsBeingRevived = false;
+        ReviveProgress = 0f; // Dậy rồi thì reset tiến trình
+        UnhookProgress = 0f;
         _characterController.enabled = true;
 
-        CurrentHits = 1; // Hồi lại 1 máu khi được cứu
-        SacrificeTimer = TickTimer.None; // Xóa án tử hình trên móc
+        CurrentHits = 1;
+        SacrificeTimer = TickTimer.None;
     }
 }
 
