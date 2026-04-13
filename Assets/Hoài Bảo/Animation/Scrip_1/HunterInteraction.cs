@@ -370,6 +370,7 @@ public class HunterInteraction : NetworkBehaviour
     public Transform handPoint;
     public Transform shoulderPoint;
     [Networked] public NetworkBool isCarryingPlayer { get; set; }
+    private ChangeDetector _changeDetector;
     private GameObject carriedPlayerObject;
 
     [Header("Vượt Cửa Sổ")]
@@ -438,6 +439,21 @@ public class HunterInteraction : NetworkBehaviour
             allHooks = GameObject.FindGameObjectsWithTag("Moc");
             allGenerators = GameObject.FindGameObjectsWithTag("May");
             ToggleAuraGroup(allGenerators, auraMatRed, true);
+        }
+        _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
+    }
+    public override void Render()
+    {
+        // Quét xem có biến [Networked] nào vừa thay đổi giá trị không
+        foreach (var change in _changeDetector.DetectChanges(this))
+        {
+            switch (change)
+            {
+                // Nếu biến isCarryingPlayer thay đổi, gọi hàm update Aura
+                case nameof(isCarryingPlayer):
+                    UpdateAurasLocally();
+                    break;
+            }
         }
     }
 
