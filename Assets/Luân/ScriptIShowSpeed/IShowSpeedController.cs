@@ -523,14 +523,42 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         }
     }
 
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_SetBeingRescued(NetworkBool isStarting, float requiredTime)
+    {
+        IsBeingRevived = isStarting;
+        if (isStarting)
+            ReviveTimer = TickTimer.CreateFromSeconds(Runner, requiredTime);
+        else
+            ReviveTimer = TickTimer.None;
+    }
+
     private void HandleReviveLogic()
     {
-        if (!Object.HasStateAuthority) return;
-
-        // Nếu tôi đang bị cứu và thanh thời gian đã chạy xong
-        if (IsBeingRevived && ReviveTimer.Expired(Runner))
+        // 1. DÀNH CHO NẠN NHÂN (Người đang bị nằm gục/treo)
+        if (Object.HasStateAuthority)
         {
-            CompleteRescueFromOther();
+            // Nếu tôi đang bị cứu và thanh thời gian trên máy tôi đã chạy xong
+            if (IsBeingRevived && ReviveTimer.Expired(Runner))
+            {
+                CompleteRescueFromOther();
+            }
+        }
+
+        // 2. DÀNH CHO NGƯỜI ĐI CỨU
+        if (Object.HasInputAuthority)
+        {
+            // Nếu mình đang bấm E cứu/tháo móc
+            if ((IsReviving || IsUnhooking) && _targetToRevive != null)
+            {
+                // Tự động kiểm tra: Nếu nạn nhân đã đứng dậy thành công
+                if (!_targetToRevive.GetIsDowned() && !_targetToRevive.GetIsHooked())
+                {
+                    // Tự động gọi RPC để hủy trạng thái Anim của bản thân
+                    RPC_SetReviveState(false, default, false);
+                    _targetToRevive = null;
+                }
+            }
         }
     }
 
@@ -698,11 +726,8 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
 
     public void SetBeingRescued(bool isStarting, float requiredTime)
     {
-        IsBeingRevived = isStarting;
-        if (isStarting)
-            ReviveTimer = TickTimer.CreateFromSeconds(Runner, requiredTime);
-        else
-            ReviveTimer = TickTimer.None;
+        // Yêu cầu nạn nhân tự bật State và đếm giờ của chính họ
+        RPC_SetBeingRescued(isStarting, requiredTime);
     }
 
     public void CompleteRescueFromOther()
