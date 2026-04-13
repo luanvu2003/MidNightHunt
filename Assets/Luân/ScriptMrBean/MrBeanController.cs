@@ -431,7 +431,7 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         }
         else if (isActive)
         {
-            durationSlider.value = SkillDurationTimer.RemainingTime(Runner).Value; // Đang tụt dần
+            durationSlider.value = SkillDurationTimer.RemainingTime(Runner).Value / skillDuration; // Đang tụt dần
         }
 
         float? cdLeft = SkillCooldownTimer.RemainingTime(Runner);
@@ -869,6 +869,7 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         transform.position += transform.forward * 1.5f;
         _characterController.enabled = true;
     }
+    public float GetSacrificeTimer() => SacrificeTimer.RemainingTime(Runner) ?? 0f;
 }
 
 public struct MrBeanGameplayInput : INetworkInput

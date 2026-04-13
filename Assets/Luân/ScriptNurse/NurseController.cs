@@ -416,7 +416,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
 
         // 1. Slider: Chỉ chạy khi Đang cứu (Active)
         durationSlider.gameObject.SetActive(isActive);
-        if (isActive) durationSlider.value = SkillDurationTimer.RemainingTime(Runner) ?? 0f;
+        if (isActive) durationSlider.value = (SkillDurationTimer.RemainingTime(Runner) ?? 0f) / skillDuration;
 
         bool onCooldown = cdLeft > 0 && !isArmed && !isActive;
 
@@ -873,6 +873,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
         transform.position += transform.forward * 1.5f;
         _characterController.enabled = true;
     }
+    public float GetSacrificeTimer() => SacrificeTimer.RemainingTime(Runner) ?? 0f;
 
 }
 
