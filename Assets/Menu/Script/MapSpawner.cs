@@ -70,7 +70,7 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
                 // Tìm tất cả Text bên trong nhân vật này (bao gồm cả các object đang bị ẩn)
                 var texts = spawnedObj.GetComponentsInChildren<TextMeshProUGUI>(true);
                 var hunterTxt = texts.FirstOrDefault(t => t.gameObject.name == hunterTextGameObjectName);
-                
+
                 if (hunterTxt != null)
                 {
                     hunterTxt.text = "";
@@ -82,26 +82,60 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
 
     IEnumerator UpdatePlayerNamesRoutine()
     {
+        // Đợi 1 thời gian để Client kịp tải xong các NetworkObject từ Server gửi về
         yield return new WaitForSeconds(1.0f);
         var allPlayers = FindObjectsOfType<RoomPlayer>().ToList();
 
         // == CẬP NHẬT TÊN HUNTER ==
         var hunterData = allPlayers.FirstOrDefault(p => p.IsHunter);
-        // Kiểm tra xem đã tìm thấy Data của Hunter chưa, VÀ Hunter đó đã được spawn ra map chưa
-        if (hunterData != null && spawnedCharacters.TryGetValue(hunterData.Object.InputAuthority, out NetworkObject hunterObj))
-        {
-            // Tìm TextMeshProUGUI con bên trong Prefab Hunter đã spawn
-            var texts = hunterObj.GetComponentsInChildren<TextMeshProUGUI>(true);
-            TextMeshProUGUI hunterTxt = texts.FirstOrDefault(t => t.gameObject.name == hunterTextGameObjectName);
 
-            if (hunterTxt != null)
+        if (hunterData != null)
+        {
+            NetworkObject hunterObj = null;
+
+            // 1. Thử lấy từ Dictionary (Sẽ hoạt động chuẩn trên Server)
+            if (spawnedCharacters.TryGetValue(hunterData.Object.InputAuthority, out NetworkObject cachedObj))
             {
-                hunterTxt.gameObject.SetActive(true);
-                hunterTxt.text = hunterData.PlayerName.ToString();
+                hunterObj = cachedObj;
             }
             else
             {
-                Debug.LogWarning($"[MapSpawner] Không tìm thấy GameObject nào tên '{hunterTextGameObjectName}' bên trong Prefab Hunter!");
+                // 2. Nếu là Client (Dictionary rỗng), tìm trực tiếp trong các NetworkObject đang có trên map
+                foreach (var networkObj in Runner.GetAllNetworkObjects())
+                {
+                    // Tìm object thuộc quyền điều khiển của Hunter
+                    // Đảm bảo đó không phải là RoomPlayer data (để tránh nhầm lẫn)
+                    if (networkObj.InputAuthority == hunterData.Object.InputAuthority && networkObj.GetComponent<RoomPlayer>() == null)
+                    {
+                        // Chắc ăn hơn: Kiểm tra xem object này có chứa Text tên của Hunter không
+                        var checkText = networkObj.GetComponentsInChildren<TextMeshProUGUI>(true)
+                            .FirstOrDefault(t => t.gameObject.name == hunterTextGameObjectName);
+
+                        if (checkText != null)
+                        {
+                            hunterObj = networkObj;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Nếu đã tìm thấy Prefab của Hunter trên map
+            if (hunterObj != null)
+            {
+                var texts = hunterObj.GetComponentsInChildren<TextMeshProUGUI>(true);
+                TextMeshProUGUI hunterTxt = texts.FirstOrDefault(t => t.gameObject.name == hunterTextGameObjectName);
+
+                if (hunterTxt != null)
+                {
+                    hunterTxt.gameObject.SetActive(true);
+                    hunterTxt.text = hunterData.PlayerName.ToString();
+                    Debug.Log($"[MapSpawner] Đã set tên cho Hunter thành công: {hunterTxt.text}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[MapSpawner] Không tìm thấy GameObject nào tên '{hunterTextGameObjectName}' bên trong Prefab Hunter!");
+                }
             }
         }
 
