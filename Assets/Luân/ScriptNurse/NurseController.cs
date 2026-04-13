@@ -759,17 +759,49 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
         }
     }
 
+    // 🚨 1. THÊM RPC NÀY ĐỂ BÁO CHO QUÁI BIẾT LÀ MÓC ĐÃ TRỐNG
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_ResetHookAtPosition(Vector3 rescuePosition)
+    {
+        // Quét tìm cái móc xung quanh vị trí vừa được cứu (bán kính 2 mét)
+        Collider[] hits = Physics.OverlapSphere(rescuePosition, 2f);
+        foreach (var hit in hits)
+        {
+            // Quái đã đổi tag của móc thành "Untagged" lúc nãy
+            if (hit.CompareTag("Untagged") || hit.CompareTag("Moc"))
+            {
+                // Nhận diện chính xác đây là cái móc nhờ child "HookPoint"
+                if (hit.transform.Find("HookPoint") != null)
+                {
+                    hit.tag = "Moc"; // 🚨 QUAN TRỌNG NHẤT: Trả lại Tag "Moc" để Quái tương tác được
+                    break;
+                }
+            }
+        }
+    }
+
+    // 🚨 2. CẬP NHẬT LẠI HÀM NÀY
     public void CompleteRescueFromOther()
     {
+        // Gọi RPC báo cho tất cả mọi người (kể cả Quái) mở khóa cái móc này
+        RPC_ResetHookAtPosition(transform.position);
+
         IsDowned = false;
         IsHooked = false;
         IsBeingRevived = false;
-        ReviveProgress = 0f; // Dậy rồi thì reset tiến trình
+        ReviveProgress = 0f;
         UnhookProgress = 0f;
+
+        // Dịch chuyển nạn nhân ra phía trước mặt 1.2 mét để rớt xuống đất, không bị kẹt vào cột móc
+        _characterController.enabled = false;
+        transform.position += transform.forward * 1.2f; 
         _characterController.enabled = true;
 
         CurrentHits = 1;
-        SacrificeTimer = TickTimer.None;
+        SacrificeTimer = TickTimer.None; 
+
+        // Buff bất tử 3 giây để tẩu thoát (Quái chém trúng sẽ xuyệt qua không mất máu)
+        InvincibilityTimer = TickTimer.CreateFromSeconds(Runner, 3f);
     }
 
 }
