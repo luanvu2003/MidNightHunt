@@ -34,8 +34,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 29.659891, y: 0}
-  m_SizeDelta: {x: 259.3197, y: 50}
+  m_AnchoredPosition: {x: 36.6036, y: 0}
+  m_SizeDelta: {x: 273.207, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &314449426054764173
 CanvasRenderer:
@@ -65,7 +65,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u1EA4n      \u0111\u1EC3 c\u1EE9u"
+  m_text: "Gi\u1EEF      \u0111\u1EC3 c\u1EE9u"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: e3f54f2386eacfb498711344712aeeef, type: 2}
   m_sharedMaterial: {fileID: 4908264701057610302, guid: e3f54f2386eacfb498711344712aeeef, type: 2}
@@ -1752,7 +1752,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -8, y: 0}
+  m_AnchoredPosition: {x: 3.4, y: 0}
   m_SizeDelta: {x: 50, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5359415151873485531
@@ -2085,6 +2085,7 @@ GameObject:
   - component: {fileID: 738574047444335955}
   - component: {fileID: 8718187152564687234}
   - component: {fileID: 2650824854551574159}
+  - component: {fileID: 2341932308025548760}
   - component: {fileID: 3195005362165579122}
   - component: {fileID: 894883200095405618}
   m_Layer: 0
@@ -2188,6 +2189,12 @@ MonoBehaviour:
   hookOffset: {x: 0, y: 0, z: 0}
   _IsBeingRevived:
     _value: 0
+  _IsBeingUnhooked:
+    _value: 0
+  _ReviverCount: 0
+  _TargetReviveId:
+    Raw: 0
+  _BonusRescueSpeed: 0
   _IsReviving:
     _value: 0
   _IsUnhooking:
@@ -2228,6 +2235,7 @@ MonoBehaviour:
   - {fileID: 738574047444335955}
   - {fileID: 8718187152564687234}
   - {fileID: 2650824854551574159}
+  - {fileID: 2341932308025548760}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &2150203136033502237
 MonoBehaviour:
@@ -2244,7 +2252,7 @@ MonoBehaviour:
   Animator: {fileID: 4293240204812007307}
   ApplyTiming: 2
   SyncSettings: 79
-  StateHashes: 000000001439c2ab278ae79c13cd87b4f80e0f4967bf96e5e5f0da6018d8edb15b76deb25d896e24f8cd899ba96219512b2d55d4cea90da48d073ea78be2bafff2282959958341e2648f6b0900d968bf
+  StateHashes: 000000001439c2ab278ae79c13cd87b4f80e0f4967bf96e5e5f0da6018d8edb15b76deb25d896e24f8cd899ba96219512b2d55d4cea90da48d073ea78be2bafff228295969bf411b2a117218958341e2648f6b0900d968bf
   TriggerHashes: 000000002566f13e67bf96e5
   TotalWords: 4
 --- !u!114 &738574047444335955
@@ -2296,6 +2304,19 @@ MonoBehaviour:
   headBoneName: mixamorig:Head
   myFpsEyeOffset: {x: 0, y: 0.1, z: 0.2}
   myTpsOffset: {x: 0.5, y: 1.5, z: -3}
+--- !u!114 &2341932308025548760
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8437323240024215010}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 104dbb7fa8a82ef41b78086c6500b724, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  skillPlayerObject: {fileID: 434747561685622069}
 --- !u!135 &3195005362165579122
 SphereCollider:
   m_ObjectHideFlags: 0

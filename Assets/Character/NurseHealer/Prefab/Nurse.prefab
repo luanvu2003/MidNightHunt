@@ -1168,8 +1168,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 29.659891, y: 0}
-  m_SizeDelta: {x: 259.3197, y: 50}
+  m_AnchoredPosition: {x: 36.118263, y: 0}
+  m_SizeDelta: {x: 272.2365, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4732265732133444242
 CanvasRenderer:
@@ -1199,7 +1199,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u1EA4n      \u0111\u1EC3 c\u1EE9u"
+  m_text: "Gi\u1EEF      \u0111\u1EC3 c\u1EE9u"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: e3f54f2386eacfb498711344712aeeef, type: 2}
   m_sharedMaterial: {fileID: 4908264701057610302, guid: e3f54f2386eacfb498711344712aeeef, type: 2}
@@ -1414,7 +1414,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -8, y: 0}
+  m_AnchoredPosition: {x: 1.9, y: 0}
   m_SizeDelta: {x: 50, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &35311235617412672
@@ -2353,6 +2353,9 @@ PrefabInstance:
       addedObject: {fileID: 5255160108856339583}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 6c115849636d07741b3afe203d483fe8, type: 3}
       insertIndex: -1
+      addedObject: {fileID: 1611476380028976888}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 6c115849636d07741b3afe203d483fe8, type: 3}
+      insertIndex: -1
       addedObject: {fileID: -8397505347626492041}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 6c115849636d07741b3afe203d483fe8, type: 3}
       insertIndex: -1
@@ -2442,6 +2445,16 @@ MonoBehaviour:
   hookOffset: {x: 0, y: 0, z: 0}
   _IsBeingRevived:
     _value: 0
+  _IsBeingUnhooked:
+    _value: 0
+  _ReviverCount: 0
+  _IsSkillArmed:
+    _value: 0
+  _IsSkillActive:
+    _value: 0
+  _TargetReviveId:
+    Raw: 0
+  _BonusRescueSpeed: 0
   _IsReviving:
     _value: 0
   _IsUnhooking:
@@ -2482,6 +2495,7 @@ MonoBehaviour:
   - {fileID: 8778292444764546065}
   - {fileID: -2183460530798544813}
   - {fileID: 5255160108856339583}
+  - {fileID: 1611476380028976888}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &-362250094445081149
 MonoBehaviour:
@@ -2515,7 +2529,7 @@ MonoBehaviour:
   Animator: {fileID: 5079103967105433483}
   ApplyTiming: 2
   SyncSettings: 79
-  StateHashes: 000000008a18fce4b9abd9d387f9dbdd05b6975813cd87b4f80e0f49a96219512b2d55d418d8edb15b76deb2cea90da48d073ea7e49581750f560988958341e290e793e11108d470
+  StateHashes: 000000008a18fce4b9abd9d387f9dbdd05b6975813cd87b4f80e0f49a96219512b2d55d418d8edb15b76deb2cea90da48d073ea7e49581750f56098869bf411b2a117218958341e290e793e11108d470
   TriggerHashes: 000000002566f13e67bf96e5
   TotalWords: 4
 --- !u!114 &-2183460530798544813
@@ -2550,6 +2564,19 @@ MonoBehaviour:
     _value: 0
   targetFollow: {fileID: 0}
   followSpeed: 8
+--- !u!114 &1611476380028976888
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2006184711979089739}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 104dbb7fa8a82ef41b78086c6500b724, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  skillPlayerObject: {fileID: 5417799548279557087}
 --- !u!135 &-8397505347626492041
 SphereCollider:
   m_ObjectHideFlags: 0
