@@ -647,18 +647,21 @@ public class HunterInteraction : NetworkBehaviour
             PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
             if (receiver != null) receiver.ReleaseFromHunter();
 
-            // 🚨 ĐÃ SỬA: Hủy trạng thái gục (IsDowned = false) và ép chịu 2 Hit (Mất máu nặng)
-            var s1 = carriedPlayerObject.GetComponent<IShowSpeedController_Fusion>();
-            if (s1 != null) { s1.IsDowned = false; s1.CurrentHits = 2; }
+            // 🚨 BẢO VỆ MẠNG: Chỉ có Server mới được quyền thay đổi Máu và Trạng Thái
+            if (Object.HasStateAuthority)
+            {
+                var s1 = carriedPlayerObject.GetComponent<IShowSpeedController_Fusion>();
+                if (s1 != null) { s1.IsDowned = false; s1.CurrentHits = 2; }
 
-            var s2 = carriedPlayerObject.GetComponent<MrBeanController_Fusion>();
-            if (s2 != null) { s2.IsDowned = false; s2.CurrentHits = 2; }
+                var s2 = carriedPlayerObject.GetComponent<MrBeanController_Fusion>();
+                if (s2 != null) { s2.IsDowned = false; s2.CurrentHits = 2; }
 
-            var s3 = carriedPlayerObject.GetComponent<MrBeastController_Fusion>();
-            if (s3 != null) { s3.IsDowned = false; s3.CurrentHits = 2; }
+                var s3 = carriedPlayerObject.GetComponent<MrBeastController_Fusion>();
+                if (s3 != null) { s3.IsDowned = false; s3.CurrentHits = 2; }
 
-            var s4 = carriedPlayerObject.GetComponent<NurseController_Fusion>();
-            if (s4 != null) { s4.IsDowned = false; s4.CurrentHits = 2; }
+                var s4 = carriedPlayerObject.GetComponent<NurseController_Fusion>();
+                if (s4 != null) { s4.IsDowned = false; s4.CurrentHits = 2; }
+            }
         }
 
         isCarryingPlayer = false;
