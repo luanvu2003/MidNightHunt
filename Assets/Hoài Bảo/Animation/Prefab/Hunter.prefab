@@ -267,6 +267,7 @@ GameObject:
   - component: {fileID: 7161010782460737858}
   - component: {fileID: 1285061914258829460}
   - component: {fileID: 8350662706083400960}
+  - component: {fileID: -6027910804222752598}
   m_Layer: 0
   m_Name: Hunter
   m_TagString: Hunter
@@ -455,6 +456,7 @@ MonoBehaviour:
   clipTreoCuaso: {fileID: 8300000, guid: 6a7f37b58e202eb43837f9d7662a1e35, type: 3}
   clipTreoMoc: {fileID: 8300000, guid: e075744580a086f47b91e8894bbbde7f, type: 3}
   stunAnimationTrigger: BeStunned
+  struggleTime: 15
 --- !u!114 &3329641582074757257
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -619,6 +621,7 @@ MonoBehaviour:
   - {fileID: 7161010782460737858}
   - {fileID: 1285061914258829460}
   - {fileID: 8350662706083400960}
+  - {fileID: -6027910804222752598}
   - {fileID: 1171227272122937652}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &7161010782460737858
@@ -672,6 +675,23 @@ MonoBehaviour:
   headBoneName: mixamorig:Head
   myFpsEyeOffset: {x: 0, y: 0.1, z: 0.2}
   myTpsOffset: {x: 0.5, y: 1.5, z: -3}
+--- !u!114 &-6027910804222752598
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7902378030018398077}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5e6d807d209c234bb461396d9384f98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  nameText: {fileID: 5271240706969950795}
+  _SyncedPlayerName:
+    _length: 14
+    _data:
+      Data: 48000000750000006e0000007400000065000000720000004e000000610000006d0000006500000054000000650000007800000074000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 --- !u!1001 &1737060766795976618
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -959,6 +979,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 6053363405655267700, guid: f46f82db28634654985b4a8f29935839, type: 3}
   m_PrefabInstance: {fileID: 5733246155180840982}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &5271240706969950795 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 484031948560810589, guid: f46f82db28634654985b4a8f29935839, type: 3}
+  m_PrefabInstance: {fileID: 5733246155180840982}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &5784941849929653338
 PrefabInstance:
   m_ObjectHideFlags: 0
