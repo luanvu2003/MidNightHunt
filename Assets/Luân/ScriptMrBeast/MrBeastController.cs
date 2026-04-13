@@ -581,6 +581,10 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
                     {
                         RPC_SetReviveState(true, target.Object.Id, isTargetHooked);
                         _isStartRpcSent = true;
+
+                        // 🚨 CHÌA KHÓA VÀNG GIẢI QUYẾT LỖI KẸT NHẤP NHẢ E:
+                        // Phải mở khóa cờ Cancel ngay lập tức để lỡ phím nảy 2 lần thì vẫn gửi lệnh hủy được!
+                        _isCancelRpcSent = false;
                     }
                 }
             }

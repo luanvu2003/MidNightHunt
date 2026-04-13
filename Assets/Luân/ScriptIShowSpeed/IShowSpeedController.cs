@@ -490,6 +490,10 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
                     {
                         RPC_SetReviveState(true, target.Object.Id, isTargetHooked);
                         _isStartRpcSent = true;
+
+                        // 🚨 CHÌA KHÓA VÀNG GIẢI QUYẾT LỖI KẸT NHẤP NHẢ E:
+                        // Phải mở khóa cờ Cancel ngay lập tức để lỡ phím nảy 2 lần thì vẫn gửi lệnh hủy được!
+                        _isCancelRpcSent = false;
                     }
                 }
             }
