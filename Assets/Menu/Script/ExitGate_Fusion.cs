@@ -11,7 +11,7 @@ public class ExitGate_Fusion : NetworkBehaviour
 
     [Header("UI & Tương Tác (Local)")]
     [Tooltip("Text 'Giữ E để mở' - Phải nằm trong Canvas của riêng Prefab này")]
-    public GameObject interactText; 
+    public GameObject interactText;
     [Tooltip("Thanh tiến trình - Phải nằm trong Canvas của riêng Prefab này")]
     public Slider progressBar;
 
@@ -20,7 +20,7 @@ public class ExitGate_Fusion : NetworkBehaviour
     public GameObject gateBlocker; // Bức tường chặn cửa, sẽ bị tắt khi cửa mở
     public GameObject escapeZone;  // Vùng đi vào là Win (Ban đầu nên tắt)
     public GameObject[] indicatorLights = new GameObject[6]; // 6 cái Đèn (Object ánh sáng)
-    
+
     [Header("Hệ thống Aura Đỏ")]
     public GameObject auraSwitchObject;
 
@@ -116,7 +116,7 @@ public class ExitGate_Fusion : NetworkBehaviour
         }
 
         // 1. Đồng bộ 6 cái đèn theo tiến trình (Cứ 10s sáng 1 đèn riêng cho Prefab này)
-        int lightsToTurnOn = Mathf.FloorToInt(Progress / 10f); 
+        int lightsToTurnOn = Mathf.FloorToInt(Progress / 10f);
         for (int i = 0; i < indicatorLights.Length; i++)
         {
             if (indicatorLights[i] != null)
@@ -198,14 +198,26 @@ public class ExitGate_Fusion : NetworkBehaviour
 
         if (ActiveOpeners.Count > 0)
         {
-            // Tiến trình tăng dần. x2, x3 nếu nhiều người cùng mở
+            // Tiến trình tăng dần. Nếu có nhiều người cùng mở thì sẽ x2, x3 tốc độ.
             Progress += Runner.DeltaTime * ActiveOpeners.Count;
 
             if (Progress >= timeToOpen)
             {
                 Progress = timeToOpen;
-                IsOpened = true; 
-                ActiveOpeners.Clear(); 
+                IsOpened = true; // Kích hoạt mở cửa toàn bản đồ
+
+                // 🚨 ÉP TẮT ANIMATION CHO NHỮNG NGƯỜI ĐANG MỞ CỬA TRƯỚC KHI KICK HỌ RA
+                foreach (var playerId in ActiveOpeners)
+                {
+                    var playerObj = Runner.FindObject(playerId);
+                    if (playerObj != null)
+                    {
+                        var survivor = playerObj.GetComponent<ISurvivor>();
+                        if (survivor != null) survivor.SetRepairAnimation(false);
+                    }
+                }
+
+                ActiveOpeners.Clear(); // Kick mọi người ra khỏi trạng thái tương tác
             }
         }
     }
@@ -213,12 +225,18 @@ public class ExitGate_Fusion : NetworkBehaviour
     private void StartOpeningLocally()
     {
         if (_localPlayer == null) return;
+
+        _localPlayer.OnStartRepair(); // 🚨 Ép khóa chân di chuyển ngay lập tức trên máy mình
+
         RPC_SetOpeningState(_localPlayer.Object.Id, true);
     }
 
     private void StopOpeningLocally()
     {
         if (_localPlayer == null) return;
+
+        _localPlayer.OnStopRepair(); // 🚨 Mở khóa chân khi nhả phím E
+
         RPC_SetOpeningState(_localPlayer.Object.Id, false);
     }
 
@@ -234,6 +252,17 @@ public class ExitGate_Fusion : NetworkBehaviour
         else
         {
             ActiveOpeners.Remove(playerId);
+        }
+
+        // 🚨 ĐỒNG BỘ ANIMATION LÊN SERVER ĐỂ MỌI NGƯỜI CÙNG THẤY
+        var playerObj = Runner.FindObject(playerId);
+        if (playerObj != null)
+        {
+            var survivor = playerObj.GetComponent<ISurvivor>();
+            if (survivor != null)
+            {
+                survivor.SetRepairAnimation(isOpening);
+            }
         }
     }
 
