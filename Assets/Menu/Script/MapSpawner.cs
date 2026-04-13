@@ -82,50 +82,11 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
 
     IEnumerator UpdatePlayerNamesRoutine()
     {
-        // Đợi 1 thời gian để Client kịp tải xong các NetworkObject từ Server gửi về
         yield return new WaitForSeconds(1.0f);
         var allPlayers = FindObjectsOfType<RoomPlayer>().ToList();
 
-        // == CẬP NHẬT TÊN HUNTER ==
-        var hunterData = allPlayers.FirstOrDefault(p => p.IsHunter);
-
-        if (hunterData != null)
-        {
-            NetworkObject hunterObj = null;
-
-            // ĐÃ SỬA: Bắt Host và Client dùng chung 1 logic tìm kiếm trực tiếp để tránh lỗi stale data trên Host
-            foreach (var networkObj in Runner.GetAllNetworkObjects())
-            {
-                // Tìm object thuộc quyền điều khiển của Hunter
-                if (networkObj.InputAuthority == hunterData.Object.InputAuthority && networkObj.GetComponent<RoomPlayer>() == null)
-                {
-                    var checkText = networkObj.GetComponentsInChildren<TextMeshProUGUI>(true)
-                        .FirstOrDefault(t => t.gameObject.name == hunterTextGameObjectName);
-
-                    if (checkText != null)
-                    {
-                        hunterObj = networkObj;
-                        break;
-                    }
-                }
-            }
-
-            // Nếu đã tìm thấy Prefab của Hunter trên map
-            if (hunterObj != null)
-            {
-                var texts = hunterObj.GetComponentsInChildren<TextMeshProUGUI>(true);
-                TextMeshProUGUI hunterTxt = texts.FirstOrDefault(t => t.gameObject.name == hunterTextGameObjectName);
-
-                if (hunterTxt != null)
-                {
-                    hunterTxt.gameObject.SetActive(true);
-                    hunterTxt.text = hunterData.PlayerName.ToString();
-                    Debug.Log($"[MapSpawner] Đã set tên cho Hunter thành công: {hunterTxt.text}");
-                }
-            }
-        }
-
         // == CẬP NHẬT TÊN SURVIVOR ==
+        // (Vẫn giữ nguyên logic cũ nếu UI Survivor của bạn gắn cố định trên Canvas)
         var survivorsData = allPlayers.Where(p => !p.IsHunter).OrderBy(p => p.Object.InputAuthority.PlayerId).ToList();
         for (int i = 0; i < survivorsData.Count; i++)
         {
