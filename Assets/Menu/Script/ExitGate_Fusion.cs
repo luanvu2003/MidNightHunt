@@ -268,6 +268,12 @@ public class ExitGate_Fusion : NetworkBehaviour
 
     private void OpenGateVisuals()
     {
+        // 🚨 CHÌA KHÓA GỠ KẸT CHÂN: Ép mở khóa chân nếu người chơi vẫn đang lỳ đòn giữ phím E
+        if (_isOpeningLocally)
+        {
+            StopOpeningLocally();
+        }
+
         // Khi cửa mở toang, dọn dẹp sạch UI
         _isOpeningLocally = false;
         if (interactText) interactText.SetActive(false);
