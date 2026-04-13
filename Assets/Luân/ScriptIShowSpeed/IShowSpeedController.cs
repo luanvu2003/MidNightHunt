@@ -413,7 +413,7 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     {
         bool durationActive = !SkillDurationTimer.ExpiredOrNotRunning(Runner);
         durationSlider.gameObject.SetActive(durationActive);
-        if (durationActive) durationSlider.value = SkillDurationTimer.RemainingTime(Runner).Value;
+        if (durationActive) durationSlider.value = SkillDurationTimer.RemainingTime(Runner).Value / skillDuration;
 
         float? cdLeft = SkillCooldownTimer.RemainingTime(Runner);
         bool onCooldown = cdLeft > 0 && SkillDurationTimer.ExpiredOrNotRunning(Runner);
@@ -830,6 +830,7 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         transform.position += transform.forward * 1.5f;
         _characterController.enabled = true;
     }
+    public float GetSacrificeTimer() => SacrificeTimer.RemainingTime(Runner) ?? 0f;
 }
 
 

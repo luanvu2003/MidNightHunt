@@ -21,4 +21,5 @@ public interface ISurvivor
     void SetBeingRescued(bool isStarting, bool isUnhooking, float rescuerSpeed);
     void CompleteRescueFromOther();
     bool GetIsBeingUnhooked(); 
+    float GetSacrificeTimer();
 }
