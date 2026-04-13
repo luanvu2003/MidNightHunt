@@ -704,7 +704,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
 
     private void HandleReviveLogic()
     {
-        // 1. DÀNH CHO NẠN NHÂN
+        // 1. DÀNH CHO NẠN NHÂN (Xử lý tiến trình cứu tập thể)
         if (Object.HasStateAuthority)
         {
             if (IsBeingUnhooked)
@@ -714,8 +714,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
             }
             else if (ReviverCount > 0)
             {
-                // 🚨 CỨNG LÕI: Nhân tốc độ cứu với số người (ReviverCount)
-                ReviveProgress += Runner.DeltaTime * ReviverCount;
+                ReviveProgress += Runner.DeltaTime * ReviverCount; // N người cứu -> Nhanh gấp N lần
                 if (ReviveProgress >= reviveTime) CompleteRescueFromOther();
             }
             else
@@ -724,7 +723,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
             }
         }
 
-        // 2. DÀNH CHO NGƯỜI CỨU
+        // 2. DÀNH CHO NGƯỜI CỨU (Xử lý ngắt phím cực kỳ an toàn)
         if (Object.HasInputAuthority)
         {
             if (IsReviving || IsUnhooking)
@@ -732,29 +731,48 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
                 _isStartRpcSent = false;
                 bool shouldCancel = false;
 
+                // 1. Nếu người chơi thả phím E
                 if (!interactInput.action.IsPressed()) shouldCancel = true;
 
-                if (_targetToRevive == null ||
-                    _targetToRevive.Object == null ||
-                    !_targetToRevive.Object.IsValid ||
-                    (!_targetToRevive.GetIsDowned() && !_targetToRevive.GetIsHooked()))
+                // 2. Kiểm tra nạn nhân cực kỳ chặt chẽ (Chống lỗi Null gây kẹt kĩ năng)
+                bool isTargetValid = false;
+                if (_targetToRevive != null)
                 {
-                    shouldCancel = true;
+                    var netObj = _targetToRevive.Object;
+                    if (netObj != null && netObj.IsValid) // Đảm bảo object mạng chưa bị hủy
+                    {
+                        if (_targetToRevive.GetIsDowned() || _targetToRevive.GetIsHooked())
+                        {
+                            isTargetValid = true; // Nạn nhân vẫn đang gục/treo -> Vẫn hợp lệ
+                        }
+                    }
                 }
 
+                // Nếu nạn nhân đã tự đứng dậy (không còn hợp lệ), bắt buộc phải ngắt cứu!
+                if (!isTargetValid) shouldCancel = true;
+
+                // 3. Gửi lệnh ngắt cứu lên Server
                 if (shouldCancel && !_isCancelRpcSent)
                 {
-                    NetworkId targetId = _targetToRevive != null ? _targetToRevive.Object.Id : default;
+                    NetworkId targetId = default;
+                    // Chỉ lấy ID nếu nạn nhân vẫn còn tồn tại để tránh crash code
+                    if (isTargetValid && _targetToRevive != null && _targetToRevive.Object != null)
+                    {
+                        targetId = _targetToRevive.Object.Id;
+                    }
+
+                    // Gửi lệnh báo ngắt cứu
                     RPC_SetReviveState(false, targetId, IsUnhooking);
-                    _targetToRevive = null;
-                    _isCancelRpcSent = true;
+                    _targetToRevive = null; // Xóa mục tiêu ngay
+                    _isCancelRpcSent = true; // Khóa chốt an toàn
                 }
             }
             else
             {
-                _isCancelRpcSent = false;
+                _isCancelRpcSent = false; // Mở chốt khi đã kết thúc anim
             }
 
+            // Bảo hiểm: Luôn mở khóa nút E nếu đã thả tay
             if (!interactInput.action.IsPressed())
             {
                 _isStartRpcSent = false;
