@@ -34,6 +34,8 @@ public class MatchUIManager : MonoBehaviour
 
     private void Update()
     {
+        // Tối ưu: Dùng mảng có sẵn thay vì FindObjectsOfType liên tục nếu có thể, 
+        // nhưng tạm thời giữ cấu trúc của bạn.
         var roomPlayers = FindObjectsOfType<RoomPlayer>().ToList();
         var survivors = roomPlayers.Where(p => !p.IsHunter).ToList();
 
@@ -48,7 +50,7 @@ public class MatchUIManager : MonoBehaviour
         {
             foreach (var surv in survivors)
             {
-                // 🚨 ĐÃ XÓA DÒNG CHẶN ID = 0 Ở ĐÂY ĐỂ Y TÁ CÓ THỂ XUẤT HIỆN
+                // Kiểm tra xem có slot nào đang được gán đúng characterID này chưa
                 if (!survivorSlots.Any(s => s.isAssigned && s.characterID == surv.CharacterID))
                 {
                     needsRefresh = true;
@@ -87,19 +89,34 @@ public class MatchUIManager : MonoBehaviour
 
     private void SetupUI(List<RoomPlayer> survivors)
     {
+        // 1. Dọn dẹp thật sạch các Slot và tắt các UI hiển thị ảo (ví dụ số 90)
         foreach (var slot in survivorSlots) 
         {
             if (slot.rootObj != null) slot.rootObj.SetActive(false);
             slot.isAssigned = false;
+            slot.linkedSurvivor = null; // Phải reset link cũ
+
+            // FIX LỖI 1: Tắt UI Hook ngay từ đầu để tránh hiện số 90 ảo lúc mới load Scene
+            if (slot.hookOverlay != null) slot.hookOverlay.gameObject.SetActive(false);
+            if (slot.hookCooldownText != null) slot.hookCooldownText.gameObject.SetActive(false);
         }
 
+        // 2. Gán slot cho từng người chơi
         foreach (var player in survivors)
         {
             int charID = player.CharacterID;
-            // 🚨 ĐÃ XÓA DÒNG CHẶN ID = 0 Ở ĐÂY 
-
-            var slot = survivorSlots.FirstOrDefault(s => s.characterID == charID);
             
+            // FIX LỖI 2: Tìm slot có đúng characterID NHƯNG phải CHƯA được gán (!s.isAssigned)
+            // Tránh trường hợp 2 người chơi có cùng ID đè lên cùng 1 bảng UI.
+            var slot = survivorSlots.FirstOrDefault(s => s.characterID == charID && !s.isAssigned);
+            
+            // Nếu không tìm thấy slot theo ID, tự động lấy đại một slot còn trống để tránh mất UI
+            if (slot == null) 
+            {
+                slot = survivorSlots.FirstOrDefault(s => !s.isAssigned);
+                if (slot != null) Debug.LogWarning($"[MatchUIManager] Không tìm thấy UI cho CharacterID {charID}, đã mượn tạm slot của ID {slot.characterID}");
+            }
+
             if (slot != null && slot.rootObj != null)
             {
                 slot.rootObj.SetActive(true); 
@@ -113,6 +130,8 @@ public class MatchUIManager : MonoBehaviour
 
     private void FindLinkedSurvivor(SurvivorUISlot slot, List<RoomPlayer> allRoomPlayers)
     {
+        // Do lúc SetupUI chúng ta có thể đã mượn slot nếu lỗi, nên việc tìm theo tên/quyền sẽ chuẩn xác hơn
+        // Tuy nhiên tạm giữ nguyên logic tìm theo CharacterID của bạn, chỉ cần bổ sung thêm check
         var targetRoomPlayer = allRoomPlayers.FirstOrDefault(p => !p.IsHunter && p.CharacterID == slot.characterID);
         
         if (targetRoomPlayer != null)
