@@ -65,6 +65,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
     public string revivingAnimBool = "IsReviving";
     public string unhookingAnimBool = "IsUnhooking"; // 🚨 THÊM ANIMATION THÁO MÓC
     private bool _isCancelRpcSent = false; // Cờ khóa chống spam mạng
+    private bool _isStartRpcSent = false;
 
     private ISurvivor _targetToRevive; // 🚨 Đã đổi thành ISurvivor để cứu được mọi người
     public InputActionReference interactInput;
@@ -469,10 +470,14 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
                 _targetToRevive = target;
                 bool isTargetHooked = target.GetIsHooked();
 
-                // Chỉ gọi lệnh CỨU ở đây. Lệnh NGẮT CỨU đã được đưa lên HandleReviveLogic
-                if (interactInput.action.IsPressed() && !IsReviving && !IsUnhooking)
+                // 🚨 FIX SPAM: Bắt buộc phải có !_isStartRpcSent
+                if (interactInput.action.IsPressed())
                 {
-                    RPC_SetReviveState(true, target.Object.Id, isTargetHooked);
+                    if (!IsReviving && !IsUnhooking && !_isStartRpcSent)
+                    {
+                        RPC_SetReviveState(true, target.Object.Id, isTargetHooked);
+                        _isStartRpcSent = true; // Khóa lại ngay để không spam rác mạng
+                    }
                 }
             }
         }
@@ -710,37 +715,46 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
             }
         }
 
-        // 2. DÀNH CHO NGƯỜI CỨU (Kiểm tra nhả phím E)
+        // 2. DÀNH CHO NGƯỜI CỨU
         if (Object.HasInputAuthority)
         {
             if (IsReviving || IsUnhooking)
             {
+                _isStartRpcSent = false; // Đã nhận tín hiệu cứu từ Server thì mở chốt Start ra
+
                 bool shouldCancel = false;
 
                 // 1. Nhả nút E
                 if (!interactInput.action.IsPressed()) shouldCancel = true;
 
-                // 2. Nạn nhân đã đứng dậy hoặc ngắt kết nối (biến mất khỏi map)
+                // 2. Nạn nhân đã đứng dậy hoặc ngắt kết nối
                 if (_targetToRevive == null ||
-                _targetToRevive.Object == null ||
-                !_targetToRevive.Object.IsValid ||
-                (!_targetToRevive.GetIsDowned() && !_targetToRevive.GetIsHooked()))
+                    _targetToRevive.Object == null ||
+                    !_targetToRevive.Object.IsValid ||
+                    (!_targetToRevive.GetIsDowned() && !_targetToRevive.GetIsHooked()))
                 {
                     shouldCancel = true;
                 }
 
-                // 🚨 FIX LỖI KẸT MOVE: Bắt buộc phải có cờ khóa !_isCancelRpcSent
                 if (shouldCancel && !_isCancelRpcSent)
                 {
-                    RPC_SetReviveState(false, default, false);
+                    // 🚨 FIX LỖI TỰ ĐỘNG CỨU: Phải truyền ID của nạn nhân vào thay vì default!
+                    NetworkId targetId = _targetToRevive != null ? _targetToRevive.Object.Id : default;
+
+                    RPC_SetReviveState(false, targetId, false);
                     _targetToRevive = null;
-                    _isCancelRpcSent = true; // Khóa lại, chỉ gửi lệnh hủy đúng 1 lần duy nhất!
+                    _isCancelRpcSent = true;
                 }
             }
             else
             {
-                // Khi server đã xác nhận hủy xong và tắt IsReviving, ta mở khóa cờ này ra để dùng cho lần cứu sau
-                _isCancelRpcSent = false;
+                _isCancelRpcSent = false; // Reset chốt Cancel
+            }
+
+            // 🚨 BẢO HIỂM BỔ SUNG: Nếu đã nhả E thì chắc chắn phải reset cờ Start
+            if (!interactInput.action.IsPressed())
+            {
+                _isStartRpcSent = false;
             }
         }
     }
