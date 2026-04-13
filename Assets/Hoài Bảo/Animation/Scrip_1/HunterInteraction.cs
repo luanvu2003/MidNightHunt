@@ -647,20 +647,20 @@ public class HunterInteraction : NetworkBehaviour
             PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
             if (receiver != null) receiver.ReleaseFromHunter();
 
-            // 🚨 BẢO VỆ MẠNG: Chỉ có Server mới được quyền thay đổi Máu và Trạng Thái
+            // 🚨 BẢO VỆ MẠNG: Kích hoạt hàm tẩu thoát trên Server
             if (Object.HasStateAuthority)
             {
                 var s1 = carriedPlayerObject.GetComponent<IShowSpeedController_Fusion>();
-                if (s1 != null) { s1.IsDowned = false; s1.CurrentHits = 2; }
+                if (s1 != null) s1.EscapeFromHunter();
 
                 var s2 = carriedPlayerObject.GetComponent<MrBeanController_Fusion>();
-                if (s2 != null) { s2.IsDowned = false; s2.CurrentHits = 2; }
+                if (s2 != null) s2.EscapeFromHunter();
 
                 var s3 = carriedPlayerObject.GetComponent<MrBeastController_Fusion>();
-                if (s3 != null) { s3.IsDowned = false; s3.CurrentHits = 2; }
+                if (s3 != null) s3.EscapeFromHunter();
 
                 var s4 = carriedPlayerObject.GetComponent<NurseController_Fusion>();
-                if (s4 != null) { s4.IsDowned = false; s4.CurrentHits = 2; }
+                if (s4 != null) s4.EscapeFromHunter();
             }
         }
 
