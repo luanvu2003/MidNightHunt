@@ -200,9 +200,9 @@ public class CrowAI : NetworkBehaviour
         float timer = 0f;
         Vector3 randomDir = (new Vector3(Random.Range(-1f, 1f), 0, Random.Range(-1f, 1f)).normalized * 1.5f + Vector3.up).normalized;
 
-        while (timer < 2.5f)
+        while (timer < 10f)
         {
-            float currentSpeed = Mathf.Lerp(flyUpSpeed, flyUpSpeed * 0.4f, timer / 2.5f);
+            float currentSpeed = Mathf.Lerp(flyUpSpeed, flyUpSpeed * 0.4f, timer / 10f);
             transform.Translate(randomDir * currentSpeed * Runner.DeltaTime, Space.World);
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(randomDir), Runner.DeltaTime * 10f);
             timer += Runner.DeltaTime;
