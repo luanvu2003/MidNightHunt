@@ -408,6 +408,9 @@ public class HunterInteraction : NetworkBehaviour
     [Networked] private Vector3 vStart { get; set; }
     [Networked] private Vector3 vEnd { get; set; }
     [Networked] private float syncedDuration { get; set; }
+    [Header("Hệ Thống Vùng Vẫy (Wiggle)")]
+    public float struggleTime = 15.0f; // Thời gian tối đa giữ người
+    [Networked] public TickTimer StruggleTimer { get; set; }
 
     private bool isSliderRunning = false;
     private float sliderTimer = 0f;
@@ -466,6 +469,16 @@ public class HunterInteraction : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
+        // 🚨 HỆ THỐNG WIGGLE: Kiểm tra nếu hết 15s mà chưa treo
+        if (Object.HasStateAuthority && isCarryingPlayer)
+        {
+            if (StruggleTimer.Expired(Runner))
+            {
+                Debug.Log("💥 [Hunter] Player vùng vẫy thoát được! Hunter bị choáng 3s.");
+                StruggleTimer = TickTimer.None; // Reset timer
+                ApplyStun(3.0f); // Tự động ép văng player và chạy Anim choáng
+            }
+        }
         if (!StunTimer.ExpiredOrNotRunning(Runner)) return;
 
         if (isVaulting)
@@ -503,42 +516,68 @@ public class HunterInteraction : NetworkBehaviour
     {
         if (!Object.HasInputAuthority) return;
 
+        // 1. Tự động ẩn UI chữ E nếu đang chạy một Slider tiến trình nào đó
         if (isSliderRunning && interactImage != null && interactImage.gameObject.activeSelf)
         {
             interactImage.gameObject.SetActive(false);
         }
 
+        // ==========================================
+        // PHẦN A: QUẢN LÝ SLIDER (TIẾN TRÌNH)
+        // ==========================================
+        // 🚨 ƯU TIÊN 1: Hunter đang làm hành động (Treo móc, đập máy, vượt rào...)
         if (isSliderRunning && interactionSlider != null)
         {
+            if (!interactionSlider.gameObject.activeSelf) interactionSlider.gameObject.SetActive(true);
+
             sliderTimer += Time.deltaTime;
             float safeDuration = Mathf.Max(0.1f, currentDuration);
-
             interactionSlider.value = sliderTimer / safeDuration;
 
             if (sliderTimer >= safeDuration)
             {
                 isSliderRunning = false;
-                interactionSlider.gameObject.SetActive(false);
+                // Nếu đang vác người thì không tắt UI (để chừa chỗ cho UI 15s chạy tiếp)
+                if (!isCarryingPlayer) interactionSlider.gameObject.SetActive(false);
             }
         }
+        // 🚨 ƯU TIÊN 2: Đang vác người trên vai đi vòng vòng (Chạy Slider Wiggle 15s)
+        else if (isCarryingPlayer && interactionSlider != null)
+        {
+            if (!interactionSlider.gameObject.activeSelf) interactionSlider.gameObject.SetActive(true);
 
+            if (StruggleTimer.IsRunning)
+            {
+                float remaining = StruggleTimer.RemainingTime(Runner) ?? 0f;
+                // Slider sẽ chạy đầy dần từ 0 lên 1 trong 15s
+                interactionSlider.value = 1f - (remaining / struggleTime);
+            }
+        }
+        // 🚨 DỌN DẸP: Không rảnh tay rảnh chân thì tự động ẩn Slider đi
+        else if (!isCarryingPlayer && !isSliderRunning && interactionSlider != null && interactionSlider.gameObject.activeSelf)
+        {
+            interactionSlider.gameObject.SetActive(false);
+        }
+
+        // ==========================================
+        // PHẦN B: QUẢN LÝ MỤC TIÊU VÀ UI CHỮ E (KHOẢNG CÁCH)
+        // ==========================================
         if (currentInteractTarget != null && !isInteracting && !isSliderRunning)
         {
+            // Tính toán khoảng cách (dist) và tính hợp lệ của máy (isInvalidGen) ở đây
             float dist = Vector3.Distance(transform.position, currentInteractTarget.transform.position);
 
-            // 🚨 THÊM MỚI: Liên tục kiểm tra xem máy còn hợp lệ để đạp không
             bool isInvalidGen = false;
             if (currentInteractTarget.CompareTag("May"))
             {
                 Generator gen = currentInteractTarget.GetComponent<Generator>();
-                // Nếu máy không có % hoặc đã bị đạp rồi -> Đánh dấu là không hợp lệ
                 if (gen != null && !gen.CanBeDamagedByHunter())
                 {
                     isInvalidGen = true;
                 }
             }
 
-            // Nếu đi quá xa HOẶC máy không còn hợp lệ -> Xóa mục tiêu và Tắt UI
+            // Nếu đi quá xa HOẶC máy không còn hợp lệ -> Xóa mục tiêu và Tắt UI chữ E
             if (dist > maxInteractDistance || isInvalidGen)
             {
                 currentInteractTarget = null;
@@ -583,6 +622,7 @@ public class HunterInteraction : NetworkBehaviour
 
         isCarryingPlayer = false;
         carriedPlayerObject = null;
+        if (Object.HasStateAuthority) StruggleTimer = TickTimer.None;
         Debug.Log("💥 Hunter bị choáng và làm rơi Survivor!");
 
         if (Object.HasInputAuthority)
@@ -774,6 +814,7 @@ public class HunterInteraction : NetworkBehaviour
                 PlayerHookReceiver receiver = carriedPlayerObject.GetComponent<PlayerHookReceiver>();
                 if (receiver != null) receiver.GetPickedUpOrHooked(shoulderPoint);
                 isCarryingPlayer = true;
+                StruggleTimer = TickTimer.CreateFromSeconds(Runner, struggleTime);
             }
 
             if (Object.HasInputAuthority)
@@ -808,12 +849,14 @@ public class HunterInteraction : NetworkBehaviour
                 if (s4 != null) s4.GetHooked(finalPos, finalRot);
 
                 isCarryingPlayer = false;
+                StruggleTimer = TickTimer.None;
             }
             if (Object.HasInputAuthority)
             {
                 ToggleAuraGroup(allGenerators, auraMatWhite, false);
                 ToggleAuraGroup(allGenerators, auraMatRed, true);
                 ToggleAuraGroup(allHooks, auraMatRed, false);
+
             }
 
             if (currentInteractTarget != null) currentInteractTarget.tag = "Untagged";

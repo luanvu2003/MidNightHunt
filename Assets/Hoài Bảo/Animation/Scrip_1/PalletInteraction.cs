@@ -88,11 +88,15 @@ public class PalletInteraction : NetworkBehaviour
 
     private void UpdateVisuals()
     {
-        // 🚨 FIX ĐỒNG BỘ UI: Ngay khi ván không còn Up (đang rơi, đã ngã, bị phá), 
-        // ép buộc tắt UI Space cho TẤT CẢ client trong phòng.
+        // 🚨 FIX ĐỒNG BỘ UI HOÀN HẢO: 
+        // Chỉ tắt UI nếu ván này thay đổi trạng thái VÀ Player đang đứng ở ngay ván này.
+        // Tránh tình trạng ván ở đầu map ngã làm tắt UI của ván cuối map!
         if (State != PalletState.Up)
         {
-            if (spaceUI != null) spaceUI.SetActive(false);
+            if (spaceUI != null && _isLocalPlayerInZone) 
+            {
+                spaceUI.SetActive(false);
+            }
             _isLocalPlayerInZone = false;
         }
 
@@ -170,14 +174,9 @@ public class PalletInteraction : NetworkBehaviour
 
     private void CheckLocalPlayerTrigger(Collider other, bool isInside)
     {
-        // 🚨 CHỐT CHẶN AN TOÀN KHI ĐI VÀO VÙNG TRIGGER:
-        // Nếu ván đã ngã mà có người cố tình đi vào vùng nhận diện, giấu UI luôn.
-        if (State != PalletState.Up) 
-        {
-            if (spaceUI != null) spaceUI.SetActive(false);
-            _isLocalPlayerInZone = false;
-            return;
-        }
+        // 🚨 ĐÃ SỬA LẠI: Nếu ván đã ngã thì KHÔNG ĐƯỢC CHẠM VÀO UI NỮA.
+        // Cứ kệ nó để cho ván khác làm việc. Tránh xung đột UI!
+        if (State != PalletState.Up) return;
 
         if (other.CompareTag("Player"))
         {
