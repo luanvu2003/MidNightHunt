@@ -592,9 +592,21 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
             float progress = 0f;
 
             if (IsBeingRevived)
+            {
                 progress = GetRescueProgressRatio();
+            }
             else if (_targetToRevive != null)
-                progress = _targetToRevive.GetRescueProgressRatio();
+            {
+                // 🚨 BẢO VỆ CHỐNG LỖI MẠNG TRÊN UI
+                if (_targetToRevive.Object != null && _targetToRevive.Object.IsValid)
+                {
+                    progress = _targetToRevive.GetRescueProgressRatio();
+                }
+                else
+                {
+                    _targetToRevive = null; // Dọn rác ngay lập tức
+                }
+            }
 
             reviveSlider.value = Mathf.Clamp01(progress);
         }
@@ -723,8 +735,8 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         _isLocalRepairing = false; // Thả E hoặc nổ máy là mở khóa
     }
 
-    public bool GetIsDowned() => IsDowned;
-    public bool GetIsHooked() => IsHooked;
+    public bool GetIsDowned() => Object != null && Object.IsValid && IsDowned;
+    public bool GetIsHooked() => Object != null && Object.IsValid && IsHooked;
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     private void RPC_SetReviveState(NetworkBool start, NetworkId targetId, NetworkBool isUnhookingAction)
     {
@@ -759,6 +771,9 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
 
     public float GetRescueProgressRatio()
     {
+        // 🚨 CHỐNG LỖI CRASH: Không tính toán nếu object chưa Spawn xong hoặc đã bị hủy
+        if (Object == null || !Object.IsValid) return 0f;
+
         if (IsHooked) return UnhookProgress / unhookTime;
         if (IsDowned) return ReviveProgress / reviveTime;
         return 0f;
@@ -799,8 +814,14 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
                 // 1. Nhả nút E
                 if (!interactInput.action.IsPressed()) shouldCancel = true;
 
-                // 2. Nạn nhân đã đứng dậy hoặc ngắt kết nối (biến mất khỏi map)
-                if (_targetToRevive == null || (!_targetToRevive.GetIsDowned() && !_targetToRevive.GetIsHooked())) shouldCancel = true;
+                // 2. Nạn nhân đã đứng dậy hoặc ngắt kết nối/chưa kịp load (Bảo vệ tuyệt đối)
+                if (_targetToRevive == null ||
+                    _targetToRevive.Object == null ||
+                    !_targetToRevive.Object.IsValid ||
+                    (!_targetToRevive.GetIsDowned() && !_targetToRevive.GetIsHooked()))
+                {
+                    shouldCancel = true;
+                }
 
                 // 🚨 FIX LỖI KẸT MOVE: Bắt buộc phải có cờ khóa !_isCancelRpcSent
                 if (shouldCancel && !_isCancelRpcSent)
