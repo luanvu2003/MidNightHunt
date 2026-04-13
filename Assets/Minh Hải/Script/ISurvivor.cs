@@ -13,7 +13,11 @@ public interface ISurvivor
 
     bool GetIsDowned();
     bool GetIsHooked();
-    TickTimer GetRescueTimer();
-    void SetBeingRescued(bool isStarting, float requiredTime);
+    
+    // 🚨 THAY ĐỔI: Dùng float từ 0 -> 1 để lấy % cứu (phục vụ Slider)
+    float GetRescueProgressRatio(); 
+
+    // 🚨 THAY ĐỔI: Đơn giản hóa tham số
+    void SetBeingRescued(bool isStarting, bool isUnhookingAction);
     void CompleteRescueFromOther();
 }
