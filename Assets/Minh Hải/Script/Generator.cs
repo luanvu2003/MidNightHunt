@@ -46,6 +46,9 @@ public class Generator : NetworkBehaviour
     private ChangeDetector _changeDetector;
     private float _localRepairStartTime;
     public float spamThreshold = 0.8f; // Dưới 0.8s tính là spam
+    // 🚨 THÊM MỚI: Biến chỉnh khoảng cách nghe âm thanh 3D
+    public float maxExplosionHearingDistance = 50f; // Tiếng nổ vang xa
+    public float maxRepairHearingDistance = 20f;
 
     public override void Spawned()
     {
@@ -55,6 +58,22 @@ public class Generator : NetworkBehaviour
         if (repairText != null) repairText.SetActive(false);
         if (skillCheck != null) skillCheck.gameObject.SetActive(false);
         if (repairedLight != null) repairedLight.SetActive(false);
+        // 🚨 THÊM MỚI: Cấu hình âm thanh 3D (nhỏ dần khi đi xa) cho Máy phát điện
+        if (explosionSound != null)
+        {
+            explosionSound.spatialBlend = 1f; // 1 = 100% 3D Audio
+            explosionSound.rolloffMode = AudioRolloffMode.Linear;
+            explosionSound.minDistance = 5f; // Đứng trong bán kính 5m nghe to nhất
+            explosionSound.maxDistance = maxExplosionHearingDistance;
+        }
+
+        if (repairSound != null)
+        {
+            repairSound.spatialBlend = 1f;
+            repairSound.rolloffMode = AudioRolloffMode.Linear;
+            repairSound.minDistance = 3f;
+            repairSound.maxDistance = maxRepairHearingDistance;
+        }
     }
 
     public override void Render()
@@ -318,7 +337,16 @@ public class Generator : NetworkBehaviour
     private void RPC_PlayExplosionEffects()
     {
         if (explosionFX != null) explosionFX.Play();
-        if (explosionSound != null) explosionSound.Play();
+
+        if (explosionSound != null)
+        {
+            // 🚨 THÊM MỚI: Cập nhật volume tiếng nổ theo setting VFX
+            if (AudioManager.Instance != null)
+            {
+                explosionSound.volume = AudioManager.Instance.vfxVolume;
+            }
+            explosionSound.Play();
+        }
 
         AlertNearbyCrows();
 
@@ -384,10 +412,23 @@ public class Generator : NetworkBehaviour
     private void UpdateVisuals(bool isRunning)
     {
         if (animator != null) animator.SetBool("isRunning", isRunning);
+        
         if (repairSound != null)
         {
-            if (isRunning && !repairSound.isPlaying) repairSound.Play();
-            else if (!isRunning && repairSound.isPlaying) repairSound.Stop();
+            if (isRunning)
+            {
+                // 🚨 THÊM MỚI: Liên tục đồng bộ volume khi máy đang chạy
+                if (AudioManager.Instance != null) 
+                {
+                    repairSound.volume = AudioManager.Instance.vfxVolume;
+                }
+
+                if (!repairSound.isPlaying) repairSound.Play();
+            }
+            else if (!isRunning && repairSound.isPlaying) 
+            {
+                repairSound.Stop();
+            }
         }
     }
 
