@@ -225,7 +225,6 @@ public class Generator : NetworkBehaviour
         }
     }
 
-    // 🚨 ĐỔI RpcSources.InputAuthority THÀNH RpcSources.All
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     private void RPC_FailSkillCheckMinigame(NetworkId playerId)
     {
@@ -233,17 +232,25 @@ public class Generator : NetworkBehaviour
 
         StunTimer = TickTimer.CreateFromSeconds(Runner, stunDuration);
 
-        var playerObj = Runner.FindObject(playerId);
-        if (playerObj != null)
+        // 🚨 QUÉT TOÀN BỘ NHỮNG NGƯỜI ĐANG SỬA TRƯỚC KHI XÓA DANH SÁCH
+        foreach (var id in ActiveRepairers)
         {
-            var survivor = playerObj.GetComponent<ISurvivor>();
-            if (survivor != null)
+            var playerObj = Runner.FindObject(id);
+            if (playerObj != null)
             {
-                survivor.TakeHit();
-                survivor.SetRepairAnimation(false); // 🚨 THÊM DÒNG NÀY (Tắt anim khi bấm hụt)
+                var survivor = playerObj.GetComponent<ISurvivor>();
+                if (survivor != null)
+                {
+                    // 1. Tắt Animation sửa máy và mở khóa move cho TẤT CẢ
+                    survivor.SetRepairAnimation(false);
+
+                    // 2. 🚨 TẤT CẢ ĐỀU BỊ ĂN HIT CÙNG NHAU (Bỏ điều kiện check ID)
+                    survivor.TakeHit();
+                }
             }
         }
 
+        // Xóa danh sách an toàn sau khi đã giật điện tất cả mọi người
         ActiveRepairers.Clear();
         RPC_PlayExplosionEffects();
     }
@@ -412,20 +419,20 @@ public class Generator : NetworkBehaviour
     private void UpdateVisuals(bool isRunning)
     {
         if (animator != null) animator.SetBool("isRunning", isRunning);
-        
+
         if (repairSound != null)
         {
             if (isRunning)
             {
                 // 🚨 THÊM MỚI: Liên tục đồng bộ volume khi máy đang chạy
-                if (AudioManager.Instance != null) 
+                if (AudioManager.Instance != null)
                 {
                     repairSound.volume = AudioManager.Instance.vfxVolume;
                 }
 
                 if (!repairSound.isPlaying) repairSound.Play();
             }
-            else if (!isRunning && repairSound.isPlaying) 
+            else if (!isRunning && repairSound.isPlaying)
             {
                 repairSound.Stop();
             }
