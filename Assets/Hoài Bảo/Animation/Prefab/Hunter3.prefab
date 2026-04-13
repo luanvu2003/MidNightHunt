@@ -143,6 +143,7 @@ GameObject:
   - component: {fileID: 6895891179391024566}
   - component: {fileID: 910712385311960406}
   - component: {fileID: 2154706896337102022}
+  - component: {fileID: 1819896546343715282}
   - component: {fileID: 2265985748397835117}
   - component: {fileID: 7669453150122209630}
   - component: {fileID: 7369745109476535599}
@@ -375,6 +376,19 @@ MonoBehaviour:
     _value: 0
   targetFollow: {fileID: 0}
   followSpeed: 8
+--- !u!114 &1819896546343715282
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2994306502222106737}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 104dbb7fa8a82ef41b78086c6500b724, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  skillPlayerObject: {fileID: 4894055002867392992}
 --- !u!82 &2265985748397835117
 AudioSource:
   m_ObjectHideFlags: 0
@@ -517,6 +531,7 @@ MonoBehaviour:
   - {fileID: 9098957649225675213}
   - {fileID: 910712385311960406}
   - {fileID: 2154706896337102022}
+  - {fileID: 1819896546343715282}
   - {fileID: 8611623050937220134}
   - {fileID: 646460894944446695}
   - {fileID: -7356489424239219919}
@@ -1176,6 +1191,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f46f82db28634654985b4a8f29935839, type: 3}
+--- !u!1 &4894055002867392992 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5790952897858261834, guid: f46f82db28634654985b4a8f29935839, type: 3}
+  m_PrefabInstance: {fileID: 1420522718893060778}
+  m_PrefabAsset: {fileID: 0}
 --- !u!224 &5167713519462804446 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 6053363405655267700, guid: f46f82db28634654985b4a8f29935839, type: 3}

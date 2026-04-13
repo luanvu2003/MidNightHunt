@@ -47,6 +47,7 @@ GameObject:
   - component: {fileID: 345003743573772114}
   - component: {fileID: 9078698942962370315}
   - component: {fileID: 2658514166855154901}
+  - component: {fileID: 157881392589509736}
   - component: {fileID: 3236336337957476489}
   - component: {fileID: 2794268210311685176}
   - component: {fileID: 1186244846220050800}
@@ -262,6 +263,19 @@ MonoBehaviour:
   spineBone: {fileID: 8128713298185979406}
   aimWeight: 0.5
   _networkPitch: 0
+--- !u!114 &157881392589509736
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1616768864332459727}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 104dbb7fa8a82ef41b78086c6500b724, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  skillPlayerObject: {fileID: 46395236090286288}
 --- !u!82 &3236336337957476489
 AudioSource:
   m_ObjectHideFlags: 0
@@ -403,6 +417,7 @@ MonoBehaviour:
   - {fileID: 345003743573772114}
   - {fileID: 9078698942962370315}
   - {fileID: 2658514166855154901}
+  - {fileID: 157881392589509736}
   - {fileID: 877235556028763662}
   - {fileID: 441912001392829226}
   - {fileID: 2311731886261963367}
@@ -1063,6 +1078,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f46f82db28634654985b4a8f29935839, type: 3}
+--- !u!1 &46395236090286288 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4811357654136624047, guid: f46f82db28634654985b4a8f29935839, type: 3}
+  m_PrefabInstance: {fileID: 4783302688886817663}
+  m_PrefabAsset: {fileID: 0}
 --- !u!224 &1612404673030609419 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 6053363405655267700, guid: f46f82db28634654985b4a8f29935839, type: 3}
