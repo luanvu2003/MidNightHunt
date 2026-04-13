@@ -121,23 +121,22 @@ public class ExitGate_Fusion : NetworkBehaviour
         bool isSomeoneOpening = ActiveOpeners.Count > 0;
         if (gateAudioSource != null && openingSound != null)
         {
+            // 🚨 ĐỒNG BỘ ÂM LƯỢNG: Liên tục cập nhật volume theo Setting
+            if (gateAudioSource.isPlaying)
+            {
+                gateAudioSource.volume = GetVFXVolume();
+            }
+
             if (isSomeoneOpening && !IsOpened && !gateAudioSource.isPlaying)
             {
                 gateAudioSource.clip = openingSound;
                 gateAudioSource.loop = true;
+                gateAudioSource.volume = GetVFXVolume(); // 🚨 Set volume lúc bắt đầu phát
                 gateAudioSource.Play();
             }
             else if ((!isSomeoneOpening || IsOpened) && gateAudioSource.clip == openingSound && gateAudioSource.isPlaying)
             {
                 gateAudioSource.Stop();
-            }
-        }
-        // 4. Bắt sự kiện khi cửa chính thức mở
-        foreach (var change in _changeDetector.DetectChanges(this))
-        {
-            if (change == nameof(IsOpened) && IsOpened)
-            {
-                OpenGateVisuals();
             }
         }
     }
@@ -252,7 +251,7 @@ public class ExitGate_Fusion : NetworkBehaviour
         if (gateAudioSource && openedSound)
         {
             gateAudioSource.Stop();
-            gateAudioSource.PlayOneShot(openedSound);
+            gateAudioSource.PlayOneShot(openedSound, GetVFXVolume());
         }
 
         // Cửa đã mở rồi thì tắt luôn cục đỏ lè đi (nếu Hunter đến gần) cho sạch màn hình
@@ -304,5 +303,10 @@ public class ExitGate_Fusion : NetworkBehaviour
     {
         // Hàm dùng để tắt cục đỏ lè
         if (auraSwitchObject != null) auraSwitchObject.SetActive(false);
+    }
+    private float GetVFXVolume()
+    {
+        // Kéo volume từ AudioManager, nếu không có thì mặc định là 1 (100%)
+        return AudioManager.Instance != null ? AudioManager.Instance.vfxVolume : 1f;
     }
 }
