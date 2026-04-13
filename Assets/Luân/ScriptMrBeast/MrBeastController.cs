@@ -94,6 +94,18 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     [Networked] public NetworkBool IsUnhooking { get; set; } // 🚨 Đang đứng tháo móc
     [Networked] public float ReviveProgress { get; set; } // Tiến trình cứu gục (có lưu)
     [Networked] public float UnhookProgress { get; set; } // Tiến trình tháo móc (không lưu)
+    [Header("== SOUND EFFECTS (VFX) ==")]
+    public AudioSource playerAudioSource; // Nguồn phát 3D cho Bước chân, Nhảy, Bị đánh
+    public AudioSource heartbeatSource;   // Nguồn phát 2D (Tim đập trong đầu, chỉ Local nghe)
+
+    public AudioClip[] footstepSounds; // Danh sách tiếng bước chân (để random cho chân thật)
+    public AudioClip hitSound;         // Tiếng hoảng sợ khi bị chém
+    public AudioClip vaultSound;       // Tiếng trèo cửa sổ
+    public AudioClip deathSound;       // Tiếng hét thất thanh khi bay màu
+
+    [Header("== HEARTBEAT SETTINGS ==")]
+    public float terrorRadius = 30f; // Khoảng cách bắt đầu nghe tiếng tim
+    public float maxHeartbeatPitch = 1.8f; // Nhịp tim đập nhanh tối đa khi quái ở sát bên
 
     private CharacterController _characterController;
     private bool _isNearWindow = false;
@@ -196,7 +208,12 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         HandleReviveLogic();
 
         if (CurrentHits > 0 && HitDecayTimer.Expired(Runner)) CurrentHits = 0;
-        if (IsHooked && SacrificeTimer.Expired(Runner)) { Runner.Despawn(Object); return; }
+        if (IsHooked && SacrificeTimer.Expired(Runner))
+        {
+            if (deathSound != null) PlayDetachedSound(deathSound, transform.position);
+            Runner.Despawn(Object);
+            return;
+        }
 
         // Code cũ của bạn sẽ ngắt ở đây nếu đang nằm gục
         if (IsDowned || IsHooked) return;
@@ -241,6 +258,7 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
 
             UpdateReviveProgressUI();
             HandleWallhackVisuals();
+            UpdateHeartbeat();
         }
     }
 
@@ -465,6 +483,12 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     {
         animator.SetBool("IsMoving", isMoving);
         animator.SetTrigger(hitAnimationTrigger);
+
+        // 🚨 THÊM ĐOẠN NÀY
+        if (playerAudioSource != null && hitSound != null)
+        {
+            playerAudioSource.PlayOneShot(hitSound, 1f * GetVFXVolume());
+        }
     }
 
     // 🚨 Thêm Quaternion hookRot vào trong ngoặc
@@ -498,7 +522,16 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     }
 
     [Rpc(RpcSources.All, RpcTargets.All)]
-    private void RPC_PlayVaultAnim() => animator.SetTrigger(vaultAnimationTrigger);
+    private void RPC_PlayVaultAnim()
+    {
+        animator.SetTrigger(vaultAnimationTrigger);
+
+        // 🚨 THÊM ĐOẠN NÀY
+        if (playerAudioSource != null && vaultSound != null)
+        {
+            playerAudioSource.PlayOneShot(vaultSound, 0.8f * GetVFXVolume());
+        }
+    }
 
     private void UpdateSkillUI()
     {
@@ -519,7 +552,14 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     private void UpdateHookUI()
     {
         hookSlider.gameObject.SetActive(IsHooked);
-        if (IsHooked) hookSlider.value = SacrificeTimer.RemainingTime(Runner) ?? 0;
+        if (IsHooked)
+        {
+            // Lấy thời gian còn lại
+            float timeLeft = SacrificeTimer.RemainingTime(Runner) ?? 0f;
+
+            // Chia cho sacrificeTime (90f) để ra tỷ lệ 0 -> 1
+            hookSlider.value = timeLeft / sacrificeTime;
+        }
     }
 
     private Vector3 CalculateDirection(Vector2 inputDir, Vector3 camFwd, Vector3 camRight)
@@ -620,6 +660,79 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
 
             reviveSlider.value = Mathf.Clamp01(progress);
         }
+    }
+
+    // Lấy âm lượng VFX từ Setting
+    private float GetVFXVolume()
+    {
+        return (AudioManager.Instance != null) ? AudioManager.Instance.vfxVolume : 1f;
+    }
+
+    // Hàm gọi từ Animation Event để phát tiếng bước chân
+    public void PlayFootstepSound()
+    {
+        if (footstepSounds.Length == 0 || playerAudioSource == null) return;
+
+        // Tránh lỗi đứng im nhưng animation vẫn lướt tạo ra tiếng
+        if (_characterController.velocity.magnitude > 0.1f)
+        {
+            AudioClip clip = footstepSounds[UnityEngine.Random.Range(0, footstepSounds.Length)];
+            // Phát âm thanh ngẫu nhiên với âm lượng VFX
+            playerAudioSource.PlayOneShot(clip, 0.6f * GetVFXVolume());
+        }
+    }
+
+    // Hệ thống nhịp tim đập nhanh dần
+    private void UpdateHeartbeat()
+    {
+        // Chỉ người chơi điều khiển nhân vật này mới nghe tiếng tim đập của chính họ
+        if (!Object.HasInputAuthority || heartbeatSource == null) return;
+
+        GameObject[] hunters = GameObject.FindGameObjectsWithTag("Hunter");
+        float minDistance = float.MaxValue;
+
+        // Tìm quái gần nhất
+        foreach (var h in hunters)
+        {
+            float dist = Vector3.Distance(transform.position, h.transform.position);
+            if (dist < minDistance) minDistance = dist;
+        }
+
+        if (minDistance <= terrorRadius)
+        {
+            // Tính toán cường độ: 0 (ở rìa 30m) -> 1 (ở sát bên 0m)
+            float intensity = 1f - (minDistance / terrorRadius);
+
+            // Càng gần âm lượng càng to, nhịp (pitch) đập càng nhanh
+            heartbeatSource.volume = intensity * GetVFXVolume();
+            heartbeatSource.pitch = Mathf.Lerp(1f, maxHeartbeatPitch, intensity);
+
+            if (!heartbeatSource.isPlaying) heartbeatSource.Play();
+        }
+        else
+        {
+            // Quái ở xa -> Tắt tiếng tim
+            heartbeatSource.volume = 0f;
+        }
+    }
+
+    // Hàm phát âm thanh tách rời (Dùng cho tiếng hét chết)
+    // Vì khi chết Object bị Despawn xóa ngay lập tức, nếu phát trên Object sẽ bị tắt ngang
+    private void PlayDetachedSound(AudioClip clip, Vector3 pos)
+    {
+        GameObject audioObj = new GameObject("DeathScreamAudio");
+        audioObj.transform.position = pos;
+        AudioSource aSource = audioObj.AddComponent<AudioSource>();
+
+        aSource.spatialBlend = 1f; // 3D
+        aSource.minDistance = 2f;
+        aSource.maxDistance = 25f;
+        aSource.rolloffMode = AudioRolloffMode.Linear;
+        aSource.clip = clip;
+        aSource.volume = 1f * GetVFXVolume();
+
+        aSource.Play();
+        Destroy(audioObj, clip.length + 0.1f); // Tự hủy rác sau khi hét xong
     }
 
     // --- INetworkRunnerCallbacks ---
