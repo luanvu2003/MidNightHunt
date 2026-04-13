@@ -103,7 +103,15 @@ public class CrowAI : NetworkBehaviour
             if (anim != null) { anim.Play("CrowFly", 0, 0f); anim.speed = 1.5f; }
         }
 
-        if (cawSound != null) cawSound.Play();
+        if (cawSound != null) 
+        {
+            // 🚨 ĐỒNG BỘ VOLUME VFX TỪ AUDIO MANAGER
+            if (AudioManager.Instance != null) 
+            {
+                cawSound.volume = AudioManager.Instance.vfxVolume;
+            }
+            cawSound.Play();
+        }
 
         // 🚨 GỌI HÀM SINH RA BÓNG ĐỎ
         SpawnRedSilhouetteLocal();
