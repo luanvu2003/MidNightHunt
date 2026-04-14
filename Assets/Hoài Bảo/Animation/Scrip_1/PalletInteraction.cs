@@ -238,75 +238,68 @@ public class PalletInteraction : NetworkBehaviour
         }
     }
 
-    // 🚨 HÀM TÍNH TOÁN VÀ ĐẨY NHÂN VẬT ĐÃ ĐƯỢC NÂNG CẤP 🚨
+    // 🚨 HÀM TÍNH TOÁN VÀ ĐẨY NHÂN VẬT ÉP CHUẨN THEO TRỤC Z (TIẾN/LÙI) 🚨
     private void PushCharacterOut(Transform charTransform)
     {
         CharacterController cc = charTransform.GetComponent<CharacterController>();
 
-        // Quy đổi tọa độ để biết nhân vật đứng trước hay sau ván
-        Vector3 localPos = stunZone.transform.InverseTransformPoint(charTransform.position);
+        // Dùng transform GỐC của Ván (cái khung cố định, không bao giờ bị xoay khi ván ngã)
+        Transform baseTransform = this.transform;
+
+        // Quy đổi tọa độ để biết nhân vật đứng trước hay sau cái khung ván
+        Vector3 localPos = baseTransform.InverseTransformPoint(charTransform.position);
         Vector3 pushDirection = Vector3.zero;
 
+        // ÉP BUỘC CHỈ ĐẨY DỌC THEO TRỤC Z (Forward/Backward) CỦA KHUNG VÁN
         if (localPos.z <= 0)
         {
-            pushDirection = -stunZone.transform.forward; // Đẩy lùi
+            pushDirection = -baseTransform.forward; // Đứng nửa sau -> Đẩy thẳng lùi về sau
         }
         else
         {
-            pushDirection = stunZone.transform.forward;  // Đẩy tới
+            pushDirection = baseTransform.forward;  // Đứng nửa trước -> Đẩy thẳng lên trước
+        }
+
+        // Triệt tiêu trục Y để đẩy song song mặt đất hoàn toàn
+        pushDirection.y = 0;
+        if (pushDirection != Vector3.zero)
+        {
+            pushDirection.Normalize();
         }
 
         // ==================================================
-        // 🚨 SỬA LỖI 1: KHÔNG BAY LÊN TRỜI HOẶC CHUI XUỐNG ĐẤT
-        // ==================================================
-        // Triệt tiêu hoàn toàn độ nghiêng trục Y của ván, ép đẩy theo chiều ngang song song mặt đất
-        pushDirection.y = 0;
-        pushDirection.Normalize();
-
-        // ==================================================
-        // 🚨 SỬA LỖI 2: KHÔNG BỊ XUYÊN TƯỜNG (RAYCAST CHECK)
+        // 🚨 HỆ THỐNG RAYCAST CHỐNG XUYÊN TƯỜNG
         // ==================================================
         float safePushDistance = pushOutDistance;
 
-        // Bắn một khối cầu ảo (SphereCast) từ ngang ngực nhân vật (cao 1m) về hướng bị đẩy
         Vector3 castOrigin = charTransform.position + Vector3.up * 1.0f;
-        float characterRadius = 0.3f; // Bán kính giả định của cơ thể nhân vật
+        float characterRadius = 0.3f;
 
-        // Nếu khối cầu đụng trúng cái gì đó trong phạm vi đẩy...
         if (Physics.SphereCast(castOrigin, characterRadius, pushDirection, out RaycastHit hit, pushOutDistance))
         {
-            // Bỏ qua nếu cái đụng trúng chỉ là vùng Trigger, hoặc là người chơi khác
             if (!hit.collider.isTrigger &&
                 !hit.collider.CompareTag("Player") &&
                 !hit.collider.CompareTag("Hunter") &&
                 !hit.collider.CompareTag("Playerchet"))
             {
-                // Ngay lập tức cắt ngắn khoảng cách đẩy lại để không chui vào tường
-                // Trừ đi 0.1f để nhân vật đứng cách vách tường một khoảng mỏng, không bị kẹt
                 safePushDistance = Mathf.Max(0f, hit.distance - 0.1f);
             }
         }
 
-        // Tính điểm đến an toàn
         Vector3 targetPosition = charTransform.position + (pushDirection * safePushDistance);
-
-        // Ép cứng độ cao Y của điểm đến bằng đúng độ cao Y ban đầu của nhân vật
-        targetPosition.y = charTransform.position.y;
+        targetPosition.y = charTransform.position.y; // Khóa chặt độ cao
 
         // --- BẮT ĐẦU DỊCH CHUYỂN ---
-        // Tắt CC để không bị giật vật lý
         if (cc != null) cc.enabled = false;
 
         charTransform.position = targetPosition;
 
-        // Đồng bộ mạng
         NetworkTransform netTransform = charTransform.GetComponent<NetworkTransform>();
         if (netTransform != null)
         {
             netTransform.Teleport(targetPosition, charTransform.rotation);
         }
 
-        // Bật lại CC
         if (cc != null) cc.enabled = true;
     }
 
