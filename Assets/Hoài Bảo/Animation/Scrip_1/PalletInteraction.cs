@@ -1,6 +1,7 @@
 using UnityEngine;
 using Fusion;
 using UnityEngine.InputSystem;
+using System.Collections.Generic; // Thêm thư viện này để dùng HashSet
 
 public class PalletInteraction : NetworkBehaviour
 {
@@ -20,6 +21,10 @@ public class PalletInteraction : NetworkBehaviour
     public float fallTime = 0.25f;
     [Tooltip("Góc gập xuống khi ngã. (Thử X=90 hoặc X=-90)")]
     public Vector3 dropRotationOffset = new Vector3(90, 0, 0); 
+
+    [Header("Hệ Thống Đẩy Tránh Kẹt (Push Out)")]
+    [Tooltip("Khoảng cách đẩy nhân vật văng ra khỏi ván (đơn vị: mét)")]
+    public float pushOutDistance = 1.8f; 
     
     // Lưu trữ góc tự động tính toán
     private Quaternion _startRotation;
@@ -88,9 +93,6 @@ public class PalletInteraction : NetworkBehaviour
 
     private void UpdateVisuals()
     {
-        // 🚨 FIX ĐỒNG BỘ UI HOÀN HẢO: 
-        // Chỉ tắt UI nếu ván này thay đổi trạng thái VÀ Player đang đứng ở ngay ván này.
-        // Tránh tình trạng ván ở đầu map ngã làm tắt UI của ván cuối map!
         if (State != PalletState.Up)
         {
             if (spaceUI != null && _isLocalPlayerInZone) 
@@ -153,6 +155,8 @@ public class PalletInteraction : NetworkBehaviour
     {
         if (!_isSpawned) return;
         CheckLocalPlayerTrigger(other, true);
+        
+        // Stun Hunter nếu đi vào vùng ván đang rơi
         if (State == PalletState.Falling && other.CompareTag("Hunter"))
         {
             var hunter = other.GetComponentInParent<HunterInteraction>();
@@ -174,11 +178,9 @@ public class PalletInteraction : NetworkBehaviour
 
     private void CheckLocalPlayerTrigger(Collider other, bool isInside)
     {
-        // 🚨 ĐÃ SỬA LẠI: Nếu ván đã ngã thì KHÔNG ĐƯỢC CHẠM VÀO UI NỮA.
-        // Cứ kệ nó để cho ván khác làm việc. Tránh xung đột UI!
         if (State != PalletState.Up) return;
 
-        if (other.CompareTag("Player"))
+        if (other.CompareTag("Player") || other.CompareTag("Playerchet"))
         {
             var netObj = other.GetComponentInParent<NetworkObject>();
             if (netObj != null && netObj.HasInputAuthority)
@@ -202,9 +204,13 @@ public class PalletInteraction : NetworkBehaviour
                 Collider stunCol = stunZone.GetComponent<Collider>();
                 if (stunCol != null)
                 {
+                    // Dùng HashSet để đảm bảo 1 nhân vật có nhiều collider cũng chỉ bị đẩy 1 lần
+                    HashSet<Transform> processedCharacters = new HashSet<Transform>();
+
                     Collider[] hits = Physics.OverlapBox(stunCol.bounds.center, stunCol.bounds.extents, stunZone.transform.rotation);
                     foreach (Collider hit in hits)
                     {
+                        // 1. STUN HUNTER (Như cũ)
                         if (hit.CompareTag("Hunter"))
                         {
                             var hunter = hit.GetComponentInParent<HunterInteraction>();
@@ -213,10 +219,63 @@ public class PalletInteraction : NetworkBehaviour
                                 hunter.ApplyStun(3.0f);
                             }
                         }
+
+                        // 2. ĐẨY HUNTER & SURVIVOR RA KHỎI VÁN KHI VÁN NGÃ
+                        if (hit.CompareTag("Hunter") || hit.CompareTag("Player") || hit.CompareTag("Playerchet"))
+                        {
+                            Transform rootTransform = hit.transform.root; // Lấy object gốc của nhân vật
+                            
+                            // Nếu nhân vật này chưa bị đẩy
+                            if (!processedCharacters.Contains(rootTransform))
+                            {
+                                processedCharacters.Add(rootTransform);
+                                PushCharacterOut(rootTransform);
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+
+    // 🚨 HÀM TÍNH TOÁN VÀ ĐẨY NHÂN VẬT 🚨
+    private void PushCharacterOut(Transform charTransform)
+    {
+        CharacterController cc = charTransform.GetComponent<CharacterController>();
+        
+        // Quy đổi tọa độ của nhân vật về không gian cục bộ (Local Space) của vùng StunZone
+        // Nếu điểm z trả về < 0 tức là đang đứng ở nửa sau. Nếu z > 0 là đang đứng nửa trước.
+        Vector3 localPos = stunZone.transform.InverseTransformPoint(charTransform.position);
+
+        Vector3 pushDirection = Vector3.zero;
+
+        // Nếu nhân vật ở nửa sau của ván -> Đẩy lùi về sau (âm Z của ván)
+        if (localPos.z <= 0)
+        {
+            pushDirection = -stunZone.transform.forward;
+        }
+        // Nếu nhân vật ở nửa trước của ván -> Đẩy lên trước (dương Z của ván)
+        else
+        {
+            pushDirection = stunZone.transform.forward;
+        }
+
+        // Điểm cần đẩy tới
+        Vector3 targetPosition = charTransform.position + (pushDirection * pushOutDistance);
+
+        // BẮT BUỘC tắt CharacterController trước khi dịch chuyển để tránh kẹt vật lý
+        if (cc != null) cc.enabled = false;
+        
+        charTransform.position = targetPosition;
+
+        // Ép NetworkTransform cập nhật ngay lập tức cho các máy khác
+        NetworkTransform netTransform = charTransform.GetComponent<NetworkTransform>();
+        if (netTransform != null)
+        {
+            netTransform.Teleport(targetPosition, charTransform.rotation);
+        }
+
+        if (cc != null) cc.enabled = true;
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
