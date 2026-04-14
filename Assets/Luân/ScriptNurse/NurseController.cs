@@ -790,14 +790,27 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     private void RPC_SetReviveState(NetworkBool start, NetworkId targetId, NetworkBool isUnhookingAction)
     {
-        if (isUnhookingAction) { IsUnhooking = start; IsReviving = false; }
-        else { IsReviving = start; IsUnhooking = false; }
+        // 1. Cập nhật cờ trạng thái ngay lập tức
+        if (isUnhookingAction)
+        {
+            IsUnhooking = start;
+            IsReviving = false;
+        }
+        else
+        {
+            IsReviving = start;
+            IsUnhooking = false;
+        }
 
+        // 2. Xử lý ID nạn nhân
         TargetReviveId = start ? targetId : default;
 
+        // 3. Xử lý tốc độ cứu và truyền cho nạn nhân
         if (targetId.IsValid)
         {
-            float speed = IsSkillActive ? skillSpeedBonus : 1f; // Dùng tốc độ của Nurse
+            // 🚨 FIX: Khi hủy cứu (start = false), ta vẫn dùng tốc độ hiện tại của Nurse để trừ hao cho chuẩn
+            float speed = IsSkillActive ? skillSpeedBonus : 1f;
+
             var targetObj = Runner.FindObject(targetId);
             if (targetObj != null && targetObj.TryGetComponent(out ISurvivor targetSurvivor))
             {
@@ -842,7 +855,6 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
         return 0f;
     }
 
-    // 🚨 HÀM ĐÃ ĐƯỢC CHỈNH SỬA: Giữ nguyên kỹ năng Nurse + Fix lỗi kẹt phím E
     private void HandleReviveLogic(NurseGameplayInput input)
     {
         // ==========================================
@@ -850,7 +862,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
         // ==========================================
         if (Object.HasStateAuthority)
         {
-            // A. Tự động ngắt nếu nạn nhân đứng dậy (Tránh kẹt người số 2)
+            // A. Tự động ngắt nếu nạn nhân đứng dậy hoặc mất kết nối
             if ((IsReviving || IsUnhooking) && TargetReviveId.IsValid)
             {
                 var targetObj = Runner.FindObject(TargetReviveId);
@@ -860,20 +872,19 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
                 }
             }
 
-            // B. Kích hoạt kỹ năng (Từ Gài -> Active)
-            if (IsSkillArmed && (IsReviving || IsUnhooking))
+            // 🚨 FIX: B. Kích hoạt kỹ năng (Từ Gài -> Active) - Chỉ kích hoạt nếu vẫn đang chủ động giữ Target
+            if (IsSkillArmed && (IsReviving || IsUnhooking) && TargetReviveId.IsValid)
             {
-                IsSkillArmed = false; IsSkillActive = true;
+                IsSkillArmed = false;
+                IsSkillActive = true;
                 SkillDurationTimer = TickTimer.CreateFromSeconds(Runner, skillDuration);
 
-                if (TargetReviveId.IsValid)
+                var targetObj = Runner.FindObject(TargetReviveId);
+                if (targetObj != null && targetObj.TryGetComponent(out ISurvivor targetSurvivor))
                 {
-                    var targetObj = Runner.FindObject(TargetReviveId);
-                    if (targetObj != null && targetObj.TryGetComponent(out ISurvivor targetSurvivor))
-                    {
-                        targetSurvivor.SetBeingRescued(false, IsUnhooking, 1f);
-                        targetSurvivor.SetBeingRescued(true, IsUnhooking, skillSpeedBonus);
-                    }
+                    // Thay thế tốc độ thường bằng tốc độ Skill
+                    targetSurvivor.SetBeingRescued(false, IsUnhooking, 1f);
+                    targetSurvivor.SetBeingRescued(true, IsUnhooking, skillSpeedBonus);
                 }
             }
 
@@ -888,6 +899,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
                     var targetObj = Runner.FindObject(TargetReviveId);
                     if (targetObj != null && targetObj.TryGetComponent(out ISurvivor targetSurvivor))
                     {
+                        // Trừ đi tốc độ Skill, trả về 1x
                         targetSurvivor.SetBeingRescued(false, IsUnhooking, skillSpeedBonus);
                         targetSurvivor.SetBeingRescued(true, IsUnhooking, 1f);
                     }
@@ -914,7 +926,6 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
         // ==========================================
         if (Object.HasStateAuthority || Object.HasInputAuthority)
         {
-            // 🚨 Đọc thẳng biến isInteract từ Input gửi lên
             bool isPressingE = input.isInteract;
 
             // NẾU ĐANG CỨU: Kiểm tra xem có nhả phím E ra không
@@ -922,10 +933,11 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
             {
                 _isStartRpcSent = false;
 
+                // 🚨 FIX: Ưu tiên bắt lệnh nhả phím tuyệt đối
                 if (!isPressingE && !_isCancelRpcSent)
                 {
                     NetworkId targetId = _targetToRevive != null && _targetToRevive.Object != null ? _targetToRevive.Object.Id : TargetReviveId;
-                    RPC_SetReviveState(false, targetId, IsUnhooking);
+                    RPC_SetReviveState(false, targetId, IsUnhooking); // Gửi lệnh hủy cứu
                     _targetToRevive = null;
                     _isCancelRpcSent = true;
                 }
@@ -937,7 +949,6 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
 
                 if (isPressingE && !_isStartRpcSent && !IsDowned && !IsHooked)
                 {
-                    // Tự động quét tìm nạn nhân gần nhất (Thay thế cho OnTriggerStay cũ)
                     Collider[] hits = Physics.OverlapSphere(transform.position, 2f);
                     foreach (var hit in hits)
                     {
@@ -952,7 +963,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
                                 _targetToRevive = target;
                                 RPC_SetReviveState(true, target.Object.Id, isTargetHooked);
                                 _isStartRpcSent = true;
-                                break; // Tìm thấy 1 người là cứu luôn, không quét tiếp
+                                break;
                             }
                         }
                     }
@@ -1016,27 +1027,62 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
     }
 
     // =========================================================
-    // HÀM 2: VÙNG VẪY / ĐỒNG ĐỘI ĐẬP VÁN (Thành Revive + 2 Hit)
+    // HÀM ĐÃ ĐƯỢC SỬA: VÙNG VẪY / ĐỒNG ĐỘI ĐẬP VÁN (Thành Revive + 2 Hit)
     // =========================================================
     public void EscapeFromHunter()
     {
         // 🚨 CHỈ SERVER MỚI ĐƯỢC XỬ LÝ
         if (!Object.HasStateAuthority) return;
 
-        // Dịch chuyển nhẹ ra trước trên Server
+        // 1. BẮT BUỘC TẮT CharacterController TRƯỚC KHI TELEPORT để tránh kẹt Physics
+        if (_characterController != null) _characterController.enabled = false;
+
+        // 2. Dịch chuyển nhẹ ra trước trên Server
         Vector3 dropPos = transform.position + transform.forward * 1.5f;
         var netTransform = GetComponent<NetworkTransform>();
         if (netTransform != null) netTransform.Teleport(dropPos, transform.rotation);
 
-        // 🚨 PHÉP MÀU NẰM Ở ĐÂY: Biến thành Revive (Tắt Gục)
+        // 3. Phép màu nằm ở đây: Biến thành Revive (Tắt Gục)
         IsDowned = false;
         IsHooked = false;
         IsBeingRevived = false;
 
-        // ... Nhận 2 hit thương nặng
+        // Nhận 2 hit thương nặng
         CurrentHits = 2;
         HitDecayTimer = TickTimer.CreateFromSeconds(Runner, 20f);
         InvincibilityTimer = TickTimer.CreateFromSeconds(Runner, 3f);
+
+        // 4. Bật lại CharacterController trên Server
+        if (_characterController != null) _characterController.enabled = true;
+
+        // 5. GỌI RPC ÉP ĐỒNG BỘ LẠI VỊ TRÍ TRÊN TẤT CẢ CLIENT (Tránh lỗi bóng ma đứng yên)
+        RPC_ForceEscapeSync(dropPos);
+    }
+
+    // 🚨 THÊM ĐOẠN RPC NÀY NGAY BÊN DƯỚI HÀM EscapeFromHunter()
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ForceEscapeSync(Vector3 targetPos)
+    {
+        // Ép văng khỏi Hunter (Unparent) trên TẤT CẢ màn hình
+        transform.SetParent(null);
+
+        if (_characterController != null)
+        {
+            // Reset Cache mạng để nhận vị trí mới chính xác 100%
+            _characterController.enabled = false;
+            transform.position = targetPos;
+
+            // 🚨 RẤT QUAN TRỌNG: Chỉ bật lại CC nếu là Server hoặc Chủ nhân của nhân vật đó.
+            // Các người chơi khác (Proxy) PHẢI LUÔN TẮT CharacterController để không bị giật lag
+            if (Object.HasStateAuthority || Object.HasInputAuthority)
+            {
+                _characterController.enabled = true;
+            }
+        }
+        else
+        {
+            transform.position = targetPos;
+        }
     }
     public float GetSacrificeTimer() => SacrificeTimer.RemainingTime(Runner) ?? 0f;
 

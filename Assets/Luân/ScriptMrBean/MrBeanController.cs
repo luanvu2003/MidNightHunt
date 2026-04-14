@@ -1009,27 +1009,64 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         SacrificeTimer = TickTimer.None;
         InvincibilityTimer = TickTimer.CreateFromSeconds(Runner, 3f);
     }
+    // =========================================================
+    // HÀM ĐÃ ĐƯỢC SỬA: VÙNG VẪY / ĐỒNG ĐỘI ĐẬP VÁN (Thành Revive + 2 Hit)
+    // =========================================================
     public void EscapeFromHunter()
     {
         // 🚨 CHỈ SERVER MỚI ĐƯỢC XỬ LÝ
         if (!Object.HasStateAuthority) return;
 
-        // Dịch chuyển nhẹ ra trước trên Server
+        // 1. BẮT BUỘC TẮT CharacterController TRƯỚC KHI TELEPORT để tránh kẹt Physics
+        if (_characterController != null) _characterController.enabled = false;
+
+        // 2. Dịch chuyển nhẹ ra trước trên Server
         Vector3 dropPos = transform.position + transform.forward * 1.5f;
         var netTransform = GetComponent<NetworkTransform>();
         if (netTransform != null) netTransform.Teleport(dropPos, transform.rotation);
 
-        // 🚨 PHÉP MÀU NẰM Ở ĐÂY: Biến thành Revive (Tắt Gục)
+        // 3. Phép màu nằm ở đây: Biến thành Revive (Tắt Gục)
         IsDowned = false;
         IsHooked = false;
         IsBeingRevived = false;
 
-        // ... Nhận 2 hit thương nặng
+        // Nhận 2 hit thương nặng
         CurrentHits = 2;
         HitDecayTimer = TickTimer.CreateFromSeconds(Runner, 20f);
         InvincibilityTimer = TickTimer.CreateFromSeconds(Runner, 3f);
+
+        // 4. Bật lại CharacterController trên Server
+        if (_characterController != null) _characterController.enabled = true;
+
+        // 5. GỌI RPC ÉP ĐỒNG BỘ LẠI VỊ TRÍ TRÊN TẤT CẢ CLIENT (Tránh lỗi bóng ma đứng yên)
+        RPC_ForceEscapeSync(dropPos);
     }
 
+    // 🚨 THÊM ĐOẠN RPC NÀY NGAY BÊN DƯỚI HÀM EscapeFromHunter()
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ForceEscapeSync(Vector3 targetPos)
+    {
+        // Ép văng khỏi Hunter (Unparent) trên TẤT CẢ màn hình
+        transform.SetParent(null);
+
+        if (_characterController != null)
+        {
+            // Reset Cache mạng để nhận vị trí mới chính xác 100%
+            _characterController.enabled = false;
+            transform.position = targetPos;
+
+            // 🚨 RẤT QUAN TRỌNG: Chỉ bật lại CC nếu là Server hoặc Chủ nhân của nhân vật đó.
+            // Các người chơi khác (Proxy) PHẢI LUÔN TẮT CharacterController để không bị giật lag
+            if (Object.HasStateAuthority || Object.HasInputAuthority)
+            {
+                _characterController.enabled = true;
+            }
+        }
+        else
+        {
+            transform.position = targetPos;
+        }
+    }
     public float GetSacrificeTimer() => SacrificeTimer.RemainingTime(Runner) ?? 0f;
 }
 
