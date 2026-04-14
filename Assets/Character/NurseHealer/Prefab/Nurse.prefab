@@ -2707,7 +2707,7 @@ MonoBehaviour:
   _isBeingCarried:
     _value: 0
   targetFollow: {fileID: 0}
-  followSpeed: 8
+  followSpeed: 10
 --- !u!114 &1611476380028976888
 MonoBehaviour:
   m_ObjectHideFlags: 0
