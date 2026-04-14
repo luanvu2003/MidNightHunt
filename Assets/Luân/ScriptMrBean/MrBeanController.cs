@@ -199,6 +199,15 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
     {
         if (!IsGameStarted) return;
 
+        if (Object.HasStateAuthority)
+        {
+            if (IsSkillActive && SkillDurationTimer.Expired(Runner))
+            {
+                IsSkillActive = false;
+                SkillCooldownTimer = TickTimer.CreateFromSeconds(Runner, skillCooldown);
+            }
+        }
+
         // 🚨 1. LẤY INPUT NGAY TỪ ĐẦU
         if (GetInput(out MrBeanGameplayInput input))
         {
@@ -485,21 +494,25 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         durationSlider.gameObject.SetActive(isArmed || isActive);
         if (isArmed)
         {
-            durationSlider.value = skillDuration; // Đầy thanh, chờ chạy
+            // Sửa lỗi 1: Đưa slider về đầy thanh (1.0f) thay vì nhét cả 10f vào
+            durationSlider.value = 1f;
         }
         else if (isActive)
         {
-            durationSlider.value = SkillDurationTimer.RemainingTime(Runner).Value / skillDuration; // Đang tụt dần
+            // Lấy thời gian còn lại, nếu bị null thì mặc định là 0
+            float timeLeft = SkillDurationTimer.RemainingTime(Runner) ?? 0f;
+            durationSlider.value = timeLeft / skillDuration;
         }
 
-        float? cdLeft = SkillCooldownTimer.RemainingTime(Runner);
-        bool onCooldown = cdLeft > 0 && !isArmed && !isActive;
+        // Sửa lỗi 2: Ép kiểu an toàn cho biến float? của Fusion
+        float cdLeft = SkillCooldownTimer.RemainingTime(Runner) ?? 0f;
+        bool onCooldown = cdLeft > 0f && !isArmed && !isActive;
 
-        cooldownImage.gameObject.SetActive(cdLeft > 0 && !isActive && !isArmed);
-        if (cdLeft > 0) cooldownImage.fillAmount = cdLeft.Value / skillCooldown;
+        cooldownImage.gameObject.SetActive(onCooldown);
+        if (onCooldown) cooldownImage.fillAmount = cdLeft / skillCooldown;
 
         cooldownText.gameObject.SetActive(onCooldown);
-        if (onCooldown) cooldownText.text = Mathf.Ceil(cdLeft.Value).ToString();
+        if (onCooldown) cooldownText.text = Mathf.Ceil(cdLeft).ToString();
     }
 
     private void UpdateHookUI()
