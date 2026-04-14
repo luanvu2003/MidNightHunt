@@ -199,28 +199,34 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
     {
         if (!IsGameStarted) return;
 
-        // 🚨 CHUYỂN HÀM CHECK CỨU LÊN ĐÂY!
-        // Phải check cứu trước khi code bị ngắt bởi trạng thái gục/treo
-        HandleReviveLogic();
-
-        if (CurrentHits > 0 && HitDecayTimer.Expired(Runner)) CurrentHits = 0;
-        if (IsHooked && SacrificeTimer.Expired(Runner))
+        // 🚨 1. LẤY INPUT NGAY TỪ ĐẦU
+        if (GetInput(out MrBeanGameplayInput input))
         {
-            if (deathSound != null) PlayDetachedSound(deathSound, transform.position);
-            Runner.Despawn(Object);
-            return;
-        }
+            // 🚨 2. TRUYỀN INPUT VÀO HÀM CỨU ĐỂ KIỂM TRA PHÍM "E"
+            HandleReviveLogic(input);
 
-        // Code cũ của bạn sẽ ngắt ở đây nếu đang nằm gục
-        if (IsDowned || IsHooked) return;
+            if (CurrentHits > 0 && HitDecayTimer.Expired(Runner)) CurrentHits = 0;
+            if (IsHooked && SacrificeTimer.Expired(Runner))
+            {
+                if (deathSound != null) PlayDetachedSound(deathSound, transform.position);
+                Runner.Despawn(Object);
+                return;
+            }
 
-        if (IsVaulting) { HandleVaultingMovement(); return; }
+            // 🚨 3. NẾU ĐANG GỤC HOẶC TREO: Dừng code ở đây (Cấm chạy bộ, trèo cửa sổ)
+            if (IsDowned || IsHooked) return;
 
-        if (GetInput(out MrBeanGameplayInput input)) // (Đổi tên input tùy nhân vật)
-        {
+            // 🚨 4. CÁC HÀNH ĐỘNG BÌNH THƯỜNG
+            if (IsVaulting) { HandleVaultingMovement(); return; }
+
             HandleSkillInput(input);
             HandleMovement(input);
             HandleWindowInput(input);
+        }
+        else
+        {
+            // 🚨 BẢO VỆ MẠNG: Nếu mất kết nối/đứt packet, truyền default (nhả phím E)
+            HandleReviveLogic(default);
         }
     }
 
@@ -692,6 +698,7 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
 
         myInput.isVaulting = _vaultPressed;
         myInput.isSkill = _skillPressed;
+        myInput.isInteract = interactInput.action.IsPressed();
         _vaultPressed = false;
         _skillPressed = false;
 
@@ -870,8 +877,12 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         return 0f;
     }
 
-    private void HandleReviveLogic()
+    // 🚨 HÀM MỚI ĐÃ NHẬN INPUT
+    private void HandleReviveLogic(MrBeanGameplayInput input)
     {
+        // ==========================================
+        // 1. DÀNH CHO SERVER: Xử lý tiến trình và ngắt tự động
+        // ==========================================
         if (Object.HasStateAuthority)
         {
             if ((IsReviving || IsUnhooking) && TargetReviveId.IsValid)
@@ -897,28 +908,56 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
             else { UnhookProgress = 0f; }
         }
 
-        if (Object.HasInputAuthority)
+        // ==========================================
+        // 2. DÀNH CHO CLIENT & HOST: Xử lý Bấm/Nhả phím E bằng OverlapSphere
+        // ==========================================
+        if (Object.HasStateAuthority || Object.HasInputAuthority)
         {
+            bool isPressingE = input.isInteract;
+
+            // NẾU ĐANG CỨU: Kiểm tra xem có nhả phím E ra không
             if (IsReviving || IsUnhooking)
             {
                 _isStartRpcSent = false;
 
-                // 🚨 SỬ DỤNG BIẾN _isInteractHolding THAY VÌ LẤY TRỰC TIẾP
-                bool shouldCancel = !_isInteractHolding;
-
-                if (shouldCancel && !_isCancelRpcSent)
+                if (!isPressingE && !_isCancelRpcSent)
                 {
-                    // Lấy Target ID (ưu tiên ID của mục tiêu lưu sẵn để Server luôn biết phải hủy ai)
                     NetworkId targetId = _targetToRevive != null && _targetToRevive.Object != null ? _targetToRevive.Object.Id : TargetReviveId;
-
                     RPC_SetReviveState(false, targetId, IsUnhooking);
                     _targetToRevive = null;
                     _isCancelRpcSent = true;
                 }
             }
-            else { _isCancelRpcSent = false; }
+            // NẾU CHƯA CỨU: Quét vùng xung quanh xem có ai để cứu không khi giữ E
+            else
+            {
+                _isCancelRpcSent = false;
 
-            if (!_isInteractHolding) _isStartRpcSent = false;
+                if (isPressingE && !_isStartRpcSent && !IsDowned && !IsHooked)
+                {
+                    // Tự động quét tìm nạn nhân gần nhất thay vì chờ OnTriggerStay
+                    Collider[] hits = Physics.OverlapSphere(transform.position, 2f);
+                    foreach (var hit in hits)
+                    {
+                        if (hit.CompareTag("Playerchet"))
+                        {
+                            var target = hit.GetComponentInParent<ISurvivor>();
+                            if (target != null && (target.GetIsDowned() || target.GetIsHooked()) && target.Object.Id != this.Object.Id)
+                            {
+                                bool isTargetHooked = target.GetIsHooked();
+                                if (isTargetHooked && target.GetIsBeingUnhooked()) continue; // Chặn người thứ 2
+
+                                _targetToRevive = target;
+                                RPC_SetReviveState(true, target.Object.Id, isTargetHooked);
+                                _isStartRpcSent = true;
+                                break; // Tìm thấy 1 người là cứu luôn, không quét tiếp
+                            }
+                        }
+                    }
+                }
+
+                if (!isPressingE) _isStartRpcSent = false;
+            }
         }
     }
 
@@ -981,25 +1020,42 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void Rpc_ForceDetachAndTeleport(Vector3 newPos, Quaternion newRot, NetworkBool shouldEnableCC)
     {
+        // 1. Tạm tắt Character Controller ĐẦU TIÊN để chống kẹt
+        if (_characterController != null) _characterController.enabled = false;
+
+        // 2. Gỡ liên kết 
         PlayerHookReceiver receiver = GetComponent<PlayerHookReceiver>();
         if (receiver != null) receiver.ReleaseFromHunter();
-        transform.SetParent(null); // Gỡ dứt điểm
+        transform.SetParent(null);
 
-        if (_characterController != null) _characterController.enabled = false;
+        // 🚨 3. ÉP UNITY CẬP NHẬT VẬT LÝ NGAY LẬP TỨC 
+        Physics.SyncTransforms();
+
+        // 4. Dời vị trí
         transform.position = newPos;
         transform.rotation = newRot;
 
-        // 🚨 CHỈ SERVER MỚI ĐƯỢC QUYỀN GỌI TELEPORT!
-        // Các Client khác (Proxy) sẽ tự động nội suy trượt mượt mà về vị trí mới.
+        // 5. Đồng bộ mạng (Chỉ Server gọi)
         if (Object.HasStateAuthority)
         {
             var netTransform = GetComponent<NetworkTransform>();
             if (netTransform != null) netTransform.Teleport(newPos, newRot);
         }
 
+        // 6. Bật lại CC an toàn cho đúng người
         if (shouldEnableCC && (Object.HasStateAuthority || Object.HasInputAuthority))
         {
-            if (_characterController != null) _characterController.enabled = true;
+            // Delay 1 frame nhỏ bằng Invoke để chắc chắn Transform đã được apply
+            Invoke(nameof(SafeEnableCC), 0.1f);
+        }
+    }
+
+    // Hàm phụ trợ bật lại Character Controller an toàn
+    private void SafeEnableCC()
+    {
+        if (_characterController != null && transform.parent == null)
+        {
+            _characterController.enabled = true;
         }
     }
 
@@ -1017,4 +1073,5 @@ public struct MrBeanGameplayInput : INetworkInput
     public NetworkBool isWalking;
     public NetworkBool isVaulting;
     public NetworkBool isSkill;
+    public NetworkBool isInteract;
 }
