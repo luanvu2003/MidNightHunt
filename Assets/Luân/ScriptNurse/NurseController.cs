@@ -240,6 +240,16 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
         float currentAnimSpeed = animator.GetFloat("Speed");
         animator.SetFloat("Speed", Mathf.Lerp(currentAnimSpeed, AnimSpeedValue, Time.deltaTime * 15f));
 
+        if (!Object.HasInputAuthority && !Object.HasStateAuthority)
+        {
+            if (_characterController != null && _characterController.enabled)
+            {
+                // Bắt buộc tắt Character Controller trên màn hình của người khác.
+                // Nếu không tắt, Physics của Unity sẽ chặn luồng dữ liệu mạng làm nhân vật đứng im.
+                _characterController.enabled = false;
+            }
+        }
+
         if (PlayerDeadthBox != null)
         {
             PlayerDeadthBox.SetActive(IsDowned || IsHooked);
@@ -1026,23 +1036,39 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
         InvincibilityTimer = TickTimer.CreateFromSeconds(Runner, 3f);
     }
 
-    // =========================================================
-    // HÀM ĐÃ ĐƯỢC SỬA: VÙNG VẪY / ĐỒNG ĐỘI ĐẬP VÁN (Thành Revive + 2 Hit)
-    // =========================================================
     public void EscapeFromHunter()
     {
         // 🚨 CHỈ SERVER MỚI ĐƯỢC XỬ LÝ
         if (!Object.HasStateAuthority) return;
 
-        // 1. BẮT BUỘC TẮT CharacterController TRƯỚC KHI TELEPORT để tránh kẹt Physics
+        // 1. TẮT CHARACTER CONTROLLER TRƯỚC ĐỂ KHÔNG BỊ KẸT
         if (_characterController != null) _characterController.enabled = false;
 
-        // 2. Dịch chuyển nhẹ ra trước trên Server
-        Vector3 dropPos = transform.position + transform.forward * 1.5f;
-        var netTransform = GetComponent<NetworkTransform>();
-        if (netTransform != null) netTransform.Teleport(dropPos, transform.rotation);
+        // 2. NGẮT KẾT NỐI VỚI HUNTER
+        transform.SetParent(null);
 
-        // 3. Phép màu nằm ở đây: Biến thành Revive (Tắt Gục)
+        // 3. TÍNH TOÁN VỊ TRÍ RỚT AN TOÀN
+        // Lấy vị trí của Hunter (root) đẩy ra phía trước mặt 1.5 mét
+        Vector3 dropPos = transform.position;
+        Transform rootT = transform.root;
+        if (rootT != null && rootT != transform)
+        {
+            dropPos = rootT.position + rootT.forward * 1.5f;
+        }
+        else
+        {
+            dropPos = transform.position + transform.forward * 1.5f;
+        }
+        dropPos.y += 0.5f; // Nâng lên nửa mét để chống rớt xuyên map
+
+        // 4. DÙNG LỆNH TELEPORT CHUẨN CỦA FUSION
+        var netTransform = GetComponent<NetworkTransform>();
+        if (netTransform != null)
+        {
+            netTransform.Teleport(dropPos, transform.rotation);
+        }
+
+        // 5. CẬP NHẬT TRẠNG THÁI
         IsDowned = false;
         IsHooked = false;
         IsBeingRevived = false;
@@ -1052,37 +1078,8 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
         HitDecayTimer = TickTimer.CreateFromSeconds(Runner, 20f);
         InvincibilityTimer = TickTimer.CreateFromSeconds(Runner, 3f);
 
-        // 4. Bật lại CharacterController trên Server
+        // 6. BẬT LẠI CC CHO SERVER VÀ NGƯỜI CHƠI ĐÓ
         if (_characterController != null) _characterController.enabled = true;
-
-        // 5. GỌI RPC ÉP ĐỒNG BỘ LẠI VỊ TRÍ TRÊN TẤT CẢ CLIENT (Tránh lỗi bóng ma đứng yên)
-        RPC_ForceEscapeSync(dropPos);
-    }
-
-    // 🚨 THÊM ĐOẠN RPC NÀY NGAY BÊN DƯỚI HÀM EscapeFromHunter()
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ForceEscapeSync(Vector3 targetPos)
-    {
-        // Ép văng khỏi Hunter (Unparent) trên TẤT CẢ màn hình
-        transform.SetParent(null);
-
-        if (_characterController != null)
-        {
-            // Reset Cache mạng để nhận vị trí mới chính xác 100%
-            _characterController.enabled = false;
-            transform.position = targetPos;
-
-            // 🚨 RẤT QUAN TRỌNG: Chỉ bật lại CC nếu là Server hoặc Chủ nhân của nhân vật đó.
-            // Các người chơi khác (Proxy) PHẢI LUÔN TẮT CharacterController để không bị giật lag
-            if (Object.HasStateAuthority || Object.HasInputAuthority)
-            {
-                _characterController.enabled = true;
-            }
-        }
-        else
-        {
-            transform.position = targetPos;
-        }
     }
     public float GetSacrificeTimer() => SacrificeTimer.RemainingTime(Runner) ?? 0f;
 
