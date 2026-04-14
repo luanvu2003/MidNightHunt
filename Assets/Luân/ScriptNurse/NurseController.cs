@@ -198,7 +198,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
         if (!IsGameStarted) return;
 
         // 🚨 1. LẤY INPUT NGAY TỪ ĐẦU
-        if (GetInput(out MrBeanGameplayInput input))
+        if (GetInput(out NurseGameplayInput input))
         {
             // 🚨 2. TRUYỀN INPUT VÀO HÀM CỨU ĐỂ KIỂM TRA PHÍM "E"
             HandleReviveLogic(input);

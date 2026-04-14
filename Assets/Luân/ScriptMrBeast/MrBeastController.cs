@@ -206,7 +206,7 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         if (!IsGameStarted) return;
 
         // 🚨 1. LẤY INPUT NGAY TỪ ĐẦU
-        if (GetInput(out MrBeanGameplayInput input))
+        if (GetInput(out MrBeastGameplayInput input))
         {
             // 🚨 2. TRUYỀN INPUT VÀO HÀM CỨU ĐỂ KIỂM TRA PHÍM "E"
             HandleReviveLogic(input);
