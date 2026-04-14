@@ -55,7 +55,7 @@ GameObject:
   - component: {fileID: 441912001392829226}
   - component: {fileID: 2311731886261963367}
   - component: {fileID: 7717931184776958738}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Hunter2
   m_TagString: Hunter
   m_Icon: {fileID: 0}
