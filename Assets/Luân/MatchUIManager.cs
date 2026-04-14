@@ -71,7 +71,7 @@ public class MatchUIManager : MonoBehaviour
         // Reset toàn bộ slots
         foreach (var slot in survivorSlots) 
         {
-            slot.rootObj.SetActive(false);
+            if (slot.rootObj != null) slot.rootObj.SetActive(false);
             slot.isAssigned = false;
             slot.lastAssignedPlayerID = -1;
             slot.linkedSurvivor = null;
@@ -85,16 +85,36 @@ public class MatchUIManager : MonoBehaviour
 
             if (slot != null)
             {
-                slot.rootObj.SetActive(true);
+                if (slot.rootObj != null)
+                {
+                    slot.rootObj.SetActive(true);
+                    // Quan trọng: Đẩy xuống cuối để Layout Group sắp xếp theo thứ tự khít nhau
+                    slot.rootObj.transform.SetAsLastSibling();
+                }
+                
                 slot.isAssigned = true;
                 slot.lastAssignedPlayerID = player.Object.InputAuthority.PlayerId;
                 
-                // Đảm bảo lấy được tên, nếu tên mạng chưa sync kịp thì để "Loading..."
-                string pName = player.PlayerName.ToString();
-                slot.nameText.text = string.IsNullOrEmpty(pName) ? "Player..." : pName;
+                // === THÊM CODE TÌM TEXT NẾU CHƯA GÁN ===
+                if (slot.nameText == null && slot.rootObj != null)
+                {
+                    // Tự động tìm component TextMeshProUGUI nằm trong rootObj (tìm cả các object đang bị tắt)
+                    slot.nameText = slot.rootObj.GetComponentInChildren<TextMeshProUGUI>(true);
+                }
 
-                // Quan trọng: Đẩy xuống cuối để Layout Group sắp xếp theo thứ tự
-                slot.rootObj.transform.SetAsLastSibling();
+                // Cập nhật Text
+                if (slot.nameText != null)
+                {
+                    string pName = player.PlayerName.ToString();
+                    slot.nameText.text = string.IsNullOrEmpty(pName) ? "Player..." : pName;
+                    
+                    // Bật object text lên để đảm bảo nó hiển thị
+                    slot.nameText.gameObject.SetActive(true); 
+                }
+                else
+                {
+                    Debug.LogError($"[CẢNH BÁO] Slot ID {slot.characterID} không tìm thấy TextMeshProUGUI! Hãy kiểm tra lại prefab của bạn.");
+                }
             }
         }
     }
