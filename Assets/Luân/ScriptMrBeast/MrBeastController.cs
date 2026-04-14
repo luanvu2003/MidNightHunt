@@ -273,7 +273,7 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
             if (revivePrompt) revivePrompt.SetActive(canShowE);
 
             UpdateReviveProgressUI();
-            HandleWallhackVisuals();
+            // HandleWallhackVisuals();
             UpdateHeartbeat();
         }
         if (!IsDowned && !IsHooked && transform.parent != null)
