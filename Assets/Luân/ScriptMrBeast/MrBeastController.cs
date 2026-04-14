@@ -293,83 +293,71 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
             return;
         }
 
-        // Danh sách các Hunter đang bị nhìn thấy trong Frame hiện tại
-        List<GameObject> currentlyVisibleHunters = new List<GameObject>();
+        // Quét quái trong bán kính
         Collider[] hits = Physics.OverlapSphere(transform.position, scanDistance);
+        List<GameObject> currentlyVisibleHunters = new List<GameObject>();
 
         foreach (var hit in hits)
         {
             if (hit.CompareTag("Hunter"))
             {
+                // Vẫn cần giữ toán học để tính góc nhìn (chỉ quét quái phía trước mặt, không quét sau lưng)
                 Vector3 directionToHunter = (hit.transform.position - transform.position).normalized;
                 directionToHunter.y = 0;
                 Vector3 forward = transform.forward;
                 forward.y = 0;
                 float angle = Vector3.Angle(forward, directionToHunter);
 
-                // 1. Kiểm tra góc nhìn
+                // 1. Kiểm tra xem Hunter có nằm trong góc quét (Scan Angle) không
                 if (angle <= scanAngle / 2f)
                 {
-                    float distanceToHunter = Vector3.Distance(transform.position, hit.transform.position);
+                    currentlyVisibleHunters.Add(hit.gameObject);
 
-                    // 2. Kiểm tra xem có bị tường che không
-                    Vector3 rayStart = transform.position + Vector3.up * 1.5f;
-                    Vector3 rayTarget = hit.transform.position + Vector3.up * 1.0f;
-                    Vector3 rayDir = rayTarget - rayStart;
-
-                    bool isHiddenBehindWall = Physics.Raycast(rayStart, rayDir, distanceToHunter);
-
-                    if (isHiddenBehindWall)
+                    // Nếu Hunter này CHƯA có trong danh sách quản lý bóng đỏ
+                    if (!_activeSilhouettes.ContainsKey(hit.gameObject))
                     {
-                        currentlyVisibleHunters.Add(hit.gameObject);
+                        // Tìm cái bóng đỏ "RedSilhouette" đã được gắn sẵn trong người con Hunter
+                        Transform silhouetteChild = hit.transform.Find("RedSilhouette");
 
-                        // Nếu Hunter này CHƯA có bóng đỏ -> Sinh ra Prefab bóng đỏ và gắn vào nó
-                        if (!_activeSilhouettes.ContainsKey(hit.gameObject))
+                        if (silhouetteChild != null)
                         {
-                            if (redSilhouettePrefab != null)
-                            {
-                                // Instantiate làm con (child) của Hunter để nó tự động di chuyển theo
-                                GameObject silhouette = Instantiate(redSilhouettePrefab, hit.transform.position, hit.transform.rotation, hit.transform);
-                                _activeSilhouettes.Add(hit.gameObject, silhouette);
-                            }
+                            _activeSilhouettes.Add(hit.gameObject, silhouetteChild.gameObject);
                         }
+                    }
+
+                    // 2. BẬT BÓNG ĐỎ LÊN! 
+                    // Phần "bị tường che" thì Shader AuraXRay sẽ tự động lo nhờ ZTest Greater
+                    if (_activeSilhouettes.ContainsKey(hit.gameObject) && _activeSilhouettes[hit.gameObject] != null)
+                    {
+                        _activeSilhouettes[hit.gameObject].SetActive(true);
                     }
                 }
             }
         }
 
-        // 3. XÓA PREFAB THEO DANH SÁCH: Lọc những Hunter đã ra khỏi tầm hoặc không bị tường che nữa
-        List<GameObject> huntersToRemove = new List<GameObject>();
+        // 3. TẮT bóng đỏ đối với những Hunter đã chạy ra khỏi tầm nhìn hoặc góc quét
         foreach (var hunter in _activeSilhouettes.Keys)
         {
-            // Nếu Hunter bị Null (đã disconnect/destroy) hoặc không còn nằm trong tầm nhìn
-            if (hunter == null || !currentlyVisibleHunters.Contains(hunter))
+            if (hunter != null && !currentlyVisibleHunters.Contains(hunter))
             {
                 if (_activeSilhouettes[hunter] != null)
                 {
-                    Destroy(_activeSilhouettes[hunter]); // Hủy Prefab bóng đỏ
+                    _activeSilhouettes[hunter].SetActive(false); // Chỉ tắt đi, không Destroy
                 }
-                huntersToRemove.Add(hunter); // Đánh dấu để xóa khỏi danh sách
             }
-        }
-
-        // Xóa các Hunter khỏi danh sách quản lý
-        foreach (var hunter in huntersToRemove)
-        {
-            _activeSilhouettes.Remove(hunter);
         }
     }
 
     private void ClearAllHighlights()
     {
-        // Phá hủy tất cả các Prefab bóng đỏ đang có trên Map
+        // Tắt toàn bộ khi hết thời gian sử dụng Skill
         foreach (var silhouette in _activeSilhouettes.Values)
         {
-            if (silhouette != null) Destroy(silhouette);
+            if (silhouette != null)
+            {
+                silhouette.SetActive(false);
+            }
         }
-
-        // Dọn dẹp danh sách
-        _activeSilhouettes.Clear();
     }
 
     public void SetRepairAnimation(bool isRepairing)
@@ -379,7 +367,7 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
 
     private bool IsNearDeadBody()
     {
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, 2f);
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, 0.5f);
         foreach (var hit in hitColliders)
         {
             if (hit.CompareTag("Playerchet")) return true;
@@ -995,7 +983,7 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
                 if (isPressingE && !_isStartRpcSent && !IsDowned && !IsHooked)
                 {
                     // Tự động quét tìm nạn nhân gần nhất thay vì chờ OnTriggerStay
-                    Collider[] hits = Physics.OverlapSphere(transform.position, 2f);
+                    Collider[] hits = Physics.OverlapSphere(transform.position, 0.5f);
                     foreach (var hit in hits)
                     {
                         if (hit.CompareTag("Playerchet"))
