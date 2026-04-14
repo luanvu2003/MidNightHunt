@@ -945,82 +945,56 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         }
     }
 
-    // 🚨 2. CẬP NHẬT LẠI HÀM NÀY
     public void CompleteRescueFromOther()
     {
-        // 1. Mở khóa Cái Móc cho Quái có thể treo người khác
+        // 🚨 CHỈ SERVER MỚI ĐƯỢC XỬ LÝ
+        if (!Object.HasStateAuthority) return;
+
+        // Mở khóa móc
         RPC_ResetHookAtPosition(transform.position);
 
-        IsDowned = false; IsHooked = false; IsBeingRevived = false;
-        IsBeingUnhooked = false; ReviverCount = 0; BonusRescueSpeed = 0f;
-        ReviveProgress = 0f; UnhookProgress = 0f;
+        // Dịch chuyển nhẹ ra trước trên Server
+        Vector3 dropPos = transform.position + transform.forward * 1.2f;
+        var netTransform = GetComponent<NetworkTransform>();
+        if (netTransform != null) netTransform.Teleport(dropPos, transform.rotation);
+
+        // 🚨 PHÉP MÀU NẰM Ở ĐÂY: Reset state giống hệt lúc Revive
+        IsDowned = false;
+        IsHooked = false;
+        IsBeingRevived = false;
+        IsBeingUnhooked = false;
+        ReviverCount = 0;
+        BonusRescueSpeed = 0f;
+        ReviveProgress = 0f;
+        UnhookProgress = 0f;
 
         CurrentHits = 1;
         SacrificeTimer = TickTimer.None;
         InvincibilityTimer = TickTimer.CreateFromSeconds(Runner, 3f);
-
-        // 🚨 GỌI RPC ĐỂ RỚT KHỎI MÓC MƯỢT MÀ TRÊN MỌI MÁY
-        Vector3 newPos = transform.position + transform.forward * 1.2f;
-        Rpc_ForceDetachAndTeleport(newPos, transform.rotation, true);
     }
 
     // 🚨 HÀM MỚI: Xử lý tẩu thoát khi Quái bị choáng (Đập ván / Vùng vẫy)
     public void EscapeFromHunter()
     {
+        // 🚨 CHỈ SERVER MỚI ĐƯỢC XỬ LÝ
+        if (!Object.HasStateAuthority) return;
+
+        // Dịch chuyển nhẹ ra trước trên Server
+        Vector3 dropPos = transform.position + transform.forward * 1.5f;
+        var netTransform = GetComponent<NetworkTransform>();
+        if (netTransform != null) netTransform.Teleport(dropPos, transform.rotation);
+
+        // 🚨 PHÉP MÀU NẰM Ở ĐÂY: Biến thành Revive (Tắt Gục)
         IsDowned = false;
         IsHooked = false;
         IsBeingRevived = false;
 
-        CurrentHits = 2; // Thương nặng
+        // ... Nhận 2 hit thương nặng
+        CurrentHits = 2;
         HitDecayTimer = TickTimer.CreateFromSeconds(Runner, 20f);
         InvincibilityTimer = TickTimer.CreateFromSeconds(Runner, 3f);
-
-        // 🚨 GỌI RPC CHO TẤT CẢ CLIENTS CÙNG GỠ PARENT VÀ DỊCH CHUYỂN
-        Vector3 newPos = transform.position + transform.forward * 1.5f;
-        Rpc_ForceDetachAndTeleport(newPos, transform.rotation, true);
     }
 
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    public void Rpc_ForceDetachAndTeleport(Vector3 newPos, Quaternion newRot, NetworkBool shouldEnableCC)
-    {
-        // 1. Tạm tắt Character Controller ĐẦU TIÊN để chống kẹt
-        if (_characterController != null) _characterController.enabled = false;
-
-        // 2. Gỡ liên kết 
-        PlayerHookReceiver receiver = GetComponent<PlayerHookReceiver>();
-        if (receiver != null) receiver.ReleaseFromHunter();
-        transform.SetParent(null);
-
-        // 🚨 3. ÉP UNITY CẬP NHẬT VẬT LÝ NGAY LẬP TỨC 
-        Physics.SyncTransforms();
-
-        // 4. Dời vị trí
-        transform.position = newPos;
-        transform.rotation = newRot;
-
-        // 5. Đồng bộ mạng (Chỉ Server gọi)
-        if (Object.HasStateAuthority)
-        {
-            var netTransform = GetComponent<NetworkTransform>();
-            if (netTransform != null) netTransform.Teleport(newPos, newRot);
-        }
-
-        // 6. Bật lại CC an toàn cho đúng người
-        if (shouldEnableCC && (Object.HasStateAuthority || Object.HasInputAuthority))
-        {
-            // Delay 1 frame nhỏ bằng Invoke để chắc chắn Transform đã được apply
-            Invoke(nameof(SafeEnableCC), 0.1f);
-        }
-    }
-
-    // Hàm phụ trợ bật lại Character Controller an toàn
-    private void SafeEnableCC()
-    {
-        if (_characterController != null && transform.parent == null)
-        {
-            _characterController.enabled = true;
-        }
-    }
     public float GetSacrificeTimer() => SacrificeTimer.RemainingTime(Runner) ?? 0f;
 }
 
