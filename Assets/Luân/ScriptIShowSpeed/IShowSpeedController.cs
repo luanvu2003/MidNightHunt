@@ -328,11 +328,16 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         if (VaultTimer.Expired(Runner))
         {
             IsVaulting = false;
-            _characterController.enabled = true;
+
+            // 🚨 SỬA LẠI: Tuyệt đối không cho Proxy tự bật CC lên
+            if (Object.HasStateAuthority || Object.HasInputAuthority)
+            {
+                if (_characterController != null) _characterController.enabled = true;
+            }
             return;
         }
 
-        _characterController.enabled = false;
+        if (_characterController != null) _characterController.enabled = false;
         float t = 1f - (VaultTimer.RemainingTime(Runner).Value / vaultDuration);
         t = Mathf.SmoothStep(0f, 1f, t);
         transform.position = Vector3.Lerp(VaultStartPos, VaultTargetPos, t);
@@ -903,18 +908,29 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         IsHooked = false;
         IsBeingRevived = false;
 
-        // 3. 🚨 QUAN TRỌNG: Xóa sạch bộ đếm người cứu và Tốc độ Buff của Skill
+        // 3. Xóa sạch bộ đếm người cứu và Tốc độ Buff của Skill
         IsBeingUnhooked = false;
         ReviverCount = 0;
-        BonusRescueSpeed = 0f; // Dọn rác phần buff tốc độ
-
+        BonusRescueSpeed = 0f;
         ReviveProgress = 0f;
         UnhookProgress = 0f;
 
-        // 4. Dịch chuyển nhẹ để nhân vật rớt khỏi móc an toàn
-        _characterController.enabled = false;
-        transform.position += transform.forward * 1.2f;
-        _characterController.enabled = true;
+        // 4. 🚨 SỬA LẠI: Dịch chuyển nhẹ để nhân vật rớt khỏi móc an toàn
+        if (_characterController != null) _characterController.enabled = false;
+
+        Vector3 newRescuePos = transform.position + transform.forward * 1.2f;
+        transform.position = newRescuePos;
+
+        var netTransform = GetComponent<NetworkTransform>();
+        if (netTransform != null)
+        {
+            netTransform.Teleport(newRescuePos, transform.rotation);
+        }
+
+        if (Object.HasStateAuthority || Object.HasInputAuthority)
+        {
+            if (_characterController != null) _characterController.enabled = true;
+        }
 
         // 5. Hồi máu, xóa án tử hình và buff bất tử 3 giây chạy trốn
         CurrentHits = 1;
@@ -932,16 +948,30 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         // 1. Ép nhận 2 Hit (Thương nặng)
         CurrentHits = 2;
 
-        // 2. 🚨 QUAN TRỌNG: Reset lại đồng hồ hồi máu để không bị hồi máu ảo
+        // 2. Reset lại đồng hồ hồi máu để không bị hồi máu ảo
         HitDecayTimer = TickTimer.CreateFromSeconds(Runner, 20f);
 
         // 3. Cho 3 giây bất tử để cắm đầu chạy
         InvincibilityTimer = TickTimer.CreateFromSeconds(Runner, 3f);
 
         // 4. Dịch chuyển nhẹ để rớt khỏi vai Quái an toàn
-        _characterController.enabled = false;
-        transform.position += transform.forward * 1.5f;
-        _characterController.enabled = true;
+        if (_characterController != null) _characterController.enabled = false;
+
+        Vector3 newPos = transform.position + transform.forward * 1.5f;
+        transform.position = newPos;
+
+        // 🚨 CHÌA KHÓA GIẢI QUYẾT LỖI MẠNG: Ép Fusion dịch chuyển toàn bộ Client
+        var netTransform = GetComponent<NetworkTransform>();
+        if (netTransform != null)
+        {
+            netTransform.Teleport(newPos, transform.rotation);
+        }
+
+        // 🚨 BẢO VỆ PROXY: Chỉ bật lại CC cho người cầm nhân vật này hoặc Server
+        if (Object.HasStateAuthority || Object.HasInputAuthority)
+        {
+            if (_characterController != null) _characterController.enabled = true;
+        }
     }
     public float GetSacrificeTimer() => SacrificeTimer.RemainingTime(Runner) ?? 0f;
 }
