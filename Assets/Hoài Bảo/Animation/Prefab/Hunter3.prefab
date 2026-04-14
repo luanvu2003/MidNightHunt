@@ -151,7 +151,7 @@ GameObject:
   - component: {fileID: 646460894944446695}
   - component: {fileID: -7356489424239219919}
   - component: {fileID: 32356907191667987}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Hunter3
   m_TagString: Hunter
   m_Icon: {fileID: 0}

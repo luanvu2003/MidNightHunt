@@ -2303,7 +2303,7 @@ MonoBehaviour:
   skillCooldown: 30
   hunterLayer:
     serializedVersion: 2
-    m_Bits: 8
+    m_Bits: 264
   xrayMaterial: {fileID: 2100000, guid: 83907c383f091de43b5411eb87c9464c, type: 2}
   hitAnimationTrigger: AnHit
   downedAnimationBool: BiGuc
