@@ -39,13 +39,13 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     [Range(0, 360)] public float scanAngle = 90f;
     public float skillDuration = 5f;
     public float skillCooldown = 30f;
+    public LayerMask hunterLayer;
+    public Material xrayMaterial;
 
-
-    // 🚨 Kéo Prefab X-Ray/Bóng đỏ của bạn vào đây
-    public GameObject redSilhouettePrefab;
 
     // 🚨 QUẢN LÝ THEO DANH SÁCH: Lưu trữ con Hunter (Key) và cái Bóng đỏ đang gắn trên nó (Value)
     private Dictionary<GameObject, GameObject> _activeSilhouettes = new Dictionary<GameObject, GameObject>();
+    private List<GameObject> _scannedHunters = new List<GameObject>();
 
 
 
@@ -286,77 +286,86 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
     {
         bool skillActive = !SkillDurationTimer.ExpiredOrNotRunning(Runner);
 
-        // Nếu hết thời gian skill -> Tắt toàn bộ bóng đỏ
         if (!skillActive)
         {
             ClearAllHighlights();
             return;
         }
 
-        // Quét quái trong bán kính
-        Collider[] hits = Physics.OverlapSphere(transform.position, scanDistance);
+        // Quét 360 độ bằng Layer
+        Collider[] hits = Physics.OverlapSphere(transform.position, scanDistance, hunterLayer);
         List<GameObject> currentlyVisibleHunters = new List<GameObject>();
 
         foreach (var hit in hits)
         {
-            if (hit.CompareTag("Hunter"))
+            GameObject hunterObj = hit.gameObject;
+            currentlyVisibleHunters.Add(hunterObj);
+
+            // Nếu con Hunter này MỚI bước vào vùng quét
+            if (!_scannedHunters.Contains(hunterObj))
             {
-                // Vẫn cần giữ toán học để tính góc nhìn (chỉ quét quái phía trước mặt, không quét sau lưng)
-                Vector3 directionToHunter = (hit.transform.position - transform.position).normalized;
-                directionToHunter.y = 0;
-                Vector3 forward = transform.forward;
-                forward.y = 0;
-                float angle = Vector3.Angle(forward, directionToHunter);
-
-                // 1. Kiểm tra xem Hunter có nằm trong góc quét (Scan Angle) không
-                if (angle <= scanAngle / 2f)
-                {
-                    currentlyVisibleHunters.Add(hit.gameObject);
-
-                    // Nếu Hunter này CHƯA có trong danh sách quản lý bóng đỏ
-                    if (!_activeSilhouettes.ContainsKey(hit.gameObject))
-                    {
-                        // Tìm cái bóng đỏ "RedSilhouette" đã được gắn sẵn trong người con Hunter
-                        Transform silhouetteChild = hit.transform.Find("RedSilhouette");
-
-                        if (silhouetteChild != null)
-                        {
-                            _activeSilhouettes.Add(hit.gameObject, silhouetteChild.gameObject);
-                        }
-                    }
-
-                    // 2. BẬT BÓNG ĐỎ LÊN! 
-                    // Phần "bị tường che" thì Shader AuraXRay sẽ tự động lo nhờ ZTest Greater
-                    if (_activeSilhouettes.ContainsKey(hit.gameObject) && _activeSilhouettes[hit.gameObject] != null)
-                    {
-                        _activeSilhouettes[hit.gameObject].SetActive(true);
-                    }
-                }
+                _scannedHunters.Add(hunterObj);
+                SetXRayOnHunter(hunterObj, true); // Khoác áo X-Ray lên
             }
         }
 
-        // 3. TẮT bóng đỏ đối với những Hunter đã chạy ra khỏi tầm nhìn hoặc góc quét
-        foreach (var hunter in _activeSilhouettes.Keys)
+        // Nếu Hunter chạy ra khỏi vùng quét -> Lột áo X-Ray ra
+        for (int i = _scannedHunters.Count - 1; i >= 0; i--)
         {
-            if (hunter != null && !currentlyVisibleHunters.Contains(hunter))
+            GameObject hunter = _scannedHunters[i];
+            if (hunter == null || !currentlyVisibleHunters.Contains(hunter))
             {
-                if (_activeSilhouettes[hunter] != null)
+                SetXRayOnHunter(hunter, false);
+                _scannedHunters.RemoveAt(i);
+            }
+        }
+    }
+
+    // Hàm ma thuật: Tự động len lỏi vào từng bộ phận của quái để đắp Material
+    private void SetXRayOnHunter(GameObject hunter, bool isOn)
+    {
+        if (hunter == null || xrayMaterial == null) return;
+
+        // Lấy TOÀN BỘ các bộ phận hiển thị (cả tĩnh lẫn động) trên người con quái
+        Renderer[] renderers = hunter.GetComponentsInChildren<Renderer>();
+
+        foreach (Renderer r in renderers)
+        {
+            // Lấy danh sách Material hiện tại của bộ phận này
+            List<Material> matList = new List<Material>(r.materials);
+
+            if (isOn)
+            {
+                // Kiểm tra xem đã có X-Ray chưa để tránh đắp chồng lên nhau nhiều lần
+                bool hasXray = false;
+                foreach (var m in matList)
                 {
-                    _activeSilhouettes[hunter].SetActive(false); // Chỉ tắt đi, không Destroy
+                    // Tên material khi chạy sẽ tự thêm chữ (Instance) nên dùng Contains
+                    if (m.name.Contains(xrayMaterial.name)) hasXray = true;
                 }
+
+                // Nếu chưa có thì thêm nó vào cuối danh sách
+                if (!hasXray)
+                {
+                    matList.Add(xrayMaterial);
+                    r.materials = matList.ToArray();
+                }
+            }
+            else
+            {
+                // Khi tắt X-Ray: Xóa toàn bộ những Material nào có tên là xrayMaterial
+                matList.RemoveAll(m => m.name.Contains(xrayMaterial.name));
+                r.materials = matList.ToArray();
             }
         }
     }
 
     private void ClearAllHighlights()
     {
-        // Tắt toàn bộ khi hết thời gian sử dụng Skill
-        foreach (var silhouette in _activeSilhouettes.Values)
+        // Tắt skill thì dọn dẹp sạch sẽ
+        foreach (var hunter in _scannedHunters)
         {
-            if (silhouette != null)
-            {
-                silhouette.SetActive(false);
-            }
+            SetXRayOnHunter(hunter, false);
         }
     }
 
@@ -745,6 +754,20 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         Destroy(audioObj, clip.length + 0.1f); // Tự hủy rác sau khi hét xong
     }
 
+    // 🚨 HIỂN THỊ VÙNG QUÉT TRONG SCENE VIEW
+    private void OnDrawGizmosSelected()
+    {
+        // Chọn màu cho vòng tròn (Màu vàng)
+        Gizmos.color = Color.yellow;
+
+        // Vẽ một hình cầu dạng lưới (WireSphere) xung quanh nhân vật bằng với bán kính quét
+        Gizmos.DrawWireSphere(transform.position, scanDistance);
+
+        // (Tùy chọn) Thêm một lớp màu trong suốt ở bên trong cho dễ nhìn
+        Gizmos.color = new Color(1f, 1f, 0f, 0.2f); // Vàng trong suốt 20%
+        Gizmos.DrawSphere(transform.position, scanDistance);
+    }
+
     // --- INetworkRunnerCallbacks ---
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
@@ -1041,7 +1064,7 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         RPC_ResetHookAtPosition(transform.position);
 
         // Dịch chuyển nhẹ ra trước trên Server
-        Vector3 dropPos = transform.position + transform.forward * 1.2f;
+        Vector3 dropPos = transform.root.position - transform.root.forward * 1.5f;
         var netTransform = GetComponent<NetworkTransform>();
         if (netTransform != null) netTransform.Teleport(dropPos, transform.rotation);
 

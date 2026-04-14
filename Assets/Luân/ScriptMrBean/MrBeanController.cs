@@ -999,7 +999,7 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         RPC_ResetHookAtPosition(transform.position);
 
         // Dịch chuyển nhẹ ra trước trên Server
-        Vector3 dropPos = transform.position + transform.forward * 1.2f;
+        Vector3 dropPos = transform.root.position - transform.root.forward * 1.5f;
         var netTransform = GetComponent<NetworkTransform>();
         if (netTransform != null) netTransform.Teleport(dropPos, transform.rotation);
 
