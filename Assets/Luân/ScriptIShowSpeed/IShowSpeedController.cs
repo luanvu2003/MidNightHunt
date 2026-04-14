@@ -66,6 +66,7 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
     public string unhookingAnimBool = "IsUnhooking"; // 🚨 THÊM ANIMATION THÁO MÓC
     private bool _isCancelRpcSent = false; // Cờ khóa chống spam mạng
     private bool _isStartRpcSent = false;
+    private bool _isInteractHolding = false;
 
     private ISurvivor _targetToRevive; // 🚨 Đã đổi thành ISurvivor để cứu được mọi người
     public InputActionReference interactInput;
@@ -178,6 +179,7 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         if (!Object.HasInputAuthority) return;
         if (vaultInput.action.triggered) _vaultPressed = true;
         if (skillInput.action.triggered) _skillPressed = true;
+        _isInteractHolding = interactInput.action.IsPressed();
     }
 
     private void InitUI()
@@ -248,6 +250,11 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
 
             UpdateReviveProgressUI();
             UpdateHeartbeat();
+        }
+
+        if (!IsDowned && !IsHooked && transform.parent != null)
+        {
+            transform.SetParent(null);
         }
     }
 
@@ -528,15 +535,12 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
 
                 _targetToRevive = target;
 
-                if (interactInput.action.IsPressed())
+                if (_isInteractHolding)
                 {
                     if (!IsReviving && !IsUnhooking && !_isStartRpcSent)
                     {
                         RPC_SetReviveState(true, target.Object.Id, isTargetHooked);
                         _isStartRpcSent = true;
-
-                        // 🚨 CHÌA KHÓA VÀNG GIẢI QUYẾT LỖI KẸT NHẤP NHẢ E:
-                        // Phải mở khóa cờ Cancel ngay lập tức để lỡ phím nảy 2 lần thì vẫn gửi lệnh hủy được!
                         _isCancelRpcSent = false;
                     }
                 }
@@ -860,11 +864,15 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
             if (IsReviving || IsUnhooking)
             {
                 _isStartRpcSent = false;
-                bool shouldCancel = !interactInput.action.IsPressed();
+
+                // 🚨 SỬ DỤNG BIẾN _isInteractHolding THAY VÌ LẤY TRỰC TIẾP
+                bool shouldCancel = !_isInteractHolding;
 
                 if (shouldCancel && !_isCancelRpcSent)
                 {
-                    NetworkId targetId = _targetToRevive != null && _targetToRevive.Object != null ? _targetToRevive.Object.Id : default;
+                    // Lấy Target ID (ưu tiên ID của mục tiêu lưu sẵn để Server luôn biết phải hủy ai)
+                    NetworkId targetId = _targetToRevive != null && _targetToRevive.Object != null ? _targetToRevive.Object.Id : TargetReviveId;
+
                     RPC_SetReviveState(false, targetId, IsUnhooking);
                     _targetToRevive = null;
                     _isCancelRpcSent = true;
@@ -872,7 +880,7 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
             }
             else { _isCancelRpcSent = false; }
 
-            if (!interactInput.action.IsPressed()) _isStartRpcSent = false;
+            if (!_isInteractHolding) _isStartRpcSent = false;
         }
     }
     // 🚨 1. THÊM RPC NÀY ĐỂ BÁO CHO QUÁI BIẾT LÀ MÓC ĐÃ TRỐNG
@@ -931,27 +939,25 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
         Rpc_ForceDetachAndTeleport(newPos, transform.rotation, true);
     }
 
-    // 🚨 HÀM MỚI: Đồng bộ Gỡ Parent và Dịch chuyển cho TOÀN BỘ CLIENTS
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void Rpc_ForceDetachAndTeleport(Vector3 newPos, Quaternion newRot, NetworkBool shouldEnableCC)
     {
-        // 1. Ép tất cả các máy GỠ ĐỨT LIÊN KẾT khỏi vai Hunter / Móc
         PlayerHookReceiver receiver = GetComponent<PlayerHookReceiver>();
         if (receiver != null) receiver.ReleaseFromHunter();
-        transform.SetParent(null); // Đảm bảo chắc chắn 100% không còn dính líu tới Hunter
+        transform.SetParent(null); // Gỡ dứt điểm
 
-        // 2. Tạm tắt Character Controller để tránh lỗi kẹt / giật lùi
         if (_characterController != null) _characterController.enabled = false;
-
-        // 3. Dịch chuyển vị trí ngay lập tức
         transform.position = newPos;
         transform.rotation = newRot;
 
-        // 4. Ép Fusion nhận diện vị trí mới để nội suy (Interpolation) mượt mà
-        var netTransform = GetComponent<NetworkTransform>();
-        if (netTransform != null) netTransform.Teleport(newPos, newRot);
+        // 🚨 CHỈ SERVER MỚI ĐƯỢC QUYỀN GỌI TELEPORT!
+        // Các Client khác (Proxy) sẽ tự động nội suy trượt mượt mà về vị trí mới.
+        if (Object.HasStateAuthority)
+        {
+            var netTransform = GetComponent<NetworkTransform>();
+            if (netTransform != null) netTransform.Teleport(newPos, newRot);
+        }
 
-        // 5. Chỉ bật lại Character Controller cho đúng chủ nhân của nhân vật
         if (shouldEnableCC && (Object.HasStateAuthority || Object.HasInputAuthority))
         {
             if (_characterController != null) _characterController.enabled = true;
