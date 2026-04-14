@@ -7,27 +7,38 @@ using System.Collections.Generic;
 public class MatchUIManager : MonoBehaviour
 {
     [System.Serializable]
-    public class SurvivorUISlot
+    public class PlayerUISlot
     {
-        public int characterID; 
-        public GameObject rootObj; 
-        public TextMeshProUGUI nameText; 
+        public GameObject rootObj; // Giao diện tổng của 1 người chơi (Slot)
         
+        [Header("Thông tin cơ bản (Sẽ tự tìm nếu để trống)")]
+        public Image playerImage;        // Hình ảnh đại diện của nhân vật
+        public TextMeshProUGUI nameText; // Tên người chơi
+
         [Header("Hook Cooldown")]
         public Image hookOverlay; 
         public TextMeshProUGUI hookCooldownText; 
 
         [HideInInspector] public ISurvivor linkedSurvivor;
         [HideInInspector] public bool isAssigned; 
-        [HideInInspector] public int lastAssignedPlayerID = -1; // Để theo dõi player nào đang giữ slot này
+        [HideInInspector] public int lastAssignedPlayerID = -1;
     }
 
-    public SurvivorUISlot[] survivorSlots;
+    [Header("Cài đặt UI Khu vực người chơi")]
+    [Tooltip("Khung chứa có gắn component Vertical Layout Group")]
+    public RectTransform slotContainer; 
+    public PlayerUISlot[] playerSlots; 
+
+    [Header("Dữ liệu hình ảnh (Đồng bộ theo CharacterID)")]
+    [Tooltip("Thứ tự hình ảnh phải khớp với CharacterID của người chơi")]
+    public Sprite[] characterAvatars; 
+
     private float maxHookTime = 90f; 
 
     private void Start()
     {
-        foreach (var slot in survivorSlots)
+        // Tắt hết các slot khi mới bắt đầu
+        foreach (var slot in playerSlots)
         {
             if (slot.rootObj != null) slot.rootObj.SetActive(false);
         }
@@ -35,32 +46,36 @@ public class MatchUIManager : MonoBehaviour
 
     private void Update()
     {
-        // Lấy danh sách RoomPlayer đã được spawn hoàn toàn trên mạng
+        // Lấy danh sách RoomPlayer đã được spawn trên mạng
         var roomPlayers = FindObjectsOfType<RoomPlayer>().Where(p => p.Object != null && p.Object.IsValid).ToList();
+        
+        // Chỉ lấy những người chơi là Survivor
         var survivors = roomPlayers.Where(p => !p.IsHunter).OrderBy(p => p.Object.InputAuthority.PlayerId).ToList();
 
-        // Kiểm tra xem có cần cập nhật UI không (Dựa trên số lượng hoặc ID người chơi thay đổi)
-        bool needsRefresh = CheckIfNeedsRefresh(survivors);
-
-        if (needsRefresh) 
+        // Kiểm tra xem có ai mới vào/ra phòng không để vẽ lại UI
+        if (CheckIfNeedsRefresh(survivors)) 
         {
             SetupUI(survivors);
-            // Ép buộc Layout Group sắp xếp lại ngay lập tức để tránh lỗi "dính" hoặc "xa" nhau
-            LayoutRebuilder.ForceRebuildLayoutImmediate(GetComponent<RectTransform>());
+            
+            // Ép Layout Group cập nhật ngay lập tức để xếp dọc sát nhau
+            if (slotContainer != null)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(slotContainer);
+            }
         }
 
-        UpdateSlotsLogic(roomPlayers);
+        // Chạy logic đếm ngược Hook
+        UpdateHookCooldownLogic(roomPlayers);
     }
 
     private bool CheckIfNeedsRefresh(List<RoomPlayer> currentSurvivors)
     {
-        int activeCount = survivorSlots.Count(s => s.isAssigned);
+        int activeCount = playerSlots.Count(s => s.isAssigned);
         if (currentSurvivors.Count != activeCount) return true;
 
         foreach (var surv in currentSurvivors)
         {
-            // Nếu có một người chơi chưa có slot nào được gán đúng ID của họ
-            if (!survivorSlots.Any(s => s.isAssigned && s.lastAssignedPlayerID == surv.Object.InputAuthority.PlayerId))
+            if (!playerSlots.Any(s => s.isAssigned && s.lastAssignedPlayerID == surv.Object.InputAuthority.PlayerId))
                 return true;
         }
         return false;
@@ -68,8 +83,8 @@ public class MatchUIManager : MonoBehaviour
 
     private void SetupUI(List<RoomPlayer> survivors)
     {
-        // Reset toàn bộ slots
-        foreach (var slot in survivorSlots) 
+        // Reset lại toàn bộ slots
+        foreach (var slot in playerSlots) 
         {
             if (slot.rootObj != null) slot.rootObj.SetActive(false);
             slot.isAssigned = false;
@@ -77,55 +92,63 @@ public class MatchUIManager : MonoBehaviour
             slot.linkedSurvivor = null;
         }
 
+        // Bật slot cho từng người chơi
         foreach (var player in survivors)
         {
-            // Ưu tiên tìm slot đúng CharacterID, nếu không có thì lấy slot trống đầu tiên
-            var slot = survivorSlots.FirstOrDefault(s => s.characterID == player.CharacterID && !s.isAssigned) 
-                     ?? survivorSlots.FirstOrDefault(s => !s.isAssigned);
+            // Tìm 1 slot trống đầu tiên
+            var slot = playerSlots.FirstOrDefault(s => !s.isAssigned);
 
-            if (slot != null)
+            if (slot != null && slot.rootObj != null)
             {
-                if (slot.rootObj != null)
-                {
-                    slot.rootObj.SetActive(true);
-                    // Quan trọng: Đẩy xuống cuối để Layout Group sắp xếp theo thứ tự khít nhau
-                    slot.rootObj.transform.SetAsLastSibling();
-                }
+                slot.rootObj.SetActive(true);
+                
+                // Đẩy xuống cuối hierarchy để Vertical Layout Group xếp chồng khít lên nhau
+                slot.rootObj.transform.SetAsLastSibling(); 
                 
                 slot.isAssigned = true;
                 slot.lastAssignedPlayerID = player.Object.InputAuthority.PlayerId;
                 
-                // === THÊM CODE TÌM TEXT NẾU CHƯA GÁN ===
-                if (slot.nameText == null && slot.rootObj != null)
-                {
-                    // Tự động tìm component TextMeshProUGUI nằm trong rootObj (tìm cả các object đang bị tắt)
+                // --- TỰ ĐỘNG TÌM COMPONENT NẾU CHƯA GÁN ---
+                if (slot.nameText == null) 
                     slot.nameText = slot.rootObj.GetComponentInChildren<TextMeshProUGUI>(true);
-                }
+                
+                if (slot.playerImage == null) 
+                    slot.playerImage = slot.rootObj.GetComponentInChildren<Image>(true);
 
-                // Cập nhật Text
+                // --- GÁN DỮ LIỆU ĐỒNG BỘ MẠNG ---
+                // 1. Gán Tên
                 if (slot.nameText != null)
                 {
                     string pName = player.PlayerName.ToString();
                     slot.nameText.text = string.IsNullOrEmpty(pName) ? "Player..." : pName;
-                    
-                    // Bật object text lên để đảm bảo nó hiển thị
-                    slot.nameText.gameObject.SetActive(true); 
                 }
-                else
+
+                // 2. Gán Hình Ảnh (Image) dựa trên CharacterID
+                if (slot.playerImage != null)
                 {
-                    Debug.LogError($"[CẢNH BÁO] Slot ID {slot.characterID} không tìm thấy TextMeshProUGUI! Hãy kiểm tra lại prefab của bạn.");
+                    int charID = player.CharacterID;
+                    if (charID >= 0 && charID < characterAvatars.Length)
+                    {
+                        slot.playerImage.sprite = characterAvatars[charID];
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[UI] Không tìm thấy hình ảnh Avatar cho CharacterID {charID}");
+                    }
                 }
             }
         }
     }
 
-    private void UpdateSlotsLogic(List<RoomPlayer> allPlayers)
+    // ==========================================
+    // LOGIC HOOK COOLDOWN (GIỮ NGUYÊN TỪ CODE CŨ)
+    // ==========================================
+    private void UpdateHookCooldownLogic(List<RoomPlayer> allPlayers)
     {
-        foreach (var slot in survivorSlots)
+        foreach (var slot in playerSlots)
         {
             if (!slot.isAssigned || slot.rootObj == null) continue;
 
-            // Tìm ISurvivor tương ứng nếu chưa có link
             if (slot.linkedSurvivor == null)
             {
                 FindLinkedSurvivor(slot, allPlayers);
@@ -147,7 +170,7 @@ public class MatchUIManager : MonoBehaviour
         }
     }
 
-    private void FindLinkedSurvivor(SurvivorUISlot slot, List<RoomPlayer> allPlayers)
+    private void FindLinkedSurvivor(PlayerUISlot slot, List<RoomPlayer> allPlayers)
     {
         var targetPlayer = allPlayers.FirstOrDefault(p => p.Object.InputAuthority.PlayerId == slot.lastAssignedPlayerID);
         if (targetPlayer == null) return;
