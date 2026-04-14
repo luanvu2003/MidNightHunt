@@ -942,39 +942,17 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         // 1. Mở khóa Cái Móc cho Quái có thể treo người khác
         RPC_ResetHookAtPosition(transform.position);
 
-        // 2. Tắt các trạng thái gục/treo
-        IsDowned = false;
-        IsHooked = false;
-        IsBeingRevived = false;
+        IsDowned = false; IsHooked = false; IsBeingRevived = false;
+        IsBeingUnhooked = false; ReviverCount = 0; BonusRescueSpeed = 0f;
+        ReviveProgress = 0f; UnhookProgress = 0f;
 
-        // 3. Xóa sạch bộ đếm người cứu và Tốc độ Buff của Skill
-        IsBeingUnhooked = false;
-        ReviverCount = 0;
-        BonusRescueSpeed = 0f;
-        ReviveProgress = 0f;
-        UnhookProgress = 0f;
-
-        // 4. 🚨 SỬA LẠI: Dịch chuyển nhẹ để nhân vật rớt khỏi móc an toàn
-        if (_characterController != null) _characterController.enabled = false;
-
-        Vector3 newRescuePos = transform.position + transform.forward * 1.2f;
-        transform.position = newRescuePos;
-
-        var netTransform = GetComponent<NetworkTransform>();
-        if (netTransform != null)
-        {
-            netTransform.Teleport(newRescuePos, transform.rotation);
-        }
-
-        if (Object.HasStateAuthority || Object.HasInputAuthority)
-        {
-            if (_characterController != null) _characterController.enabled = true;
-        }
-
-        // 5. Hồi máu, xóa án tử hình và buff bất tử 3 giây chạy trốn
         CurrentHits = 1;
         SacrificeTimer = TickTimer.None;
         InvincibilityTimer = TickTimer.CreateFromSeconds(Runner, 3f);
+
+        // 🚨 GỌI RPC ĐỂ RỚT KHỎI MÓC MƯỢT MÀ TRÊN MỌI MÁY
+        Vector3 newPos = transform.position + transform.forward * 1.2f;
+        Rpc_ForceDetachAndTeleport(newPos, transform.rotation, true);
     }
 
     // 🚨 HÀM ĐÃ SỬA: Xử lý tẩu thoát khi Quái bị choáng (Đập ván / Vùng vẫy)
@@ -984,34 +962,42 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         IsHooked = false;
         IsBeingRevived = false;
 
-        // 1. Ép nhận 2 Hit (Thương nặng)
-        CurrentHits = 2;
-
-        // 2. Reset lại đồng hồ hồi máu để không bị hồi máu ảo
+        CurrentHits = 2; // Thương nặng
         HitDecayTimer = TickTimer.CreateFromSeconds(Runner, 20f);
-
-        // 3. Cho 3 giây bất tử để cắm đầu chạy
         InvincibilityTimer = TickTimer.CreateFromSeconds(Runner, 3f);
 
-        // 4. Dịch chuyển nhẹ để rớt khỏi vai Quái an toàn
+        // 🚨 GỌI RPC CHO TẤT CẢ CLIENTS CÙNG GỠ PARENT VÀ DỊCH CHUYỂN
+        Vector3 newPos = transform.position + transform.forward * 1.5f;
+        Rpc_ForceDetachAndTeleport(newPos, transform.rotation, true);
+    }
+
+    // 🚨 HÀM MỚI: Đồng bộ Gỡ Parent và Dịch chuyển cho TOÀN BỘ CLIENTS
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void Rpc_ForceDetachAndTeleport(Vector3 newPos, Quaternion newRot, NetworkBool shouldEnableCC)
+    {
+        // 1. Ép tất cả các máy GỠ ĐỨT LIÊN KẾT khỏi vai Hunter / Móc
+        PlayerHookReceiver receiver = GetComponent<PlayerHookReceiver>();
+        if (receiver != null) receiver.ReleaseFromHunter();
+        transform.SetParent(null); // Đảm bảo chắc chắn 100% không còn dính líu tới Hunter
+
+        // 2. Tạm tắt Character Controller để tránh lỗi kẹt / giật lùi
         if (_characterController != null) _characterController.enabled = false;
 
-        Vector3 newPos = transform.position + transform.forward * 1.5f;
+        // 3. Dịch chuyển vị trí ngay lập tức
         transform.position = newPos;
+        transform.rotation = newRot;
 
-        // 🚨 CHÌA KHÓA GIẢI QUYẾT LỖI MẠNG: Ép Fusion dịch chuyển toàn bộ Client
+        // 4. Ép Fusion nhận diện vị trí mới để nội suy (Interpolation) mượt mà
         var netTransform = GetComponent<NetworkTransform>();
-        if (netTransform != null)
-        {
-            netTransform.Teleport(newPos, transform.rotation);
-        }
+        if (netTransform != null) netTransform.Teleport(newPos, newRot);
 
-        // 🚨 BẢO VỆ PROXY: Chỉ bật lại CC cho người cầm nhân vật này hoặc Server
-        if (Object.HasStateAuthority || Object.HasInputAuthority)
+        // 5. Chỉ bật lại Character Controller cho đúng chủ nhân của nhân vật
+        if (shouldEnableCC && (Object.HasStateAuthority || Object.HasInputAuthority))
         {
             if (_characterController != null) _characterController.enabled = true;
         }
     }
+
     public float GetSacrificeTimer() => SacrificeTimer.RemainingTime(Runner) ?? 0f;
 }
 
