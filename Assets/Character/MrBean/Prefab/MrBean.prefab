@@ -51,8 +51,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.423687, y: 1.6131364, z: 0.554515}
-  m_Center: {x: 0.048936844, y: -0.23825294, z: 0.09408867}
+  m_Size: {x: 0.81344104, y: 0.55246615, z: 0.43754357}
+  m_Center: {x: 0.35405982, y: -0.32743037, z: 0.08578936}
 --- !u!1 &87342040685631057
 GameObject:
   m_ObjectHideFlags: 0
@@ -2527,12 +2527,12 @@ CharacterController:
   m_Enabled: 1
   serializedVersion: 3
   m_Height: 1.76
-  m_Radius: 0.28
+  m_Radius: 0.24
   m_SlopeLimit: 45
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 0.87, z: 0}
+  m_Center: {x: 0, y: 0.87, z: 0.09}
 --- !u!114 &2006207292993136333
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2742,8 +2742,8 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.43
-  m_Center: {x: 0, y: 0.17, z: 0.43}
+  m_Radius: 0.31
+  m_Center: {x: 0, y: 0.17, z: 0.01}
 --- !u!54 &-3713088881137894682
 Rigidbody:
   m_ObjectHideFlags: 0
