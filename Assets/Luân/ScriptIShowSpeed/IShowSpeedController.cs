@@ -279,7 +279,7 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
 
     private bool IsNearDeadBody()
     {
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, 2f);
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, 0.5f);
         foreach (var hit in hitColliders)
         {
             if (hit.CompareTag("Playerchet")) return true;
@@ -907,7 +907,7 @@ public class IShowSpeedController_Fusion : NetworkBehaviour, INetworkRunnerCallb
                 if (isPressingE && !_isStartRpcSent && !IsDowned && !IsHooked)
                 {
                     // Tự động quét tìm nạn nhân gần nhất thay vì chờ OnTriggerStay
-                    Collider[] hits = Physics.OverlapSphere(transform.position, 2f);
+                    Collider[] hits = Physics.OverlapSphere(transform.position, 0.5f);
                     foreach (var hit in hits)
                     {
                         if (hit.CompareTag("Playerchet"))

@@ -2548,10 +2548,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   animator: {fileID: 619296693122280105}
-  slowWalkSpeed: 2
-  mediumRunSpeed: 5
-  sprintSpeed: 8
-  rotationSpeed: 10
+  slowWalkSpeed: 1
+  mediumRunSpeed: 3
+  sprintSpeed: 5
+  rotationSpeed: 8
   moveInput: {fileID: -4743734437002004637, guid: 4e74303c32ff52d49baaf909e103bc4a, type: 3}
   sprintInput: {fileID: -8027255260204449370, guid: 4e74303c32ff52d49baaf909e103bc4a, type: 3}
   walkInput: {fileID: 4412108457397334793, guid: 4e74303c32ff52d49baaf909e103bc4a, type: 3}

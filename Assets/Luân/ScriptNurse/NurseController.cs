@@ -281,7 +281,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
 
     private bool IsNearDeadBody()
     {
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, 2f);
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, 0.5f);
         foreach (var hit in hitColliders)
         {
             if (hit.CompareTag("Playerchet")) return true;
@@ -959,7 +959,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
 
                 if (isPressingE && !_isStartRpcSent && !IsDowned && !IsHooked)
                 {
-                    Collider[] hits = Physics.OverlapSphere(transform.position, 2f);
+                    Collider[] hits = Physics.OverlapSphere(transform.position, 0.5f);
                     foreach (var hit in hits)
                     {
                         if (hit.CompareTag("Playerchet"))
