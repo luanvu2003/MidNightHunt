@@ -20,12 +20,12 @@ public class PalletInteraction : NetworkBehaviour
     [Header("Thông Số Mới (Dễ chỉnh)")]
     public float fallTime = 0.25f;
     [Tooltip("Góc gập xuống khi ngã. (Thử X=90 hoặc X=-90)")]
-    public Vector3 dropRotationOffset = new Vector3(90, 0, 0); 
+    public Vector3 dropRotationOffset = new Vector3(90, 0, 0);
 
     [Header("Hệ Thống Đẩy Tránh Kẹt (Push Out)")]
     [Tooltip("Khoảng cách đẩy nhân vật văng ra khỏi ván (đơn vị: mét)")]
-    public float pushOutDistance = 1.8f; 
-    
+    public float pushOutDistance = 1.8f;
+
     // Lưu trữ góc tự động tính toán
     private Quaternion _startRotation;
     private Quaternion _targetDroppedRotation;
@@ -33,11 +33,11 @@ public class PalletInteraction : NetworkBehaviour
     private ChangeDetector _changes;
     private bool _isLocalPlayerInZone = false;
     private bool _isSpawned = false;
-    
+
     [Header("Âm Thanh (Audio)")]
     public AudioSource audioSource;
-    public AudioClip dropSound;    
-    public AudioClip breakSound;   
+    public AudioClip dropSound;
+    public AudioClip breakSound;
     public AudioClip stunSound;
 
     public override void Spawned()
@@ -74,7 +74,7 @@ public class PalletInteraction : NetworkBehaviour
             if (change == nameof(State))
             {
                 UpdateVisuals();
-                PlayStateSound(); 
+                PlayStateSound();
             }
         }
 
@@ -83,7 +83,7 @@ public class PalletInteraction : NetworkBehaviour
             palletPivot.localRotation = Quaternion.Lerp(palletPivot.localRotation, _targetDroppedRotation, Time.deltaTime * 15f);
         }
     }
-    
+
     private void PlayStateSound()
     {
         if (audioSource == null) return;
@@ -95,7 +95,7 @@ public class PalletInteraction : NetworkBehaviour
     {
         if (State != PalletState.Up)
         {
-            if (spaceUI != null && _isLocalPlayerInZone) 
+            if (spaceUI != null && _isLocalPlayerInZone)
             {
                 spaceUI.SetActive(false);
             }
@@ -139,10 +139,10 @@ public class PalletInteraction : NetworkBehaviour
             bool isSpacePressed = false;
             if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame) isSpacePressed = true;
 #if ENABLE_LEGACY_INPUT_MANAGER
-            if (Input.GetKeyDown(KeyCode.Space)) isSpacePressed = true;
+            if (Input.GetKeyDown(KeyCode.Space)) isSpacePressed = true;
 #endif
 
-            if (isSpacePressed)
+            if (isSpacePressed)
             {
                 Rpc_RequestDropPallet();
                 _isLocalPlayerInZone = false;
@@ -155,7 +155,7 @@ public class PalletInteraction : NetworkBehaviour
     {
         if (!_isSpawned) return;
         CheckLocalPlayerTrigger(other, true);
-        
+
         // Stun Hunter nếu đi vào vùng ván đang rơi
         if (State == PalletState.Falling && other.CompareTag("Hunter"))
         {
@@ -204,14 +204,14 @@ public class PalletInteraction : NetworkBehaviour
                 Collider stunCol = stunZone.GetComponent<Collider>();
                 if (stunCol != null)
                 {
-                    // Dùng HashSet để đảm bảo 1 nhân vật có nhiều collider cũng chỉ bị đẩy 1 lần
-                    HashSet<Transform> processedCharacters = new HashSet<Transform>();
+                    // Dùng HashSet để đảm bảo 1 nhân vật có nhiều collider cũng chỉ bị đẩy 1 lần
+                    HashSet<Transform> processedCharacters = new HashSet<Transform>();
 
                     Collider[] hits = Physics.OverlapBox(stunCol.bounds.center, stunCol.bounds.extents, stunZone.transform.rotation);
                     foreach (Collider hit in hits)
                     {
-                        // 1. STUN HUNTER (Như cũ)
-                        if (hit.CompareTag("Hunter"))
+                        // 1. STUN HUNTER (Như cũ)
+                        if (hit.CompareTag("Hunter"))
                         {
                             var hunter = hit.GetComponentInParent<HunterInteraction>();
                             if (hunter != null && hunter.StunTimer.ExpiredOrNotRunning(Runner))
@@ -220,11 +220,11 @@ public class PalletInteraction : NetworkBehaviour
                             }
                         }
 
-                        // 2. ĐẨY HUNTER & SURVIVOR RA KHỎI VÁN KHI VÁN NGÃ
-                        if (hit.CompareTag("Hunter") || hit.CompareTag("Player") || hit.CompareTag("Playerchet"))
+                        // 2. ĐẨY HUNTER & SURVIVOR RA KHỎI VÁN KHI VÁN NGÃ
+                        if (hit.CompareTag("Hunter") || hit.CompareTag("Player") || hit.CompareTag("Playerchet"))
                         {
                             Transform rootTransform = hit.transform.root; // Lấy object gốc của nhân vật
-                            
+
                             // Nếu nhân vật này chưa bị đẩy
                             if (!processedCharacters.Contains(rootTransform))
                             {
@@ -238,43 +238,75 @@ public class PalletInteraction : NetworkBehaviour
         }
     }
 
-    // 🚨 HÀM TÍNH TOÁN VÀ ĐẨY NHÂN VẬT 🚨
+    // 🚨 HÀM TÍNH TOÁN VÀ ĐẨY NHÂN VẬT ĐÃ ĐƯỢC NÂNG CẤP 🚨
     private void PushCharacterOut(Transform charTransform)
     {
         CharacterController cc = charTransform.GetComponent<CharacterController>();
-        
-        // Quy đổi tọa độ của nhân vật về không gian cục bộ (Local Space) của vùng StunZone
-        // Nếu điểm z trả về < 0 tức là đang đứng ở nửa sau. Nếu z > 0 là đang đứng nửa trước.
-        Vector3 localPos = stunZone.transform.InverseTransformPoint(charTransform.position);
 
+        // Quy đổi tọa độ để biết nhân vật đứng trước hay sau ván
+        Vector3 localPos = stunZone.transform.InverseTransformPoint(charTransform.position);
         Vector3 pushDirection = Vector3.zero;
 
-        // Nếu nhân vật ở nửa sau của ván -> Đẩy lùi về sau (âm Z của ván)
         if (localPos.z <= 0)
         {
-            pushDirection = -stunZone.transform.forward;
+            pushDirection = -stunZone.transform.forward; // Đẩy lùi
         }
-        // Nếu nhân vật ở nửa trước của ván -> Đẩy lên trước (dương Z của ván)
         else
         {
-            pushDirection = stunZone.transform.forward;
+            pushDirection = stunZone.transform.forward;  // Đẩy tới
         }
 
-        // Điểm cần đẩy tới
-        Vector3 targetPosition = charTransform.position + (pushDirection * pushOutDistance);
+        // ==================================================
+        // 🚨 SỬA LỖI 1: KHÔNG BAY LÊN TRỜI HOẶC CHUI XUỐNG ĐẤT
+        // ==================================================
+        // Triệt tiêu hoàn toàn độ nghiêng trục Y của ván, ép đẩy theo chiều ngang song song mặt đất
+        pushDirection.y = 0;
+        pushDirection.Normalize();
 
-        // BẮT BUỘC tắt CharacterController trước khi dịch chuyển để tránh kẹt vật lý
+        // ==================================================
+        // 🚨 SỬA LỖI 2: KHÔNG BỊ XUYÊN TƯỜNG (RAYCAST CHECK)
+        // ==================================================
+        float safePushDistance = pushOutDistance;
+
+        // Bắn một khối cầu ảo (SphereCast) từ ngang ngực nhân vật (cao 1m) về hướng bị đẩy
+        Vector3 castOrigin = charTransform.position + Vector3.up * 1.0f;
+        float characterRadius = 0.3f; // Bán kính giả định của cơ thể nhân vật
+
+        // Nếu khối cầu đụng trúng cái gì đó trong phạm vi đẩy...
+        if (Physics.SphereCast(castOrigin, characterRadius, pushDirection, out RaycastHit hit, pushOutDistance))
+        {
+            // Bỏ qua nếu cái đụng trúng chỉ là vùng Trigger, hoặc là người chơi khác
+            if (!hit.collider.isTrigger &&
+                !hit.collider.CompareTag("Player") &&
+                !hit.collider.CompareTag("Hunter") &&
+                !hit.collider.CompareTag("Playerchet"))
+            {
+                // Ngay lập tức cắt ngắn khoảng cách đẩy lại để không chui vào tường
+                // Trừ đi 0.1f để nhân vật đứng cách vách tường một khoảng mỏng, không bị kẹt
+                safePushDistance = Mathf.Max(0f, hit.distance - 0.1f);
+            }
+        }
+
+        // Tính điểm đến an toàn
+        Vector3 targetPosition = charTransform.position + (pushDirection * safePushDistance);
+
+        // Ép cứng độ cao Y của điểm đến bằng đúng độ cao Y ban đầu của nhân vật
+        targetPosition.y = charTransform.position.y;
+
+        // --- BẮT ĐẦU DỊCH CHUYỂN ---
+        // Tắt CC để không bị giật vật lý
         if (cc != null) cc.enabled = false;
-        
+
         charTransform.position = targetPosition;
 
-        // Ép NetworkTransform cập nhật ngay lập tức cho các máy khác
+        // Đồng bộ mạng
         NetworkTransform netTransform = charTransform.GetComponent<NetworkTransform>();
         if (netTransform != null)
         {
             netTransform.Teleport(targetPosition, charTransform.rotation);
         }
 
+        // Bật lại CC
         if (cc != null) cc.enabled = true;
     }
 
