@@ -252,8 +252,6 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         {
             if (_characterController != null && _characterController.enabled)
             {
-                // Bắt buộc tắt Character Controller trên màn hình của người khác.
-                // Nếu không tắt, Physics của Unity sẽ chặn luồng dữ liệu mạng làm nhân vật đứng im.
                 _characterController.enabled = false;
             }
         }
@@ -273,7 +271,7 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
             if (revivePrompt) revivePrompt.SetActive(canShowE);
 
             UpdateReviveProgressUI();
-            // HandleWallhackVisuals();
+            HandleWallhackVisuals();
             UpdateHeartbeat();
         }
         if (!IsDowned && !IsHooked && transform.parent != null)
@@ -399,8 +397,6 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
 
     private void HandleMovement(MrBeastGameplayInput input)
     {
-        _characterController.enabled = false;
-        _characterController.enabled = true;
         Vector3 direction = CalculateDirection(input.moveDirection, input.camForward, input.camRight);
 
         if (direction.magnitude > 1f) direction.Normalize();
