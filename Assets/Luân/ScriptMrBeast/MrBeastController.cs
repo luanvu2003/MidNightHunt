@@ -298,8 +298,14 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
 
         foreach (var hit in hits)
         {
-            GameObject hunterObj = hit.gameObject;
-            currentlyVisibleHunters.Add(hunterObj);
+            // 🚨 FIX LỖI ĐA HITBOX: Lấy ra Object gốc (Root) của con quái.
+            // Đề phòng trường hợp quái có 5 cái hitbox (tay, chân, đầu) bị quét thành 5 con quái.
+            GameObject hunterObj = hit.transform.root.gameObject;
+
+            if (!currentlyVisibleHunters.Contains(hunterObj))
+            {
+                currentlyVisibleHunters.Add(hunterObj);
+            }
 
             // Nếu con Hunter này MỚI bước vào vùng quét
             if (!_scannedHunters.Contains(hunterObj))
@@ -331,8 +337,8 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
 
         foreach (Renderer r in renderers)
         {
-            // Lấy danh sách Material hiện tại của bộ phận này
-            List<Material> matList = new List<Material>(r.materials);
+            // 🚨 TỐI ƯU SIÊU CẤP: Dùng "sharedMaterials" để ĐỌC danh sách, tuyệt đối không tạo bản sao rác
+            List<Material> matList = new List<Material>(r.sharedMaterials);
 
             if (isOn)
             {
@@ -340,22 +346,26 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
                 bool hasXray = false;
                 foreach (var m in matList)
                 {
-                    // Tên material khi chạy sẽ tự thêm chữ (Instance) nên dùng Contains
-                    if (m.name.Contains(xrayMaterial.name)) hasXray = true;
+                    if (m != null && m.name.Contains(xrayMaterial.name)) hasXray = true;
                 }
 
-                // Nếu chưa có thì thêm nó vào cuối danh sách
+                // Nếu CHƯA CÓ thì mới thêm vào và CHỈ ghi đè 1 LẦN DUY NHẤT
                 if (!hasXray)
                 {
                     matList.Add(xrayMaterial);
-                    r.materials = matList.ToArray();
+                    r.materials = matList.ToArray(); 
                 }
             }
             else
             {
-                // Khi tắt X-Ray: Xóa toàn bộ những Material nào có tên là xrayMaterial
-                matList.RemoveAll(m => m.name.Contains(xrayMaterial.name));
-                r.materials = matList.ToArray();
+                // Khi tắt X-Ray: Xóa toàn bộ những Material nào là áo X-Ray
+                int removedCount = matList.RemoveAll(m => m != null && m.name.Contains(xrayMaterial.name));
+                
+                // 🚨 CỨU TINH CHỐNG LAG: CHỈ gọi r.materials NẾU thực sự có cái áo X-Ray bị lột ra!
+                if (removedCount > 0)
+                {
+                    r.materials = matList.ToArray();
+                }
             }
         }
     }
@@ -367,6 +377,9 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         {
             SetXRayOnHunter(hunter, false);
         }
+        
+        // 🚨 DÒNG QUAN TRỌNG NHẤT BỊ THIẾU TRONG CODE CŨ: Phải dọn sạch List!
+        _scannedHunters.Clear();
     }
 
     public void SetRepairAnimation(bool isRepairing)
