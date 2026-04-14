@@ -490,29 +490,22 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
     {
         bool isArmed = IsSkillArmed;
         bool isActive = IsSkillActive;
+        float? cdLeft = SkillCooldownTimer.RemainingTime(Runner);
 
-        durationSlider.gameObject.SetActive(isArmed || isActive);
-        if (isArmed)
-        {
-            // Sửa lỗi 1: Đưa slider về đầy thanh (1.0f) thay vì nhét cả 10f vào
-            durationSlider.value = 1f;
-        }
-        else if (isActive)
-        {
-            // Lấy thời gian còn lại, nếu bị null thì mặc định là 0
-            float timeLeft = SkillDurationTimer.RemainingTime(Runner) ?? 0f;
-            durationSlider.value = timeLeft / skillDuration;
-        }
+        // 1. Slider: Chỉ chạy khi Đang sửa máy (Active)
+        durationSlider.gameObject.SetActive(isActive);
+        if (isActive) durationSlider.value = (SkillDurationTimer.RemainingTime(Runner) ?? 0f) / skillDuration;
 
-        // Sửa lỗi 2: Ép kiểu an toàn cho biến float? của Fusion
-        float cdLeft = SkillCooldownTimer.RemainingTime(Runner) ?? 0f;
-        bool onCooldown = cdLeft > 0f && !isArmed && !isActive;
+        bool onCooldown = cdLeft > 0 && !isArmed && !isActive;
 
-        cooldownImage.gameObject.SetActive(onCooldown);
-        if (onCooldown) cooldownImage.fillAmount = cdLeft / skillCooldown;
+        // 2. Overlay mờ: Bật nếu Hồi Chiêu HOẶC đang Gài (Armed)
+        cooldownImage.gameObject.SetActive(onCooldown || isArmed);
+
+        if (isArmed) cooldownImage.fillAmount = 1f; // Ấn vô tối đen nguyên ô
+        else if (onCooldown) cooldownImage.fillAmount = cdLeft.Value / skillCooldown;
 
         cooldownText.gameObject.SetActive(onCooldown);
-        if (onCooldown) cooldownText.text = Mathf.Ceil(cdLeft).ToString();
+        if (onCooldown) cooldownText.text = Mathf.Ceil(cdLeft.Value).ToString();
     }
 
     private void UpdateHookUI()
@@ -823,23 +816,39 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
 
     public void OnStartRepair()
     {
-        _isLocalRepairing = true; // 🚨 THÊM DÒNG NÀY
-        if (IsSkillArmed)
-        {
-            IsSkillArmed = false;
-            IsSkillActive = true;
-            SkillDurationTimer = TickTimer.CreateFromSeconds(Runner, skillDuration);
-        }
+        _isLocalRepairing = true;
+        // Bắn tín hiệu lên Server yêu cầu bật skill
+        RPC_TriggerRepairSkill(true);
     }
 
     public void OnStopRepair()
     {
-        _isLocalRepairing = false; // 🚨 THÊM DÒNG NÀY
-        if (IsSkillActive)
+        _isLocalRepairing = false;
+        // Bắn tín hiệu lên Server yêu cầu tắt skill
+        RPC_TriggerRepairSkill(false);
+    }
+
+    // 🚨 THÊM HÀM RPC MỚI NÀY ĐỂ MÁY CHỦ XỬ LÝ BIẾN MẠNG
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_TriggerRepairSkill(NetworkBool isStarting)
+    {
+        if (isStarting)
         {
-            IsSkillActive = false;
-            SkillCooldownTimer = TickTimer.CreateFromSeconds(Runner, skillCooldown);
-            SkillDurationTimer = TickTimer.None;
+            if (IsSkillArmed)
+            {
+                IsSkillArmed = false;
+                IsSkillActive = true;
+                SkillDurationTimer = TickTimer.CreateFromSeconds(Runner, skillDuration);
+            }
+        }
+        else
+        {
+            if (IsSkillActive)
+            {
+                IsSkillActive = false;
+                SkillCooldownTimer = TickTimer.CreateFromSeconds(Runner, skillCooldown);
+                SkillDurationTimer = TickTimer.None;
+            }
         }
     }
 
