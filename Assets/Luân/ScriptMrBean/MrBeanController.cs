@@ -81,7 +81,8 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
 
     [Header("PLayer State")]
     [Networked] private TickTimer InvincibilityTimer { get; set; }
-    public GameObject PlayerDeadthBox;
+    [Header("Player Death Boxes")]
+    public List<GameObject> playerDeathBoxes; // 🚨 Đã chuyển thành List
 
     [Header("Revive & Unhook Settings")]
     public float reviveTime = 5f;  // Cứu gục dưới đất mất 5 giây
@@ -289,9 +290,12 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
             }
         }
 
-        if (PlayerDeadthBox != null)
+        if (playerDeathBoxes != null && playerDeathBoxes.Count > 0)
         {
-            PlayerDeadthBox.SetActive(IsDowned || IsHooked);
+            foreach (var box in playerDeathBoxes)
+            {
+                if (box != null) box.SetActive(IsDowned || IsHooked);
+            }
         }
 
         if (Object.HasInputAuthority)
@@ -622,7 +626,16 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         IsDowned = false;
         IsBeingRevived = false;
         _characterController.enabled = true;
-        PlayerDeadthBox.SetActive(false);
+
+        // 🚨 ĐÃ SỬA: Duyệt vòng lặp để tắt hết các box
+        if (playerDeathBoxes != null)
+        {
+            foreach (var box in playerDeathBoxes)
+            {
+                if (box != null) box.SetActive(false);
+            }
+        }
+
         CurrentHits = 1;
     }
 
