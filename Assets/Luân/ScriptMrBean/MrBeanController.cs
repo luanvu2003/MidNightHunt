@@ -55,6 +55,15 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
     public TextMeshProUGUI cooldownText;
     public Slider hookSlider;
 
+    [Header("== HEARTBEAT UI ==")]
+    public TextMeshProUGUI heartbeatBpmText; // Hiển thị số (VD: 75 BPM)
+    public RectTransform heartIcon;          // Icon trái tim để đập to/nhỏ
+    public RectTransform ecgLine;            // (Tùy chọn) Sơ đồ nhịp tim chạy lên xuống
+
+    public float normalBPM = 70f;            // Nhịp tim bình thường
+    public float maxBPM = 180f;              // Nhịp tim tối đa khi quái ở sát mặt
+    private float _heartPulseTimer = 0f;
+
     [Header("Camera Reference")]
     public Transform mainCamera;
 
@@ -218,6 +227,13 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
             if (IsHooked && SacrificeTimer.Expired(Runner))
             {
                 if (deathSound != null) PlayDetachedSound(deathSound, transform.position);
+
+                // 🚨 THÊM ĐOẠN NÀY: Báo cho Manager biết có người vừa chết
+                if (Object.HasStateAuthority)
+                {
+                    GameMatchManager_Fusion.Instance?.RegisterPlayerDeath();
+                }
+
                 Runner.Despawn(Object);
                 return;
             }
@@ -640,11 +656,11 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
         }
     }
 
-    // Hệ thống nhịp tim đập nhanh dần
+    // Hệ thống nhịp tim đập nhanh dần và xuất ra UI
     private void UpdateHeartbeat()
     {
-        // Chỉ người chơi điều khiển nhân vật này mới nghe tiếng tim đập của chính họ
-        if (!Object.HasInputAuthority || heartbeatSource == null) return;
+        // Chỉ người chơi điều khiển nhân vật này mới nghe/thấy tiếng tim đập của chính họ
+        if (!Object.HasInputAuthority) return;
 
         GameObject[] hunters = GameObject.FindGameObjectsWithTag("Hunter");
         float minDistance = float.MaxValue;
@@ -656,21 +672,79 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
             if (dist < minDistance) minDistance = dist;
         }
 
+        float intensity = 0f; // Mức độ nguy hiểm (0 đến 1)
+
         if (minDistance <= terrorRadius)
         {
             // Tính toán cường độ: 0 (ở rìa 30m) -> 1 (ở sát bên 0m)
-            float intensity = 1f - (minDistance / terrorRadius);
+            intensity = 1f - (minDistance / terrorRadius);
 
-            // Càng gần âm lượng càng to, nhịp (pitch) đập càng nhanh
-            heartbeatSource.volume = intensity * GetVFXVolume();
-            heartbeatSource.pitch = Mathf.Lerp(1f, maxHeartbeatPitch, intensity);
-
-            if (!heartbeatSource.isPlaying) heartbeatSource.Play();
+            if (heartbeatSource != null)
+            {
+                heartbeatSource.volume = intensity * GetVFXVolume();
+                heartbeatSource.pitch = Mathf.Lerp(1f, maxHeartbeatPitch, intensity);
+                if (!heartbeatSource.isPlaying) heartbeatSource.Play();
+            }
         }
         else
         {
             // Quái ở xa -> Tắt tiếng tim
-            heartbeatSource.volume = 0f;
+            if (heartbeatSource != null) heartbeatSource.volume = 0f;
+        }
+
+        // --- CẬP NHẬT UI ---
+        UpdateHeartbeatUI(intensity);
+    }
+
+    // Hàm mới: Xử lý hoạt ảnh và chữ hiển thị trên Màn Hình
+    private void UpdateHeartbeatUI(float intensity)
+    {
+        // Tính BPM hiện tại (từ 70 đến 180 tùy độ gần của quái)
+        float currentBPM = Mathf.Lerp(normalBPM, maxBPM, intensity);
+
+        // 1. Cập nhật Số BPM
+        if (heartbeatBpmText != null)
+        {
+            heartbeatBpmText.text = Mathf.RoundToInt(currentBPM).ToString() + " BPM";
+            // Đổi màu từ Trắng sang Đỏ dựa theo độ nguy hiểm
+            heartbeatBpmText.color = Color.Lerp(Color.white, Color.red, intensity);
+        }
+
+        // 2. Logic cho biểu đồ hoặc icon trái tim đập
+        float bps = currentBPM / 60f; // Nhịp đập mỗi giây
+        _heartPulseTimer += Time.deltaTime * bps * Mathf.PI * 2f;
+
+        // Hàm Sin tạo độ nảy (nhịp đập)
+        float pulse = Mathf.Sin(_heartPulseTimer);
+
+        // A. Làm icon trái tim đập to/nhỏ
+        if (heartIcon != null)
+        {
+            // Tỷ lệ scale nảy từ 1.0 đến 1.3
+            float scale = 1f + (pulse > 0.8f ? 0.3f : 0f) + (Mathf.Sin(_heartPulseTimer * 2f) * 0.1f);
+            heartIcon.localScale = new Vector3(scale, scale, 1f);
+
+            Image img = heartIcon.GetComponent<Image>();
+            if (img != null) img.color = Color.Lerp(Color.white, Color.red, intensity);
+        }
+
+        // B. Làm sơ đồ (Đường kẻ nhấp nhô)
+        if (ecgLine != null)
+        {
+            // Tạo đồ thị giật lên giật xuống (Mô phỏng nhịp QRS của điện tâm đồ)
+            float yOffset = 0f;
+            if (pulse > 0.95f) yOffset = 50f;      // Giật lên mạnh
+            else if (pulse > 0.85f) yOffset = -20f; // Giật xuống nhẹ
+            else if (pulse > 0.6f) yOffset = 10f;   // Nhích lên xíu
+
+            // Ép độ giật mạnh hơn nếu quái ở gần
+            yOffset *= (1f + intensity);
+
+            // Di chuyển đường line (Chỉ di chuyển trục Y, giữ nguyên trục X)
+            ecgLine.anchoredPosition = new Vector2(ecgLine.anchoredPosition.x, Mathf.Lerp(ecgLine.anchoredPosition.y, yOffset, Time.deltaTime * 15f));
+
+            Image lineImg = ecgLine.GetComponent<Image>();
+            if (lineImg != null) lineImg.color = Color.Lerp(Color.green, Color.red, intensity); // An toàn màu xanh, nguy hiểm màu đỏ
         }
     }
 
