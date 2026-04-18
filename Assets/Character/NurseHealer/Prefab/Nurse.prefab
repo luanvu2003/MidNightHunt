@@ -3012,7 +3012,9 @@ MonoBehaviour:
   ecgWidth: 400
   dotPrefab: {fileID: 402438543715635897, guid: 3096a5ce45794024c9906bd7718df757, type: 3}
   mainCamera: {fileID: 0}
-  PlayerDeadthBox: {fileID: 1231474607765860872}
+  playerDeathBoxes:
+  - {fileID: 1231474607765860872}
+  - {fileID: 8781985862668736545}
   reviveTime: 30
   unhookTime: 10
   revivingAnimBool: IsReviving

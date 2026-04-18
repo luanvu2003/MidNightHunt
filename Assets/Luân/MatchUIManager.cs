@@ -10,30 +10,38 @@ public class MatchUIManager : MonoBehaviour
     public class PlayerUISlot
     {
         public GameObject rootObj; // Giao diện tổng của 1 người chơi (Slot)
-        
-        [Header("Thông tin cơ bản (Sẽ tự tìm nếu để trống)")]
-        public Image playerImage;        // Hình ảnh đại diện của nhân vật
+
+        [Header("Thông tin cơ bản")]
+        public Image playerImage;        // Hình ảnh đại diện nhân vật
         public TextMeshProUGUI nameText; // Tên người chơi
 
+        [Header("Trạng Thái Máu (Status)")]
+        public Image statusIcon;         // Hình ảnh sẽ thay đổi khi bị Hit/Gục
+
         [Header("Hook Cooldown")]
-        public Image hookOverlay; 
-        public TextMeshProUGUI hookCooldownText; 
+        public Image hookOverlay;
+        public TextMeshProUGUI hookCooldownText;
 
         [HideInInspector] public ISurvivor linkedSurvivor;
-        [HideInInspector] public bool isAssigned; 
+        [HideInInspector] public bool isAssigned;
         [HideInInspector] public int lastAssignedPlayerID = -1;
     }
 
     [Header("Cài đặt UI Khu vực người chơi")]
-    [Tooltip("Khung chứa có gắn component Vertical Layout Group")]
-    public RectTransform slotContainer; 
-    public PlayerUISlot[] playerSlots; 
+    public RectTransform slotContainer;
+    public PlayerUISlot[] playerSlots;
 
-    [Header("Dữ liệu hình ảnh (Đồng bộ theo CharacterID)")]
-    [Tooltip("Thứ tự hình ảnh phải khớp với CharacterID của người chơi")]
-    public Sprite[] characterAvatars; 
+    [Header("Dữ liệu hình ảnh Avatar (Theo CharacterID)")]
+    public Sprite[] characterAvatars;
 
-    private float maxHookTime = 90f; 
+    [Header("🚨 CÁC ICON TRẠNG THÁI (Máu / Gục)")]
+    public Sprite iconHealthy; // (Tùy chọn) Bình thường, không bị gì
+    public Sprite iconHit1;    // Bị chém 1 nhát
+    public Sprite iconHit2;    // Bị chém 2 nhát
+    public Sprite iconDowned;  // Nằm gục (3 nhát)
+    // Đã xóa bỏ iconHooked ở đây vì không cần thiết nữa
+
+    private float maxHookTime = 90f;
 
     private void Start()
     {
@@ -46,26 +54,20 @@ public class MatchUIManager : MonoBehaviour
 
     private void Update()
     {
-        // Lấy danh sách RoomPlayer đã được spawn trên mạng
         var roomPlayers = FindObjectsOfType<RoomPlayer>().Where(p => p.Object != null && p.Object.IsValid).ToList();
-        
-        // Chỉ lấy những người chơi là Survivor
         var survivors = roomPlayers.Where(p => !p.IsHunter).OrderBy(p => p.Object.InputAuthority.PlayerId).ToList();
 
-        // Kiểm tra xem có ai mới vào/ra phòng không để vẽ lại UI
-        if (CheckIfNeedsRefresh(survivors)) 
+        if (CheckIfNeedsRefresh(survivors))
         {
             SetupUI(survivors);
-            
-            // Ép Layout Group cập nhật ngay lập tức để xếp dọc sát nhau
+
             if (slotContainer != null)
             {
                 LayoutRebuilder.ForceRebuildLayoutImmediate(slotContainer);
             }
         }
 
-        // Chạy logic đếm ngược Hook
-        UpdateHookCooldownLogic(roomPlayers);
+        UpdatePlayerUIStates(roomPlayers);
     }
 
     private bool CheckIfNeedsRefresh(List<RoomPlayer> currentSurvivors)
@@ -83,8 +85,7 @@ public class MatchUIManager : MonoBehaviour
 
     private void SetupUI(List<RoomPlayer> survivors)
     {
-        // Reset lại toàn bộ slots
-        foreach (var slot in playerSlots) 
+        foreach (var slot in playerSlots)
         {
             if (slot.rootObj != null) slot.rootObj.SetActive(false);
             slot.isAssigned = false;
@@ -92,38 +93,26 @@ public class MatchUIManager : MonoBehaviour
             slot.linkedSurvivor = null;
         }
 
-        // Bật slot cho từng người chơi
         foreach (var player in survivors)
         {
-            // Tìm 1 slot trống đầu tiên
             var slot = playerSlots.FirstOrDefault(s => !s.isAssigned);
 
             if (slot != null && slot.rootObj != null)
             {
                 slot.rootObj.SetActive(true);
-                
-                // Đẩy xuống cuối hierarchy để Vertical Layout Group xếp chồng khít lên nhau
-                slot.rootObj.transform.SetAsLastSibling(); 
-                
+                slot.rootObj.transform.SetAsLastSibling();
                 slot.isAssigned = true;
                 slot.lastAssignedPlayerID = player.Object.InputAuthority.PlayerId;
-                
-                // --- TỰ ĐỘNG TÌM COMPONENT NẾU CHƯA GÁN ---
-                if (slot.nameText == null) 
-                    slot.nameText = slot.rootObj.GetComponentInChildren<TextMeshProUGUI>(true);
-                
-                if (slot.playerImage == null) 
-                    slot.playerImage = slot.rootObj.GetComponentInChildren<Image>(true);
 
-                // --- GÁN DỮ LIỆU ĐỒNG BỘ MẠNG ---
-                // 1. Gán Tên
+                if (slot.nameText == null) slot.nameText = slot.rootObj.GetComponentInChildren<TextMeshProUGUI>(true);
+                if (slot.playerImage == null) slot.playerImage = slot.rootObj.GetComponentInChildren<Image>(true);
+
                 if (slot.nameText != null)
                 {
                     string pName = player.PlayerName.ToString();
                     slot.nameText.text = string.IsNullOrEmpty(pName) ? "Player..." : pName;
                 }
 
-                // 2. Gán Hình Ảnh (Image) dựa trên CharacterID
                 if (slot.playerImage != null)
                 {
                     int charID = player.CharacterID;
@@ -131,40 +120,81 @@ public class MatchUIManager : MonoBehaviour
                     {
                         slot.playerImage.sprite = characterAvatars[charID];
                     }
-                    else
-                    {
-                        Debug.LogWarning($"[UI] Không tìm thấy hình ảnh Avatar cho CharacterID {charID}");
-                    }
                 }
             }
         }
     }
 
     // ==========================================
-    // LOGIC HOOK COOLDOWN (GIỮ NGUYÊN TỪ CODE CŨ)
+    // LOGIC CẬP NHẬT MÓC & ICON TRẠNG THÁI
     // ==========================================
-    private void UpdateHookCooldownLogic(List<RoomPlayer> allPlayers)
+    private void UpdatePlayerUIStates(List<RoomPlayer> allPlayers)
     {
+        // 1. KIỂM TRA XEM NGƯỜI ĐANG NHÌN MÀN HÌNH NÀY CÓ PHẢI LÀ HUNTER KHÔNG?
+        bool isLocalHunter = false;
+        var localRoomPlayer = allPlayers.FirstOrDefault(p => p.Object.HasInputAuthority);
+        if (localRoomPlayer != null && localRoomPlayer.IsHunter)
+        {
+            isLocalHunter = true;
+        }
+
         foreach (var slot in playerSlots)
         {
             if (!slot.isAssigned || slot.rootObj == null) continue;
 
-            if (slot.linkedSurvivor == null)
-            {
-                FindLinkedSurvivor(slot, allPlayers);
-            }
+            if (slot.linkedSurvivor == null) FindLinkedSurvivor(slot, allPlayers);
 
             if (slot.linkedSurvivor != null)
             {
                 bool isHooked = slot.linkedSurvivor.GetIsHooked();
-                if (slot.hookOverlay != null) slot.hookOverlay.gameObject.SetActive(isHooked);
-                if (slot.hookCooldownText != null) slot.hookCooldownText.gameObject.SetActive(isHooked);
+                bool isDowned = slot.linkedSurvivor.GetIsDowned();
+                int hits = GetCurrentHitsSafe(slot.linkedSurvivor); // Lấy số Hit hiện tại
 
-                if (isHooked)
+                // ----------------------------------------------------
+                // A. LOGIC THANH MÓC (HUNTER SẼ KHÔNG ĐƯỢC THẤY)
+                // ----------------------------------------------------
+                bool showHookUI = isHooked && !isLocalHunter;
+
+                if (slot.hookOverlay != null) slot.hookOverlay.gameObject.SetActive(showHookUI);
+                if (slot.hookCooldownText != null) slot.hookCooldownText.gameObject.SetActive(showHookUI);
+
+                if (showHookUI)
                 {
                     float timeLeft = slot.linkedSurvivor.GetSacrificeTimer();
                     slot.hookCooldownText.text = Mathf.Ceil(timeLeft).ToString();
                     slot.hookOverlay.fillAmount = timeLeft / maxHookTime;
+                }
+
+                /// ----------------------------------------------------
+                // B. LOGIC ĐỔI ICON THEO SỐ HIT / GỤC
+                // ----------------------------------------------------
+                if (slot.statusIcon != null)
+                {
+                    // 🚨 NẾU BỊ TREO MÓC: Tắt luôn cái Icon Trạng Thái đi cho đỡ rác UI
+                    if (isHooked)
+                    {
+                        slot.statusIcon.gameObject.SetActive(false);
+                    }
+                    else
+                    {
+                        slot.statusIcon.gameObject.SetActive(true);
+                        slot.statusIcon.color = Color.white; // 🚨 FIX LỖI: Ép màu trắng với Alpha 100% để chống tàng hình
+
+                        if (isDowned && iconDowned != null)
+                            slot.statusIcon.sprite = iconDowned;
+                        else if (hits >= 2 && iconHit2 != null)
+                            slot.statusIcon.sprite = iconHit2;
+                        else if (hits == 1 && iconHit1 != null)
+                            slot.statusIcon.sprite = iconHit1;
+                        else
+                        {
+                            // Chưa bị chém cái nào (Khỏe mạnh)
+                            if (iconHealthy != null)
+                                slot.statusIcon.sprite = iconHealthy;
+                            else
+                                slot.statusIcon.gameObject.SetActive(false);
+                        }
+                    }
                 }
             }
         }
@@ -185,5 +215,14 @@ public class MatchUIManager : MonoBehaviour
                 break;
             }
         }
+    }
+
+    // Hàm lấy số Hit an toàn cho tất cả các loại Nhân Vật mà không cần sửa interface ISurvivor
+    private int GetCurrentHitsSafe(ISurvivor survivor)
+    {
+        if (survivor is IShowSpeedController_Fusion speed) return speed.CurrentHits;
+        if (survivor is NurseController_Fusion nurse) return nurse.CurrentHits;
+        if (survivor is MrBeanController_Fusion bean) return bean.CurrentHits;
+        return 0; // Trả về 0 nếu không lỗi/khỏe mạnh
     }
 }
