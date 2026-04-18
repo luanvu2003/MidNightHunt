@@ -228,10 +228,10 @@ public class MrBeanController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks
             {
                 if (deathSound != null) PlayDetachedSound(deathSound, transform.position);
 
-                // 🚨 THÊM ĐOẠN NÀY: Báo cho Manager biết có người vừa chết
+                // 🚨 BÁO CÁO NGƯỜI CHẾT KÈM THEO ID (InputAuthority) CỦA HỌ
                 if (Object.HasStateAuthority)
                 {
-                    GameMatchManager_Fusion.Instance?.RegisterPlayerDeath();
+                    GameMatchManager_Fusion.Instance?.RegisterPlayerDeath(Object.InputAuthority);
                 }
 
                 Runner.Despawn(Object);
