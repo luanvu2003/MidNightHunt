@@ -2,7 +2,7 @@ using UnityEngine;
 using Fusion;
 using System.Linq;
 using TMPro;
-using UnityEngine.SceneManagement; // Thêm để load scene local khi Quit
+using UnityEngine.SceneManagement;
 
 public class GameMatchManager_Fusion : NetworkBehaviour
 {
@@ -15,10 +15,10 @@ public class GameMatchManager_Fusion : NetworkBehaviour
     public GameObject quitButton;       // Nút "Thoát Game"
 
     [Header("== CÀI ĐẶT SCENE ==")]
-    public int roomSceneBuildIndex = 1; 
+    public int roomSceneBuildIndex = 1;
 
-    // Biến đồng bộ mạng: Khi IsMatchEnded thay đổi, hàm OnMatchEnded sẽ chạy trên TẤT CẢ máy
-    [Networked, OnChangedRender(nameof(OnMatchEnded))] 
+    // Biến đồng bộ mạng
+    [Networked, OnChangedRender(nameof(OnMatchEnded))]
     public NetworkBool IsMatchEnded { get; set; }
 
     [Networked] public int TotalSurvivors { get; set; }
@@ -33,7 +33,7 @@ public class GameMatchManager_Fusion : NetworkBehaviour
     public override void Spawned()
     {
         if (endGameCanvas != null) endGameCanvas.SetActive(false);
-        
+
         if (Runner.IsServer)
         {
             StartCoroutine(CountPlayersRoutine());
@@ -47,11 +47,15 @@ public class GameMatchManager_Fusion : NetworkBehaviour
         TotalSurvivors = allPlayers.Count(p => !p.IsHunter);
     }
 
-    // Server gọi khi Survivor chết
-    public void RegisterPlayerDeath()
+    // 🚨 ĐÃ SỬA: Cần truyền vào PlayerRef của người vừa chết
+    public void RegisterPlayerDeath(PlayerRef deadPlayer)
     {
         if (!Runner.IsServer || IsMatchEnded) return;
         DeadSurvivors++;
+
+        // Hiện UI riêng cho người vừa chết
+        RPC_NotifyPlayerFinished(deadPlayer, "BẠN ĐÃ TỬ TRẬN!");
+        
         CheckEndGameCondition();
     }
 
@@ -62,9 +66,9 @@ public class GameMatchManager_Fusion : NetworkBehaviour
         EscapedSurvivors++;
 
         // Hiện UI riêng cho người vừa thoát thành công
-        RPC_ShowEndScreenIndividual(playerObject.InputAuthority, "BẠN ĐÃ THOÁT THÀNH CÔNG!");
-        
-        // Despawn nhân vật để họ không còn trên map
+        RPC_NotifyPlayerFinished(playerObject.InputAuthority, "BẠN ĐÃ THOÁT THÀNH CÔNG!");
+
+        // Xóa nhân vật khỏi map
         Runner.Despawn(playerObject);
 
         CheckEndGameCondition();
@@ -72,58 +76,76 @@ public class GameMatchManager_Fusion : NetworkBehaviour
 
     private void CheckEndGameCondition()
     {
+        // Khi tất cả Survivor đã xong (chết hoặc thoát) -> End Game toàn cục
         if (DeadSurvivors + EscapedSurvivors >= TotalSurvivors)
         {
-            IsMatchEnded = true; // Kích hoạt callback OnMatchEnded cho mọi người
+            IsMatchEnded = true; 
         }
     }
 
-    // Callback này tự chạy trên mọi máy (Host & Client) khi trận đấu kết thúc
+    // Gửi UI cho cá nhân Survivor (khi họ chết hoặc thoát sớm)
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_NotifyPlayerFinished(PlayerRef player, string message)
+    {
+        if (Runner.LocalPlayer == player)
+        {
+            ShowUI(message, false); // false = Game chưa kết thúc toàn cục
+        }
+    }
+
+    // Hàm tự động gọi trên MỌI MÁY khi game thực sự kết thúc
     void OnMatchEnded()
     {
         if (IsMatchEnded)
         {
-            string finalMsg = (DeadSurvivors == TotalSurvivors) ? "TOÀN BỘ SURVIVOR ĐÃ BỊ TIÊU DIỆT!" : "TRẬN ĐẤU KẾT THÚC!";
-            ShowUI(finalMsg);
+            string finalMsg = (DeadSurvivors == TotalSurvivors) ? "HUNTER CHIẾN THẮNG\nTOÀN BỘ SURVIVOR ĐÃ BỊ TIÊU DIỆT!" : "TRẬN ĐẤU KẾT THÚC!";
+            ShowUI(finalMsg, true); // true = Game đã kết thúc toàn cục
         }
     }
 
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowEndScreenIndividual(PlayerRef player, string message)
+    // Hàm xử lý hiển thị UI dựa trên vai trò
+    private void ShowUI(string message, bool isGlobalEnd)
     {
-        if (Runner.LocalPlayer == player)
+        if (endGameCanvas != null) endGameCanvas.SetActive(true);
+        if (resultText != null) resultText.text = message;
+
+        bool isHost = Runner.IsServer;
+
+        if (isHost && !isGlobalEnd)
         {
-            ShowUI(message);
+            // 🚨 TRƯỜNG HỢP: Host (Survivor) thoát/chết sớm.
+            // Phải ẩn nút để Host không tắt nhầm làm sập phòng của những người đang chơi.
+            resultText.text += "\n\n<size=80%>(Bạn là Chủ Phòng. Vui lòng làm khán giả chờ ván đấu kết thúc để không làm sập phòng của người khác!)</size>";
+            if (returnRoomButton != null) returnRoomButton.SetActive(false);
+            if (quitButton != null) quitButton.SetActive(false);
         }
-    }
-
-    private void ShowUI(string message)
-    {
-        if (endGameCanvas != null)
+        else
         {
-            endGameCanvas.SetActive(true);
-            if (resultText != null) resultText.text = message;
-
-            // ĐỒNG BỘ NÚT: Cả Host và Client đều thấy nút này
+            // TRƯỜNG HỢP: 
+            // 1. Client thoát/chết sớm -> Bấm Rời đi bình thường.
+            // 2. Game đã kết thúc (isGlobalEnd = true) -> Ai cũng hiện nút, kể cả Hunter và Host.
             if (returnRoomButton != null) returnRoomButton.SetActive(true);
+            if (quitButton != null) quitButton.SetActive(true);
         }
-        
+
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
 
-    // Gắn vào nút "Về Sảnh" (Back)
+    // =====================================
+    // NÚT BẤM UI
+    // =====================================
+
     public void Button_ReturnToRoom()
     {
         if (Runner.IsServer)
         {
-            // Host bấm: Kéo cả phòng cùng về (giữ nguyên session)
+            // Nếu là End Game thực sự, Host bấm nút này sẽ Lôi toàn bộ những người còn lại về Lobby
             Runner.LoadScene(SceneRef.FromIndex(roomSceneBuildIndex));
         }
         else
         {
-            // Client bấm: Thoát khỏi session hiện tại và quay về màn hình phòng
-            // (Nếu Host chưa bấm về, client này sẽ rời nhóm)
+            // Client bấm -> Tự cắt kết nối mạng và Load lại giao diện Lobby
             StartCoroutine(ClientReturnRoutine());
         }
     }
@@ -132,24 +154,23 @@ public class GameMatchManager_Fusion : NetworkBehaviour
     {
         if (Runner != null)
         {
-            Runner.Shutdown(); // Ngắt kết nối
+            Runner.Shutdown(); // Ngắt kết nối khỏi phòng
         }
-        
-        // Đợi 1 frame để Shutdown hoàn tất
-        yield return null; 
-        
-        // Load lại Scene Room bằng Unity thuần để quay về màn hình nhập ID/Lobby
+
+        // Đợi 1 frame để ngắt kết nối hoàn toàn
+        yield return null;
+
+        // Về lại màn hình sảnh
         SceneManager.LoadScene(roomSceneBuildIndex);
     }
 
-    // Gắn vào nút "Thoát Game" (Quit)
     public void Button_QuitGame()
     {
         if (Runner != null) Runner.Shutdown();
         Application.Quit();
-        
-        #if UNITY_EDITOR
+
+#if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
-        #endif
+#endif
     }
 }
