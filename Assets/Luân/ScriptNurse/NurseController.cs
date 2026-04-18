@@ -53,13 +53,25 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
     public Slider hookSlider;
 
     [Header("== HEARTBEAT UI ==")]
-    public TextMeshProUGUI heartbeatBpmText; // Hiển thị số (VD: 75 BPM)
-    public RectTransform heartIcon;          // Icon trái tim để đập to/nhỏ
-    public RectTransform ecgLine;            // (Tùy chọn) Sơ đồ nhịp tim chạy lên xuống
+    public TextMeshProUGUI heartbeatBpmText;
+    public RectTransform heartIcon;
+    public RectTransform ecgPen;             // Điểm Neo (Cây bút) chạy ngang
 
-    public float normalBPM = 70f;            // Nhịp tim bình thường
-    public float maxBPM = 180f;              // Nhịp tim tối đa khi quái ở sát mặt
-    private float _heartPulseTimer = 0f;
+    public float normalBPM = 70f;
+    public float maxBPM = 180f;
+
+    [Header("ECG Settings")]
+    public float ecgSpeed = 200f;            // Tốc độ chạy từ trái sang phải
+    public float ecgWidth = 400f;            // Chiều dài cái khung chứa sơ đồ (Khi chạm mốc này sẽ quay về 0)
+
+    private float _heartPhase = 0f;          // Chu kỳ đập từ 0 -> 1
+    private float _bpmUpdateTimer = 0f;      // Bộ đếm thời gian cập nhật số BPM
+    private float _displayedBPM = 70f;       // Số hiển thị trên màn hình
+
+    [Header("== UI DOTTED TRAIL (Thay thế Trail Renderer) ==")]
+    public GameObject dotPrefab;
+    private List<Image> _spawnedDots = new List<Image>();
+    private Vector2 _lastPenPos = Vector2.zero; // 🚨 BIẾN MỚI: Nhớ vị trí bút của frame trước
 
     [Header("Camera Reference")]
     public Transform mainCamera;
@@ -677,52 +689,118 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
     // Hàm mới: Xử lý hoạt ảnh và chữ hiển thị trên Màn Hình
     private void UpdateHeartbeatUI(float intensity)
     {
-        // Tính BPM hiện tại (từ 70 đến 180 tùy độ gần của quái)
-        float currentBPM = Mathf.Lerp(normalBPM, maxBPM, intensity);
+        float targetBPM = Mathf.Lerp(normalBPM, maxBPM, intensity);
 
-        // 1. Cập nhật Số BPM
-        if (heartbeatBpmText != null)
+        // =====================================
+        // 1. XỬ LÝ NHẢY SỐ BPM
+        // =====================================
+        _bpmUpdateTimer -= Time.deltaTime;
+        if (_bpmUpdateTimer <= 0f)
         {
-            heartbeatBpmText.text = Mathf.RoundToInt(currentBPM).ToString() + " BPM";
-            // Đổi màu từ Trắng sang Đỏ dựa theo độ nguy hiểm
-            heartbeatBpmText.color = Color.Lerp(Color.white, Color.red, intensity);
+            _displayedBPM = targetBPM + UnityEngine.Random.Range(-4f, 4f);
+            if (heartbeatBpmText != null)
+            {
+                heartbeatBpmText.text = Mathf.RoundToInt(_displayedBPM).ToString();
+                heartbeatBpmText.color = Color.Lerp(Color.white, Color.red, intensity);
+            }
+            _bpmUpdateTimer = 0.5f;
         }
 
-        // 2. Logic cho biểu đồ hoặc icon trái tim đập
-        float bps = currentBPM / 60f; // Nhịp đập mỗi giây
-        _heartPulseTimer += Time.deltaTime * bps * Mathf.PI * 2f;
+        // =====================================
+        // 2. SƠ ĐỒ ĐIỆN TÂM ĐỒ (NÉT LIỀN MƯỢT)
+        // =====================================
+        float bps = targetBPM / 60f;
+        _heartPhase += Time.deltaTime * bps;
+        if (_heartPhase > 1f) _heartPhase -= 1f;
 
-        // Hàm Sin tạo độ nảy (nhịp đập)
-        float pulse = Mathf.Sin(_heartPulseTimer);
+        if (ecgPen != null)
+        {
+            float halfWidth = ecgWidth / 2f;
+            float currentX = ecgPen.anchoredPosition.x + (ecgSpeed * Time.deltaTime);
 
-        // A. Làm icon trái tim đập to/nhỏ
+            if (currentX > halfWidth) currentX = -halfWidth;
+
+            // Tính toán giật sóng tim
+            float yOffset = 0f;
+            float rSpikeHeight = 50f + (intensity * 40f);
+
+            if (_heartPhase > 0.10f && _heartPhase < 0.15f) yOffset = 10f;
+            else if (_heartPhase > 0.20f && _heartPhase < 0.22f) yOffset = -15f;
+            else if (_heartPhase >= 0.22f && _heartPhase < 0.26f) yOffset = rSpikeHeight;
+            else if (_heartPhase >= 0.26f && _heartPhase < 0.30f) yOffset = -25f;
+            else if (_heartPhase > 0.45f && _heartPhase < 0.55f) yOffset = 15f;
+
+            // Cập nhật vị trí "Cây bút"
+            ecgPen.anchoredPosition = new Vector2(currentX, Mathf.Lerp(ecgPen.anchoredPosition.y, yOffset, Time.deltaTime * 30f));
+
+            // 🚨 VẼ ĐƯỜNG NỐI LIỀN MẠCH
+            Vector2 currPos = ecgPen.anchoredPosition;
+            if (_lastPenPos != Vector2.zero && Vector2.Distance(currPos, _lastPenPos) < halfWidth)
+            {
+                if (dotPrefab != null)
+                {
+                    GameObject dot = Instantiate(dotPrefab, ecgPen.parent);
+                    RectTransform dotRect = dot.GetComponent<RectTransform>();
+
+                    // Đặt tâm ở giữa 2 frame
+                    dotRect.anchoredPosition = (currPos + _lastPenPos) / 2f;
+
+                    // Kéo dài ra bằng khoảng cách. Độ dày nét chữ = 5f
+                    float dist = Vector2.Distance(currPos, _lastPenPos);
+                    dotRect.sizeDelta = new Vector2(dist + 0.5f, 5f);
+
+                    // Xoay đúng góc
+                    Vector2 dir = currPos - _lastPenPos;
+                    float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+                    dotRect.localRotation = Quaternion.Euler(0, 0, angle);
+                    dotRect.SetAsFirstSibling();
+
+                    Image dotImg = dot.GetComponent<Image>();
+                    // Giữ nguyên Alpha = 1 để không lộ khớp nối
+                    dotImg.color = new Color(
+                        Mathf.Lerp(0f, 1f, intensity), // R: Nguy hiểm chuyển sang đỏ
+                        Mathf.Lerp(1f, 0f, intensity), // G: An toàn là xanh lá
+                        0f,
+                        1f // A: Luôn đặc 100%
+                    );
+                    _spawnedDots.Add(dotImg);
+                }
+            }
+            _lastPenPos = currPos;
+
+            // 🚨 TẠO ĐUÔI BẰNG CÁCH THU MỎNG (TAPER EFFECT) CHỨ KHÔNG LÀM MỜ
+            float shrinkSpeed = 5f / (ecgWidth / ecgSpeed); // Canh tốc độ bóp nhỏ theo tốc độ chạy
+
+            for (int i = _spawnedDots.Count - 1; i >= 0; i--)
+            {
+                Image img = _spawnedDots[i];
+                if (img == null) { _spawnedDots.RemoveAt(i); continue; }
+
+                // Bóp chiều Y (Thickness) bé lại
+                img.rectTransform.sizeDelta -= new Vector2(0, Time.deltaTime * shrinkSpeed);
+
+                // Nếu nét vẽ mỏng bằng 0 -> Tự hủy
+                if (img.rectTransform.sizeDelta.y <= 0f)
+                {
+                    Destroy(img.gameObject);
+                    _spawnedDots.RemoveAt(i);
+                }
+            }
+        }
+
+        // =====================================
+        // 3. ICON TRÁI TIM ĐẬP (Giữ nguyên)
+        // =====================================
         if (heartIcon != null)
         {
-            // Tỷ lệ scale nảy từ 1.0 đến 1.3
-            float scale = 1f + (pulse > 0.8f ? 0.3f : 0f) + (Mathf.Sin(_heartPulseTimer * 2f) * 0.1f);
-            heartIcon.localScale = new Vector3(scale, scale, 1f);
+            float scale = 1f;
+            if (_heartPhase >= 0.22f && _heartPhase < 0.30f) scale = 1.3f + (intensity * 0.2f);
+            else if (_heartPhase > 0.45f && _heartPhase < 0.55f) scale = 1.1f;
+
+            heartIcon.localScale = Vector3.Lerp(heartIcon.localScale, new Vector3(scale, scale, 1f), Time.deltaTime * 15f);
 
             Image img = heartIcon.GetComponent<Image>();
             if (img != null) img.color = Color.Lerp(Color.white, Color.red, intensity);
-        }
-
-        // B. Làm sơ đồ (Đường kẻ nhấp nhô)
-        if (ecgLine != null)
-        {
-            // Tạo đồ thị giật lên giật xuống (Mô phỏng nhịp QRS của điện tâm đồ)
-            float yOffset = 0f;
-            if (pulse > 0.95f) yOffset = 50f;      // Giật lên mạnh
-            else if (pulse > 0.85f) yOffset = -20f; // Giật xuống nhẹ
-            else if (pulse > 0.6f) yOffset = 10f;   // Nhích lên xíu
-
-            // Ép độ giật mạnh hơn nếu quái ở gần
-            yOffset *= (1f + intensity);
-
-            // Di chuyển đường line (Chỉ di chuyển trục Y, giữ nguyên trục X)
-            ecgLine.anchoredPosition = new Vector2(ecgLine.anchoredPosition.x, Mathf.Lerp(ecgLine.anchoredPosition.y, yOffset, Time.deltaTime * 15f));
-
-            Image lineImg = ecgLine.GetComponent<Image>();
-            if (lineImg != null) lineImg.color = Color.Lerp(Color.green, Color.red, intensity); // An toàn màu xanh, nguy hiểm màu đỏ
         }
     }
 
