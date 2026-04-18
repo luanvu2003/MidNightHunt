@@ -451,6 +451,30 @@ public class Generator : NetworkBehaviour
         {
             StopLocalRepair();
         }
+        // 🚨 THÊM DÒNG NÀY VÀO CUỐI HÀM: Xóa Aura ngay lập tức khi máy sửa xong
+        RemoveAuraMaterials();
+    }
+    // 🚨 THÊM HÀM NÀY XUỐNG DƯỚI HÀM EnableRepairedVisuals()
+    private void RemoveAuraMaterials()
+    {
+        Renderer[] renderers = GetComponentsInChildren<Renderer>();
+        foreach (Renderer r in renderers)
+        {
+            if (r is ParticleSystemRenderer) continue;
+
+            Material[] currentMats = r.materials;
+            System.Collections.Generic.List<Material> cleanedMats = new System.Collections.Generic.List<Material>();
+
+            foreach (Material m in currentMats)
+            {
+                // Chỉ giữ lại các material gốc, loại bỏ các material chứa tên Aura Đỏ và Trắng
+                if (!m.name.Contains("Mat_AuraRed") && !m.name.Contains("Mat_AuraWhite"))
+                {
+                    cleanedMats.Add(m);
+                }
+            }
+            r.materials = cleanedMats.ToArray();
+        }
     }
 
     private void AlertNearbyCrows()

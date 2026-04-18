@@ -373,6 +373,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7718890242428416659}
   - component: {fileID: 4933335487093803443}
+  - component: {fileID: 2192654758372275901}
   m_Layer: 0
   m_Name: Interaction_Trigger
   m_TagString: Untagged
@@ -414,8 +415,29 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 3.2120667, y: 2.7984614, z: 2.888031}
-  m_Center: {x: -0.5240631, y: 0.09833956, z: 0.6669769}
+  m_Size: {x: 3.2120667, y: 1.8362105, z: 0.41667175}
+  m_Center: {x: -0.5240631, y: -0.38278592, z: 1.7578964}
+--- !u!65 &2192654758372275901
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7143411665675131796}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.8430176, y: 1.8736737, z: 0.43052673}
+  m_Center: {x: -0.41497803, y: -0.43683684, z: -0.0593338}
 --- !u!1001 &3391112481170040729
 PrefabInstance:
   m_ObjectHideFlags: 0
