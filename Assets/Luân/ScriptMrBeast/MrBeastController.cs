@@ -215,6 +215,13 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
             if (IsHooked && SacrificeTimer.Expired(Runner))
             {
                 if (deathSound != null) PlayDetachedSound(deathSound, transform.position);
+
+                // 🚨 BÁO CÁO NGƯỜI CHẾT KÈM THEO ID (InputAuthority) CỦA HỌ
+                if (Object.HasStateAuthority)
+                {
+                    GameMatchManager_Fusion.Instance?.RegisterPlayerDeath(Object.InputAuthority);
+                }
+
                 Runner.Despawn(Object);
                 return;
             }
@@ -351,14 +358,14 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
                 if (!hasXray)
                 {
                     matList.Add(xrayMaterial);
-                    r.materials = matList.ToArray(); 
+                    r.materials = matList.ToArray();
                 }
             }
             else
             {
                 // Khi tắt X-Ray: Xóa toàn bộ những Material nào là áo X-Ray
                 int removedCount = matList.RemoveAll(m => m != null && m.name.Contains(xrayMaterial.name));
-                
+
                 // 🚨 CỨU TINH CHỐNG LAG: CHỈ gọi r.materials NẾU thực sự có cái áo X-Ray bị lột ra!
                 if (removedCount > 0)
                 {
@@ -375,7 +382,7 @@ public class MrBeastController_Fusion : NetworkBehaviour, INetworkRunnerCallback
         {
             SetXRayOnHunter(hunter, false);
         }
-        
+
         // 🚨 DÒNG QUAN TRỌNG NHẤT BỊ THIẾU TRONG CODE CŨ: Phải dọn sạch List!
         _scannedHunters.Clear();
     }
