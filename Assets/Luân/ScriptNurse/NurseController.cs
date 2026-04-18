@@ -281,10 +281,10 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
 
     private bool IsNearDeadBody()
     {
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, 0.5f);
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, 0.2f);
         foreach (var hit in hitColliders)
         {
-            if (hit.CompareTag("Playerchet")) return true;
+            if (hit.CompareTag("CuuPlayer")) return true;
         }
         return false;
     }
@@ -526,7 +526,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Cuaso")) _isNearWindow = false;
-        else if (Object.HasInputAuthority && other.CompareTag("Playerchet"))
+        else if (Object.HasInputAuthority && other.CompareTag("CuuPlayer"))
         {
             // Đi ra khỏi vùng Trigger -> Tự động hủy cứu
             if (IsReviving || IsUnhooking) RPC_SetReviveState(false, default, false);
@@ -538,7 +538,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
     {
         if (!Object.HasInputAuthority) return;
 
-        if (!IsDowned && !IsHooked && other.CompareTag("Playerchet"))
+        if (!IsDowned && !IsHooked && other.CompareTag("CuuPlayer"))
         {
             var target = other.GetComponentInParent<ISurvivor>();
 
@@ -962,7 +962,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
                     Collider[] hits = Physics.OverlapSphere(transform.position, 0.5f);
                     foreach (var hit in hits)
                     {
-                        if (hit.CompareTag("Playerchet"))
+                        if (hit.CompareTag("CuuPlayer"))
                         {
                             var target = hit.GetComponentInParent<ISurvivor>();
                             if (target != null && (target.GetIsDowned() || target.GetIsHooked()) && target.Object.Id != this.Object.Id)
