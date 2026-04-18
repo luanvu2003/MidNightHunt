@@ -1370,6 +1370,22 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2554136988919095592}
     m_Modifications:
+    - target: {fileID: 187549312227362567, guid: d0bea7a10ea1db94bbe389bc6428083d, type: 3}
+      propertyPath: m_Size.x
+      value: 1.050741
+      objectReference: {fileID: 0}
+    - target: {fileID: 187549312227362567, guid: d0bea7a10ea1db94bbe389bc6428083d, type: 3}
+      propertyPath: m_Size.z
+      value: 1.0750424
+      objectReference: {fileID: 0}
+    - target: {fileID: 187549312227362567, guid: d0bea7a10ea1db94bbe389bc6428083d, type: 3}
+      propertyPath: m_Center.x
+      value: 0.025370479
+      objectReference: {fileID: 0}
+    - target: {fileID: 187549312227362567, guid: d0bea7a10ea1db94bbe389bc6428083d, type: 3}
+      propertyPath: m_Center.z
+      value: 0.034934342
+      objectReference: {fileID: 0}
     - target: {fileID: 215377226142478048, guid: d0bea7a10ea1db94bbe389bc6428083d, type: 3}
       propertyPath: m_Name
       value: Cua
@@ -1393,7 +1409,7 @@ PrefabInstance:
     - target: {fileID: 656521423840351116, guid: d0bea7a10ea1db94bbe389bc6428083d, type: 3}
       propertyPath: globalPowerUpSound
       value: 
-      objectReference: {fileID: 8300000, guid: 8afc92eceebf9ef44b2961dfb0936e24, type: 3}
+      objectReference: {fileID: 8300000, guid: 4c6071495d15f0248961b656d25f734c, type: 3}
     - target: {fileID: 656521423840351116, guid: d0bea7a10ea1db94bbe389bc6428083d, type: 3}
       propertyPath: 'indicatorLights.Array.data[0]'
       value: 
