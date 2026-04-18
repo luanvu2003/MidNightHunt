@@ -72,6 +72,10 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
     public GameObject dotPrefab;
     private List<Image> _spawnedDots = new List<Image>();
     private Vector2 _lastPenPos = Vector2.zero; // 🚨 BIẾN MỚI: Nhớ vị trí bút của frame trước
+    [Header("X-Ray Material Settings")]
+    public Material xrayMaterial; // Kéo thẳng file Material X-Ray của bạn vào đây
+    private Dictionary<Renderer, Material[]> _originalMaterials = new Dictionary<Renderer, Material[]>();
+    private bool _isXRayActive = false;
 
     [Header("Camera Reference")]
     public Transform mainCamera;
@@ -151,6 +155,12 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
     {
         _characterController = GetComponent<CharacterController>();
         animator = GetComponentInChildren<Animator>();
+        // 🚨 LƯU LẠI MATERIAL GỐC CỦA NHÂN VẬT (Chỉ lấy thân thể nhân vật)
+        SkinnedMeshRenderer[] renderers = GetComponentsInChildren<SkinnedMeshRenderer>(true);
+        foreach (var r in renderers)
+        {
+            _originalMaterials[r] = r.sharedMaterials;
+        }
 
         // TẮT NGAY LẬP TỨC ĐỂ TRÁNH XUNG ĐỘT
         if (_characterController != null) _characterController.enabled = false;
@@ -286,6 +296,10 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
                 if (box != null) box.SetActive(IsDowned || IsHooked);
             }
         }
+
+        // 🚨 GỌI HÀM BẬT/TẮT X-RAY BẰNG CODE
+        bool shouldShowXRay = (IsDowned || IsHooked) && !Object.HasInputAuthority;
+        SetXRayActive(shouldShowXRay);
 
         if (Object.HasInputAuthority)
         {
@@ -614,6 +628,9 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
             }
         }
 
+        // 🚨 CHẮC CHẮN TẮT X-RAY KHI ĐƯỢC CỨU
+        SetXRayActive(false);
+
         CurrentHits = 1;
     }
 
@@ -817,6 +834,36 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
         }
     }
 
+    // 🚨 HÀM TỰ ĐỘNG THÊM/XÓA MATERIAL X-RAY
+    private void SetXRayActive(bool active)
+    {
+        if (_isXRayActive == active) return; // Nếu trạng thái không đổi thì bỏ qua
+        _isXRayActive = active;
+
+        foreach (var kvp in _originalMaterials)
+        {
+            Renderer r = kvp.Key;
+            if (r == null) continue;
+
+            if (active && xrayMaterial != null)
+            {
+                // Mặc thêm lớp áo X-Ray vào cuối cùng
+                Material[] currentMats = kvp.Value; // Lấy mảng gốc
+                Material[] newMats = new Material[currentMats.Length + 1];
+
+                for (int i = 0; i < currentMats.Length; i++)
+                    newMats[i] = currentMats[i];
+
+                newMats[currentMats.Length] = xrayMaterial; // Nhét X-Ray vào đuôi
+                r.materials = newMats; // Áp dụng
+            }
+            else
+            {
+                // Cởi X-Ray ra, trả lại hình dạng gốc
+                r.materials = kvp.Value;
+            }
+        }
+    }
     // Hàm phát âm thanh tách rời (Dùng cho tiếng hét chết)
     // Vì khi chết Object bị Despawn xóa ngay lập tức, nếu phát trên Object sẽ bị tắt ngang
     private void PlayDetachedSound(AudioClip clip, Vector3 pos)
