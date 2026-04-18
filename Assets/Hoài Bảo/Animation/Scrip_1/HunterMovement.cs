@@ -145,6 +145,14 @@ public class HunterMovement : NetworkBehaviour // 2. Đổi thành NetworkBehavi
         animator = GetComponentInChildren<Animator>();
 
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
+        // 🚨 THÊM MỚI: Cấu hình âm thanh 3D (To gần, nhỏ xa)
+        if (audioSource != null)
+        {
+            audioSource.spatialBlend = 1f;
+            audioSource.rolloffMode = AudioRolloffMode.Linear;
+            audioSource.minDistance = 2f; // Bán kính nghe to nhất
+            audioSource.maxDistance = 20f; // Ra khỏi 20m là không nghe thấy
+        }
 
         if (controller != null)
         {
@@ -248,7 +256,9 @@ public class HunterMovement : NetworkBehaviour // 2. Đổi thành NetworkBehavi
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void Rpc_PlayLandingSound()
     {
-        // Phát âm thanh rơi mạnh
+        // 🚨 THÊM MỚI: Chỉ màn hình của người chơi Hunter mới phát ra tiếng
+        if (!Object.HasInputAuthority) return;
+
         if (audioSource != null && landingClip != null)
         {
             audioSource.PlayOneShot(landingClip, 1f * GetVFXVolume());
@@ -257,7 +267,9 @@ public class HunterMovement : NetworkBehaviour // 2. Đổi thành NetworkBehavi
 
     public void PlayFootstep()
     {
-        // Tiếng bước chân
+        // 🚨 THÊM MỚI: Chỉ màn hình của người chơi Hunter mới phát ra tiếng
+        if (!Object.HasInputAuthority) return;
+
         if (controller.isGrounded && Mathf.Abs(currentSpeed) > 0.2f && footstepClip != null)
         {
             if (audioSource != null) audioSource.PlayOneShot(footstepClip, 0.6f * GetVFXVolume());

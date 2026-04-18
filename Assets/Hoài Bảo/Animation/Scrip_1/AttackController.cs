@@ -643,6 +643,14 @@ public class AttackController : NetworkBehaviour
         interactionScript = GetComponent<HunterInteraction>();
         if (Camera.main != null) fpsCameraScript = Camera.main.GetComponent<FPSCamera>();
         if (attackSource == null) attackSource = GetComponent<AudioSource>();
+        // 🚨 THÊM MỚI: Cấu hình âm thanh 3D
+        if (attackSource != null)
+        {
+            attackSource.spatialBlend = 1f;
+            attackSource.rolloffMode = AudioRolloffMode.Linear;
+            attackSource.minDistance = 3f;
+            attackSource.maxDistance = 30f;
+        }
 
         AutoFindUI();
         AutoFindMouthPoint();
@@ -1024,6 +1032,17 @@ public class AttackController : NetworkBehaviour
                 currentVomitInstance = Instantiate(vomitPrefab, mouthPoint.position, mouthPoint.rotation);
                 currentVomitInstance.transform.SetParent(mouthPoint);
             }
+            // 🚨 CHỈ MÌNH HUNTER NGHE THẤY TIẾNG ÓI
+            if (Object.HasInputAuthority && attackSource != null)
+            {
+                if (clipVomitStart != null) attackSource.PlayOneShot(clipVomitStart, 1f * GetVFXVolume());
+                if (clipVomitingLoop != null)
+                {
+                    attackSource.clip = clipVomitingLoop;
+                    attackSource.volume = GetVFXVolume();
+                    attackSource.Play();
+                }
+            }
             if (attackSource != null)
             {
                 if (clipVomitStart != null) attackSource.PlayOneShot(clipVomitStart, 1f * GetVFXVolume());
@@ -1182,11 +1201,17 @@ public class AttackController : NetworkBehaviour
         }
     }
 
-    public void PlaySoundSwing() { if (attackSource != null && clipChemBua != null) attackSource.PlayOneShot(clipChemBua, 1f * GetVFXVolume()); }
-
+    public void PlaySoundSwing()
+    {
+        if (Object.HasInputAuthority && attackSource != null && clipChemBua != null)
+            attackSource.PlayOneShot(clipChemBua, 1f * GetVFXVolume());
+    }
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    public void Rpc_PlayReleaseSound() { if (attackSource != null && clipReleaseSkill != null) attackSource.PlayOneShot(clipReleaseSkill, 1f * GetVFXVolume()); }
-
+    public void Rpc_PlayReleaseSound()
+    {
+        if (Object.HasInputAuthority && attackSource != null && clipReleaseSkill != null)
+            attackSource.PlayOneShot(clipReleaseSkill, 1f * GetVFXVolume());
+    }
     public void PlaySoundRelease() { if (Object.HasStateAuthority) Rpc_PlayReleaseSound(); }
     public void PlaySoundDatTrap() { if (typeOfHunter == HunterType.Hunter2_DatTrap && Object.HasStateAuthority) Rpc_PlayReleaseSound(); }
     public void EnableDamageFrames() { if (Object.HasStateAuthority && meleeWeapon != null) meleeWeapon.TurnOnHitbox(); }
@@ -1194,7 +1219,11 @@ public class AttackController : NetworkBehaviour
     public void OnHitSuccess(GameObject victim) { if (Object.HasStateAuthority) Rpc_PlayHitSuccessSound(); }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void Rpc_PlayHitSuccessSound() { if (attackSource != null && clipHitSuccess != null) attackSource.PlayOneShot(clipHitSuccess, 1f * GetVFXVolume()); }
+    private void Rpc_PlayHitSuccessSound()
+    {
+        if (Object.HasInputAuthority && attackSource != null && clipHitSuccess != null)
+            attackSource.PlayOneShot(clipHitSuccess, 1f * GetVFXVolume());
+    }
 
     // 🚨 HÀM LẤY ÂM LƯỢNG VFX
     private float GetVFXVolume()

@@ -11,9 +11,9 @@ public class CrowAI : NetworkBehaviour
     public float waitTime = 3f;
     public float rotationSpeed = 8f;
 
-    [Header("Cài đặt Hồi sinh")]
-    public float respawnDelay = 300f;
-
+   [Header("Cài đặt Hồi sinh")]
+    public float minRespawnTime = 20f; // Thời gian chờ tối thiểu (20s)
+    public float maxRespawnTime = 30f;
     [Header("Model & Bay")]
     public GameObject idleModel;
     public GameObject flyModel;
@@ -210,7 +210,8 @@ public class CrowAI : NetworkBehaviour
         }
 
         transform.position = startPosition + Vector3.down * 100f;
-        yield return new WaitForSeconds(respawnDelay);
+        // 🚨 CHỈ SỬA Ở ĐÂY: Hồi sinh ngẫu nhiên từ 20 đến 30 giây
+        yield return new WaitForSeconds(Random.Range(minRespawnTime, maxRespawnTime));
         transform.position = startPosition;
         transform.rotation = startRotation;
 

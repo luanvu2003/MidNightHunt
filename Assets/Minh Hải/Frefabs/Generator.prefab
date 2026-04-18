@@ -8011,7 +8011,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b4a41942a3edb00498b63c2a7849a909, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  repairTime: 150
+  repairTime: 20
   progressPenalty: 5
   stunDuration: 10
   hunterDamageAmount: 15

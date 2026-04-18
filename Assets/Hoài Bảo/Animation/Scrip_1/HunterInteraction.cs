@@ -428,6 +428,14 @@ public class HunterInteraction : NetworkBehaviour
         controller = GetComponent<CharacterController>();
         if (Camera.main != null && Object.HasInputAuthority) fpsCameraScript = Camera.main.GetComponent<FPSCamera>();
         if (interactAudioSource == null) interactAudioSource = GetComponent<AudioSource>();
+        // 🚨 THÊM MỚI: Cấu hình âm thanh 3D
+        if (interactAudioSource != null)
+        {
+            interactAudioSource.spatialBlend = 1f;
+            interactAudioSource.rolloffMode = AudioRolloffMode.Linear;
+            interactAudioSource.minDistance = 3f;
+            interactAudioSource.maxDistance = 25f;
+        }
 
         if (Object.HasInputAuthority) AutoFindUI();
 
@@ -1004,22 +1012,36 @@ public class HunterInteraction : NetworkBehaviour
         foreach (GameObject obj in objects)
         {
             if (obj == null) continue;
+
+            // 🚨 THÊM MỚI: Kiểm tra nếu là Máy phát điện và đã sửa xong thì KHÔNG được bật Aura
+            bool shouldTurnOn = turnOn;
+            if (obj.CompareTag("May"))
+            {
+                Generator gen = obj.GetComponent<Generator>();
+                if (gen != null && gen.IsRepaired)
+                {
+                    shouldTurnOn = false; // Ép tắt Aura đối với máy đã sửa xong 100%
+                }
+            }
+
             Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
             foreach (Renderer r in renderers)
             {
                 if (r is ParticleSystemRenderer) continue;
                 Material[] currentMats = r.materials;
                 bool hasAura = false;
+
                 foreach (Material m in currentMats) { if (m.name.Contains(targetMat.name)) hasAura = true; }
 
-                if (turnOn && !hasAura)
+                // 🚨 Thay vì dùng turnOn, ta dùng biến shouldTurnOn đã được lọc ở trên
+                if (shouldTurnOn && !hasAura)
                 {
                     Material[] newMats = new Material[currentMats.Length + 1];
                     for (int i = 0; i < currentMats.Length; i++) newMats[i] = currentMats[i];
                     newMats[currentMats.Length] = targetMat;
                     r.materials = newMats;
                 }
-                else if (!turnOn && hasAura)
+                else if (!shouldTurnOn && hasAura)
                 {
                     List<Material> cleanedMats = new List<Material>();
                     foreach (Material m in currentMats) { if (!m.name.Contains(targetMat.name)) cleanedMats.Add(m); }
@@ -1032,7 +1054,8 @@ public class HunterInteraction : NetworkBehaviour
     // --- ANIMATION EVENTS ---
     public void EventDapMay()
     {
-        if (interactAudioSource != null && clipDapMay != null)
+        // 🚨 Chỉ Hunter nghe
+        if (Object.HasInputAuthority && interactAudioSource != null && clipDapMay != null)
             interactAudioSource.PlayOneShot(clipDapMay, 1f * GetVFXVolume());
 
         if (Object.HasStateAuthority)
@@ -1049,7 +1072,8 @@ public class HunterInteraction : NetworkBehaviour
     // 🚨 HÀM MỚI: SỰ KIỆN ĐẬP VÁN (Nhớ gắn vào Animation Event)
     public void EventDapVan()
     {
-        if (interactAudioSource != null && clipDapVan != null)
+        // 🚨 Chỉ Hunter nghe
+        if (Object.HasInputAuthority && interactAudioSource != null && clipDapVan != null)
             interactAudioSource.PlayOneShot(clipDapVan, 1f * GetVFXVolume());
 
         if (Object.HasStateAuthority)
@@ -1062,7 +1086,6 @@ public class HunterInteraction : NetworkBehaviour
             }
         }
 
-        // Làm chậm Hunter 1 nhịp sau khi đập vỡ ván (Giống DBD)
         HunterMovement movement = GetComponent<HunterMovement>();
         if (movement != null)
         {
@@ -1073,7 +1096,8 @@ public class HunterInteraction : NetworkBehaviour
 
     public void EventVault()
     {
-        if (isVaulting && interactAudioSource != null && clipTreoCuaso != null)
+        // 🚨 Chỉ Hunter nghe
+        if (Object.HasInputAuthority && isVaulting && interactAudioSource != null && clipTreoCuaso != null)
             interactAudioSource.PlayOneShot(clipTreoCuaso, 1f * GetVFXVolume());
     }
 
@@ -1081,7 +1105,8 @@ public class HunterInteraction : NetworkBehaviour
     {
         if (isCarryingPlayer)
         {
-            if (interactAudioSource != null && clipTreoMoc != null)
+            // 🚨 Chỉ Hunter nghe
+            if (Object.HasInputAuthority && interactAudioSource != null && clipTreoMoc != null)
                 interactAudioSource.PlayOneShot(clipTreoMoc, 1f * GetVFXVolume());
             HookPlayerToHook();
         }
