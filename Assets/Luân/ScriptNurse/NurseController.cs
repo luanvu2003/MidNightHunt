@@ -449,7 +449,7 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
         bool isMoving = _characterController.velocity.magnitude > 0.1f;
         RPC_PlayHitAnim(isMoving);
 
-        if (CurrentHits == 1) HitDecayTimer = TickTimer.CreateFromSeconds(Runner, 45f);
+        if (CurrentHits == 1) HitDecayTimer = TickTimer.CreateFromSeconds(Runner, 35f);
         else if (CurrentHits == 2) HitDecayTimer = TickTimer.CreateFromSeconds(Runner, 90f);
         else if (CurrentHits >= 3)
         {

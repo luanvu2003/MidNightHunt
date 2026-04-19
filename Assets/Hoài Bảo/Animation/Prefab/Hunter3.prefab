@@ -230,7 +230,7 @@ MonoBehaviour:
   mouthPointName: VomitSpawnPoint
   mouthPoint: {fileID: 0}
   vomitDuration: 5
-  skillRechargeTime: 15
+  skillRechargeTime: 30
   vomitMoveSpeedMult: 0.5
   clipVomitStart: {fileID: 8300000, guid: f27695237b37585479b12ea42147c675, type: 3}
   clipVomitingLoop: {fileID: 8300000, guid: f27695237b37585479b12ea42147c675, type: 3}
