@@ -1,7 +1,7 @@
 using UnityEngine;
 using Fusion;
 using UnityEngine.InputSystem;
-using System.Collections.Generic; // Thêm thư viện này để dùng HashSet
+using System.Collections.Generic;
 
 public class PalletInteraction : NetworkBehaviour
 {
@@ -39,6 +39,12 @@ public class PalletInteraction : NetworkBehaviour
     public AudioClip dropSound;
     public AudioClip breakSound;
     public AudioClip stunSound;
+    
+    [Header("Cài Đặt Âm Thanh 3D")]
+    [Tooltip("Khoảng cách ở gần nhất để nghe âm thanh to tối đa")]
+    public float minAudioDistance = 3f;
+    [Tooltip("Khoảng cách xa nhất mà âm thanh sẽ tắt hẳn")]
+    public float maxAudioDistance = 20f;
 
     public override void Spawned()
     {
@@ -49,7 +55,33 @@ public class PalletInteraction : NetworkBehaviour
         _targetDroppedRotation = _startRotation * Quaternion.Euler(dropRotationOffset);
 
         if (spaceUI != null) spaceUI.SetActive(false);
+        
+        // 🚨 Tự động cài đặt âm thanh 3D khi Spawn
+        Setup3DAudio();
+        
         UpdateVisuals();
+    }
+
+    // ==========================================
+    // 🚨 HÀM MỚI: TỰ ĐỘNG CHUYỂN ÂM THANH SANG 3D
+    // ==========================================
+    private void Setup3DAudio()
+    {
+        if (audioSource != null)
+        {
+            // 1f nghĩa là 100% 3D (âm thanh phát ra từ vị trí của object)
+            audioSource.spatialBlend = 1f; 
+            
+            // Linear giúp âm thanh nhỏ dần đều theo khoảng cách
+            audioSource.rolloffMode = AudioRolloffMode.Linear; 
+            
+            // Cài đặt khoảng cách nghe
+            audioSource.minDistance = minAudioDistance;
+            audioSource.maxDistance = maxAudioDistance;
+            
+            // Tắt play on awake để tránh lỗi tự kêu khi mới vào map
+            audioSource.playOnAwake = false;
+        }
     }
 
     public override void FixedUpdateNetwork()
@@ -139,10 +171,10 @@ public class PalletInteraction : NetworkBehaviour
             bool isSpacePressed = false;
             if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame) isSpacePressed = true;
 #if ENABLE_LEGACY_INPUT_MANAGER
-            if (Input.GetKeyDown(KeyCode.Space)) isSpacePressed = true;
+            if (Input.GetKeyDown(KeyCode.Space)) isSpacePressed = true;
 #endif
 
-            if (isSpacePressed)
+            if (isSpacePressed)
             {
                 Rpc_RequestDropPallet();
                 _isLocalPlayerInZone = false;
@@ -156,7 +188,6 @@ public class PalletInteraction : NetworkBehaviour
         if (!_isSpawned) return;
         CheckLocalPlayerTrigger(other, true);
 
-        // Stun Hunter nếu đi vào vùng ván đang rơi
         if (State == PalletState.Falling && other.CompareTag("Hunter"))
         {
             var hunter = other.GetComponentInParent<HunterInteraction>();
@@ -204,14 +235,12 @@ public class PalletInteraction : NetworkBehaviour
                 Collider stunCol = stunZone.GetComponent<Collider>();
                 if (stunCol != null)
                 {
-                    // Dùng HashSet để đảm bảo 1 nhân vật có nhiều collider cũng chỉ bị đẩy 1 lần
-                    HashSet<Transform> processedCharacters = new HashSet<Transform>();
+                    HashSet<Transform> processedCharacters = new HashSet<Transform>();
 
                     Collider[] hits = Physics.OverlapBox(stunCol.bounds.center, stunCol.bounds.extents, stunZone.transform.rotation);
                     foreach (Collider hit in hits)
                     {
-                        // 1. STUN HUNTER (Như cũ)
-                        if (hit.CompareTag("Hunter"))
+                        if (hit.CompareTag("Hunter"))
                         {
                             var hunter = hit.GetComponentInParent<HunterInteraction>();
                             if (hunter != null && hunter.StunTimer.ExpiredOrNotRunning(Runner))
@@ -220,12 +249,10 @@ public class PalletInteraction : NetworkBehaviour
                             }
                         }
 
-                        // 2. ĐẨY HUNTER & SURVIVOR RA KHỎI VÁN KHI VÁN NGÃ
-                        if (hit.CompareTag("Hunter") || hit.CompareTag("Player") || hit.CompareTag("Playerchet"))
+                        if (hit.CompareTag("Hunter") || hit.CompareTag("Player") || hit.CompareTag("Playerchet"))
                         {
-                            Transform rootTransform = hit.transform.root; // Lấy object gốc của nhân vật
+                            Transform rootTransform = hit.transform.root; 
 
-                            // Nếu nhân vật này chưa bị đẩy
                             if (!processedCharacters.Contains(rootTransform))
                             {
                                 processedCharacters.Add(rootTransform);
@@ -238,40 +265,30 @@ public class PalletInteraction : NetworkBehaviour
         }
     }
 
-    // 🚨 HÀM TÍNH TOÁN VÀ ĐẨY NHÂN VẬT ÉP CHUẨN THEO TRỤC Z (TIẾN/LÙI) 🚨
     private void PushCharacterOut(Transform charTransform)
     {
         CharacterController cc = charTransform.GetComponent<CharacterController>();
-
-        // Dùng transform GỐC của Ván (cái khung cố định, không bao giờ bị xoay khi ván ngã)
         Transform baseTransform = this.transform;
 
-        // Quy đổi tọa độ để biết nhân vật đứng trước hay sau cái khung ván
         Vector3 localPos = baseTransform.InverseTransformPoint(charTransform.position);
         Vector3 pushDirection = Vector3.zero;
 
-        // ÉP BUỘC CHỈ ĐẨY DỌC THEO TRỤC Z (Forward/Backward) CỦA KHUNG VÁN
         if (localPos.z <= 0)
         {
-            pushDirection = -baseTransform.forward; // Đứng nửa sau -> Đẩy thẳng lùi về sau
+            pushDirection = -baseTransform.forward; 
         }
         else
         {
-            pushDirection = baseTransform.forward;  // Đứng nửa trước -> Đẩy thẳng lên trước
+            pushDirection = baseTransform.forward; 
         }
 
-        // Triệt tiêu trục Y để đẩy song song mặt đất hoàn toàn
         pushDirection.y = 0;
         if (pushDirection != Vector3.zero)
         {
             pushDirection.Normalize();
         }
 
-        // ==================================================
-        // 🚨 HỆ THỐNG RAYCAST CHỐNG XUYÊN TƯỜNG
-        // ==================================================
         float safePushDistance = pushOutDistance;
-
         Vector3 castOrigin = charTransform.position + Vector3.up * 1.0f;
         float characterRadius = 0.3f;
 
@@ -287,9 +304,8 @@ public class PalletInteraction : NetworkBehaviour
         }
 
         Vector3 targetPosition = charTransform.position + (pushDirection * safePushDistance);
-        targetPosition.y = charTransform.position.y; // Khóa chặt độ cao
+        targetPosition.y = charTransform.position.y; 
 
-        // --- BẮT ĐẦU DỊCH CHUYỂN ---
         if (cc != null) cc.enabled = false;
 
         charTransform.position = targetPosition;
