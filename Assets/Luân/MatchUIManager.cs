@@ -34,12 +34,12 @@ public class MatchUIManager : MonoBehaviour
     [Header("Dữ liệu hình ảnh Avatar (Theo CharacterID)")]
     public Sprite[] characterAvatars;
 
-    [Header("🚨 CÁC ICON TRẠNG THÁI (Máu / Gục)")]
+    [Header("🚨 CÁC ICON TRẠNG THÁI (Máu / Gục / Chết)")]
     public Sprite iconHealthy; // (Tùy chọn) Bình thường, không bị gì
     public Sprite iconHit1;    // Bị chém 1 nhát
     public Sprite iconHit2;    // Bị chém 2 nhát
     public Sprite iconDowned;  // Nằm gục (3 nhát)
-    // Đã xóa bỏ iconHooked ở đây vì không cần thiết nữa
+    public Sprite iconDead;    // 🚨 THÊM MỚI: Icon đã chết (Cái sọ người / Dấu X)
 
     private float maxHookTime = 90f;
 
@@ -142,8 +142,41 @@ public class MatchUIManager : MonoBehaviour
         {
             if (!slot.isAssigned || slot.rootObj == null) continue;
 
-            if (slot.linkedSurvivor == null) FindLinkedSurvivor(slot, allPlayers);
+            // 🚨 KIỂM TRA OBJECT NHÂN VẬT CÒN TỒN TẠI KHÔNG (Ép kiểu sang MonoBehaviour để check null chuẩn của Unity)
+            bool isSurvivorDestroyed = (slot.linkedSurvivor as MonoBehaviour) == null;
 
+            if (isSurvivorDestroyed)
+            {
+                // Thử tìm lại lần nữa phòng trường hợp nhân vật mới Spawn
+                FindLinkedSurvivor(slot, allPlayers);
+                isSurvivorDestroyed = (slot.linkedSurvivor as MonoBehaviour) == null;
+            }
+
+            // 🚨 NẾU NHÂN VẬT THẬT SỰ ĐÃ BỊ XÓA (DESPAWN DO CHẾT)
+            if (isSurvivorDestroyed)
+            {
+                // Tắt hoàn toàn overlay móc để không bị kẹt số 0
+                if (slot.hookOverlay != null) slot.hookOverlay.gameObject.SetActive(false);
+                if (slot.hookCooldownText != null) slot.hookCooldownText.gameObject.SetActive(false);
+
+                // Hiển thị Icon đã chết
+                if (slot.statusIcon != null)
+                {
+                    slot.statusIcon.gameObject.SetActive(true);
+                    slot.statusIcon.color = Color.white;
+                    if (iconDead != null) 
+                        slot.statusIcon.sprite = iconDead;
+                    else 
+                        slot.statusIcon.gameObject.SetActive(false);
+                }
+                
+                // Bỏ qua đoạn code tính móc ở dưới vì người này bay màu rồi
+                continue; 
+            }
+
+            // ==========================================
+            // NẾU NHÂN VẬT VẪN CÒN SỐNG THÌ CHẠY TIẾP XUỐNG ĐÂY
+            // ==========================================
             if (slot.linkedSurvivor != null)
             {
                 bool isHooked = slot.linkedSurvivor.GetIsHooked();
@@ -165,12 +198,12 @@ public class MatchUIManager : MonoBehaviour
                     slot.hookOverlay.fillAmount = timeLeft / maxHookTime;
                 }
 
-                /// ----------------------------------------------------
+                // ----------------------------------------------------
                 // B. LOGIC ĐỔI ICON THEO SỐ HIT / GỤC
                 // ----------------------------------------------------
                 if (slot.statusIcon != null)
                 {
-                    // 🚨 NẾU BỊ TREO MÓC: Tắt luôn cái Icon Trạng Thái đi cho đỡ rác UI
+                    // NẾU BỊ TREO MÓC: Tắt luôn cái Icon Trạng Thái đi cho đỡ rác UI
                     if (isHooked)
                     {
                         slot.statusIcon.gameObject.SetActive(false);
@@ -178,7 +211,7 @@ public class MatchUIManager : MonoBehaviour
                     else
                     {
                         slot.statusIcon.gameObject.SetActive(true);
-                        slot.statusIcon.color = Color.white; // 🚨 FIX LỖI: Ép màu trắng với Alpha 100% để chống tàng hình
+                        slot.statusIcon.color = Color.white; // Ép màu trắng với Alpha 100% để chống tàng hình
 
                         if (isDowned && iconDowned != null)
                             slot.statusIcon.sprite = iconDowned;
