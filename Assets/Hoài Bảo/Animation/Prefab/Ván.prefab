@@ -149,6 +149,8 @@ MonoBehaviour:
   dropSound: {fileID: 8300000, guid: f96a359aaaefce34faeabc96604497c6, type: 3}
   breakSound: {fileID: 8300000, guid: 2c72f316b05479a4ca82b45fda458998, type: 3}
   stunSound: {fileID: 8300000, guid: 494c4341b9c9c0a48b2592d7dbc020d5, type: 3}
+  minAudioDistance: 3
+  maxAudioDistance: 20
 --- !u!114 &8312563430814065768
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -415,8 +417,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 3.2120667, y: 1.8362105, z: 0.41667175}
-  m_Center: {x: -0.5240631, y: -0.38278592, z: 1.7578964}
+  m_Size: {x: 3.2120667, y: 1.8362105, z: 0.18713379}
+  m_Center: {x: -0.5240631, y: -0.38278592, z: 1.8726654}
 --- !u!65 &2192654758372275901
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -436,8 +438,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 2.8430176, y: 1.8736737, z: 0.43052673}
-  m_Center: {x: -0.41497803, y: -0.43683684, z: -0.0593338}
+  m_Size: {x: 2.8430176, y: 1.8736737, z: 0.23284912}
+  m_Center: {x: -0.41497803, y: -0.43683684, z: -0.1581726}
 --- !u!1001 &3391112481170040729
 PrefabInstance:
   m_ObjectHideFlags: 0

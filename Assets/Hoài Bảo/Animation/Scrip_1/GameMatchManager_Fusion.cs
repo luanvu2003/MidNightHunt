@@ -3,6 +3,7 @@ using Fusion;
 using System.Linq;
 using TMPro;
 using UnityEngine.SceneManagement;
+using System.Collections.Generic; // 🚨 Cần thêm dòng này cho List
 
 public class GameMatchManager_Fusion : NetworkBehaviour
 {
@@ -23,6 +24,9 @@ public class GameMatchManager_Fusion : NetworkBehaviour
     [Networked] public int TotalSurvivors { get; set; }
     [Networked] public int DeadSurvivors { get; set; }
     [Networked] public int EscapedSurvivors { get; set; }
+
+    // 🚨 BIẾN MỚI: Danh sách những người đã Xong (Thoát hoặc Chết) để chống Spam Trigger
+    private List<PlayerRef> _finishedPlayers = new List<PlayerRef>();
 
     private void Awake()
     {
@@ -49,6 +53,11 @@ public class GameMatchManager_Fusion : NetworkBehaviour
     public void RegisterPlayerDeath(PlayerRef deadPlayer)
     {
         if (!Runner.IsServer || IsMatchEnded) return;
+
+        // 🚨 CHỐNG SPAM: Nếu đã ghi nhận người này rồi thì cấm gọi lại
+        if (_finishedPlayers.Contains(deadPlayer)) return;
+        _finishedPlayers.Add(deadPlayer);
+
         DeadSurvivors++;
 
         // Báo cho riêng người chết
@@ -60,15 +69,36 @@ public class GameMatchManager_Fusion : NetworkBehaviour
     public void RegisterPlayerEscape(NetworkObject playerObject)
     {
         if (!Runner.IsServer || IsMatchEnded) return;
+
+        PlayerRef auth = playerObject.InputAuthority;
+
+        // 🚨 CHỐNG SPAM: Ngăn 1 người chạm cửa 2-3 lần do delay mạng
+        if (_finishedPlayers.Contains(auth)) return;
+        _finishedPlayers.Add(auth);
+
         EscapedSurvivors++;
 
         // Báo cho riêng người thoát
-        RPC_NotifyPlayerFinished(playerObject.InputAuthority, "BẠN ĐÃ THOÁT THÀNH CÔNG!");
+        RPC_NotifyPlayerFinished(auth, "BẠN ĐÃ THOÁT THÀNH CÔNG!");
 
-        // Xóa nhân vật
-        Runner.Despawn(playerObject);
+        // 🚨 FIX LỖI MẤT UI: Tắt CharacterController để nhân vật đứng im không rớt map...
+        var cc = playerObject.GetComponent<CharacterController>();
+        if (cc != null) cc.enabled = false;
+
+        // ... Và đợi 0.5 giây sau mới xóa. Để Client chắc chắn nhận được lệnh bật UI!
+        StartCoroutine(DelayDespawnRoutine(playerObject));
 
         CheckEndGameCondition();
+    }
+
+    // 🚨 HÀM DELAY XÓA NHÂN VẬT
+    private System.Collections.IEnumerator DelayDespawnRoutine(NetworkObject obj)
+    {
+        yield return new WaitForSeconds(0.5f);
+        if (obj != null && obj.IsValid)
+        {
+            Runner.Despawn(obj);
+        }
     }
 
     private void CheckEndGameCondition()
@@ -83,13 +113,14 @@ public class GameMatchManager_Fusion : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_NotifyPlayerFinished(PlayerRef player, string message)
     {
-        if (Runner.LocalPlayer == player)
+        // 🚨 FIX GHI ĐÈ: Nếu game đã kết thúc toàn cục rồi thì không hiện UI cá nhân nữa (để nhường chỗ cho UI End Game)
+        if (Runner.LocalPlayer == player && !IsMatchEnded)
         {
             ShowUI(message, false); 
         }
     }
 
-    // Hàm gọi cho TẤT CẢ mọi người (Bao gồm cả Hunter) khi game thực sự kết thúc
+    // Hàm gọi cho TẤT CẢ mọi người khi game thực sự kết thúc
     void OnMatchEnded()
     {
         if (IsMatchEnded)
@@ -115,14 +146,12 @@ public class GameMatchManager_Fusion : NetworkBehaviour
 
         if (isHost && !isGlobalEnd)
         {
-            // Host đang đợi -> Ẩn nút
             resultText.text += "\n\n<size=80%><color=#A8A8A8>(Bạn là Chủ Phòng. Vui lòng làm khán giả chờ ván đấu kết thúc để không làm sập phòng của người khác!)</color></size>";
             if (returnRoomButton != null) returnRoomButton.SetActive(false);
             if (quitButton != null) quitButton.SetActive(false);
         }
         else
         {
-            // Game End toàn cục HOẶC Client bình thường -> Hiện nút
             if (returnRoomButton != null) returnRoomButton.SetActive(true);
             if (quitButton != null) quitButton.SetActive(true);
         }
@@ -131,7 +160,6 @@ public class GameMatchManager_Fusion : NetworkBehaviour
         Cursor.visible = true;
     }
 
-    // Các hàm Nút bấm giữ nguyên của bạn...
     public void Button_ReturnToRoom()
     {
         if (Runner.IsServer)
