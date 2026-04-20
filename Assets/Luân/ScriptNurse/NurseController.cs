@@ -1,14 +1,12 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Fusion; // Thư viện Fusion
+using Fusion; 
 using UnityEngine.UI;
 using TMPro;
-using System; // 🚨 Đã thêm
+using System; 
 using System.Collections.Generic;
-using Fusion.Sockets; // 🚨 Đã thêm
-
+using Fusion.Sockets;
 [RequireComponent(typeof(CharacterController))]
-// 🚨 Đã thêm INetworkRunnerCallbacks vào đây
 public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks, ISurvivor
 {
     [Header("Animator Settings")]
@@ -38,7 +36,6 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
     public float skillSpeedBonus = 3f;
     public float skillDuration = 10f;
     public float skillCooldown = 30f;
-
     [Header("Health & States")]
     public string hitAnimationTrigger = "AnHit";
     public string downedAnimationBool = "BiGuc";
@@ -55,46 +52,44 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
     [Header("== HEARTBEAT UI ==")]
     public TextMeshProUGUI heartbeatBpmText;
     public RectTransform heartIcon;
-    public RectTransform ecgPen;             // Điểm Neo (Cây bút) chạy ngang
+    public RectTransform ecgPen;         
 
     public float normalBPM = 70f;
     public float maxBPM = 180f;
 
     [Header("ECG Settings")]
-    public float ecgSpeed = 200f;            // Tốc độ chạy từ trái sang phải
-    public float ecgWidth = 400f;            // Chiều dài cái khung chứa sơ đồ (Khi chạm mốc này sẽ quay về 0)
+    public float ecgSpeed = 200f;            
+    public float ecgWidth = 400f;           
 
-    private float _heartPhase = 0f;          // Chu kỳ đập từ 0 -> 1
-    private float _bpmUpdateTimer = 0f;      // Bộ đếm thời gian cập nhật số BPM
-    private float _displayedBPM = 70f;       // Số hiển thị trên màn hình
+    private float _heartPhase = 0f;        
+    private float _bpmUpdateTimer = 0f;     
+    private float _displayedBPM = 70f;     
 
     [Header("== UI DOTTED TRAIL (Thay thế Trail Renderer) ==")]
     public GameObject dotPrefab;
     private List<Image> _spawnedDots = new List<Image>();
-    private Vector2 _lastPenPos = Vector2.zero; // 🚨 BIẾN MỚI: Nhớ vị trí bút của frame trước
+    private Vector2 _lastPenPos = Vector2.zero; 
     [Header("X-Ray Material Settings")]
-    public Material xrayMaterial; // Kéo thẳng file Material X-Ray của bạn vào đây
+    public Material xrayMaterial; 
     private Dictionary<Renderer, Material[]> _originalMaterials = new Dictionary<Renderer, Material[]>();
     private bool _isXRayActive = false;
 
     [Header("Camera Reference")]
     public Transform mainCamera;
-
     [Header("PLayer State")]
     [Networked] private TickTimer InvincibilityTimer { get; set; }
     [Header("Player Death Boxes")]
-    public List<GameObject> playerDeathBoxes; // 🚨 Đã chuyển thành List
+    public List<GameObject> playerDeathBoxes; 
 
     [Header("Revive & Unhook Settings")]
-    public float reviveTime = 5f;  // Cứu gục dưới đất mất 5 giây
-    public float unhookTime = 2f;  // Tháo móc mất 2 giây
+    public float reviveTime = 5f;  
+    public float unhookTime = 2f;  
     public string revivingAnimBool = "IsReviving";
-    public string unhookingAnimBool = "IsUnhooking"; // 🚨 THÊM ANIMATION THÁO MÓC
-    private bool _isCancelRpcSent = false; // Cờ khóa chống spam mạng
+    public string unhookingAnimBool = "IsUnhooking"; 
+    private bool _isCancelRpcSent = false; 
     private bool _isStartRpcSent = false;
     private bool _isInteractHolding = false;
-
-    private ISurvivor _targetToRevive; // 🚨 Đã đổi thành ISurvivor để cứu được mọi người
+    private ISurvivor _targetToRevive; 
     public InputActionReference interactInput;
     public GameObject revivePrompt;
     public Slider reviveSlider;
@@ -103,19 +98,19 @@ public class NurseController_Fusion : NetworkBehaviour, INetworkRunnerCallbacks,
     public Vector3 hookOffset = Vector3.zero;
 
     [Networked] public NetworkBool IsBeingRevived { get; set; }
-    [Networked] public NetworkBool IsBeingUnhooked { get; set; } // 🚨 Mới: Cờ khóa báo hiệu đang có người tháo móc
+    [Networked] public NetworkBool IsBeingUnhooked { get; set; } 
     [Networked] public int ReviverCount { get; set; }
     [Networked] public NetworkBool IsSkillArmed { get; set; }
     [Networked] public NetworkBool IsSkillActive { get; set; }
     [Networked] public NetworkId TargetReviveId { get; set; }
     [Networked] public float BonusRescueSpeed { get; set; }
     [Networked] public NetworkBool IsReviving { get; set; }
-    [Networked] public NetworkBool IsUnhooking { get; set; } // 🚨 Đang đứng tháo móc
-    [Networked] public float ReviveProgress { get; set; } // Tiến trình cứu gục (có lưu)
-    [Networked] public float UnhookProgress { get; set; } // Tiến trình tháo móc (không lưu)
+    [Networked] public NetworkBool IsUnhooking { get; set; } 
+    [Networked] public float ReviveProgress { get; set; } 
+    [Networked] public float UnhookProgress { get; set; } 
     [Header("== SOUND EFFECTS (VFX) ==")]
-    public AudioSource playerAudioSource; // Nguồn phát 3D cho Bước chân, Nhảy, Bị đánh
-    public AudioSource heartbeatSource;   // Nguồn phát 2D (Tim đập trong đầu, chỉ Local nghe)
+    public AudioSource playerAudioSource; 
+    public AudioSource heartbeatSource;   
 
     public AudioClip[] footstepSounds; // Danh sách tiếng bước chân (để random cho chân thật)
     public AudioClip hitSound;         // Tiếng hoảng sợ khi bị chém
