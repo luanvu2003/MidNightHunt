@@ -2,7 +2,6 @@ using UnityEngine;
 
 public class RepairZone : MonoBehaviour
 {
-    // 🚨 Đổi từ Generator sang bản mạng: Generator_Fusion
     public Generator generator; 
 
     void OnTriggerEnter(Collider other)
@@ -12,7 +11,6 @@ public class RepairZone : MonoBehaviour
             generator.PlayerEnteredZone(other);
         }
     }
-
     void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Player") && generator != null)

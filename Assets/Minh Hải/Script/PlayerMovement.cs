@@ -2,9 +2,9 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    public bool isSprinting; // Biến này để Quạ kiểm tra
+    public bool isSprinting; 
     public float walkSpeed = 5f;
-    public float sprintSpeed = 9f; // Tốc độ khi chạy nhanh
+    public float sprintSpeed = 9f; 
     
     private float currentSpeed;
     Rigidbody rb;
@@ -14,10 +14,8 @@ public class PlayerMovement : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         currentSpeed = walkSpeed;
     }
-
     void Update()
     {
-        // KIỂM TRA NHẤN SHIFT ĐỂ CHẠY
         if (Input.GetKey(KeyCode.LeftShift) && (Input.GetAxis("Horizontal") != 0 || Input.GetAxis("Vertical") != 0))
         {
             isSprinting = true;
@@ -34,9 +32,7 @@ public class PlayerMovement : MonoBehaviour
     {
         float h = Input.GetAxis("Horizontal");
         float v = Input.GetAxis("Vertical");
-
         Vector3 move = new Vector3(h, 0, v);
-        // Dùng currentSpeed để thay đổi tốc độ linh hoạt
         rb.MovePosition(transform.position + move * currentSpeed * Time.fixedDeltaTime);
     }
 }

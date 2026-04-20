@@ -1,90 +1,25 @@
-// using UnityEngine;
-
-// public class PlayerHookReceiver : MonoBehaviour
-// {
-//     [Header("Trạng Thái Bị Vác / Treo")]
-//     public bool isBeingCarried = false;
-//     public Transform targetFollow;  
-//     public float followSpeed = 8f; // Tăng tốc độ hút lên một chút cho lực
-
-//     private CharacterController controller;
-
-//     private void Awake()
-//     {
-//         controller = GetComponent<CharacterController>();
-//     }
-
-//     public void GetPickedUpOrHooked(Transform targetPoint)
-//     {
-//         targetFollow = targetPoint;
-//         isBeingCarried = true;
-
-//         if (controller != null) controller.enabled = false;
-//         Debug.Log("😱 Player: Đang bám chặt vào -> " + targetPoint.name);
-//     }
-
-//     public void ReleaseFromHunter()
-//     {
-//         isBeingCarried = false;
-//         targetFollow = null;
-//         if (controller != null) controller.enabled = true;
-//     }
-
-//     // 🚨 SỬ DỤNG LATEUPDATE ĐỂ CHỐNG TRÔI/LƠ LỬNG
-//     private void LateUpdate()
-//     {
-//         if (isBeingCarried && targetFollow != null)
-//         {
-//             // Tính khoảng cách hiện tại giữa người và vai
-//             float distance = Vector3.Distance(transform.position, targetFollow.position);
-
-//             // CHIÊU TRÒ: Nếu khoảng cách bé hơn 0.1m, ép dính cứng luôn (Snap)
-//             if (distance < 0.1f)
-//             {
-//                 transform.position = targetFollow.position;
-//                 transform.rotation = targetFollow.rotation;
-//             }
-//             else
-//             {
-//                 // Nếu còn ở xa thì hút mượt mà vào
-//                 transform.position = Vector3.Lerp(transform.position, targetFollow.position, followSpeed * Time.deltaTime);
-//                 transform.rotation = Quaternion.Lerp(transform.rotation, targetFollow.rotation, followSpeed * Time.deltaTime);
-//             }
-//         }
-//     }
-// }
 using UnityEngine;
 using Fusion;
-
 public class PlayerHookReceiver : NetworkBehaviour
 {
     [Header("Trạng Thái Bị Vác / Treo")]
     [Networked, OnChangedRender(nameof(OnCarryStateChanged))]
     public NetworkBool isBeingCarried { get; set; }
-
     public Transform targetFollow;
     public float followSpeed = 8f;
-
     private CharacterController controller;
-
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
     }
-
     public void GetPickedUpOrHooked(Transform targetPoint)
     {
         if (!Object.HasStateAuthority) return;
-
         targetFollow = targetPoint;
         isBeingCarried = true;
-
-        // 🚨 FIX 1: ÉP TẮT VẬT LÝ NGAY LẬP TỨC TRÊN SERVER
         if (controller != null) controller.enabled = false;
-
-        Debug.Log("😱 Player: Đang bám chặt vào -> " + targetPoint.name);
+        Debug.Log("Player: Đang bám chặt vào -> " + targetPoint.name);
     }
-
     public void ReleaseFromHunter()
     {
         if (!Object.HasStateAuthority) return;
@@ -92,26 +27,19 @@ public class PlayerHookReceiver : NetworkBehaviour
         isBeingCarried = false;
         targetFollow = null;
     }
-
     public void OnCarryStateChanged()
     {
         if (controller != null)
         {
             bool isHookedLocal = false;
-
-            // 🚨 KIỂM TRA CHO CẢ 4 NHÂN VẬT
             var s1 = GetComponent<IShowSpeedController_Fusion>();
             if (s1 != null && s1.IsHooked) isHookedLocal = true;
-
             var s2 = GetComponent<MrBeanController_Fusion>();
             if (s2 != null && s2.IsHooked) isHookedLocal = true;
-
             var s3 = GetComponent<MrBeastController_Fusion>();
             if (s3 != null && s3.IsHooked) isHookedLocal = true;
-
             var s4 = GetComponent<NurseController_Fusion>();
             if (s4 != null && s4.IsHooked) isHookedLocal = true;
-
             if (isBeingCarried || isHookedLocal)
             {
                 controller.enabled = false;
@@ -122,29 +50,22 @@ public class PlayerHookReceiver : NetworkBehaviour
             }
         }
     }
-
     public override void FixedUpdateNetwork()
     {
         if (!Object.HasStateAuthority) return;
-
         if (isBeingCarried && targetFollow != null)
         {
             float distance = Vector3.Distance(transform.position, targetFollow.position);
-
-            // 🚨 FIX 2: CHỐNG LỘN CỔ 
-            // Không lấy góc xoay của cái xương vai nữa, mà lấy góc xoay của cả cơ thể Hunter (root)
-            // Hoặc ép nhân vật luôn đứng thẳng tương đối với Hunter
             Quaternion safeRotation = targetFollow.root.rotation;
-
             if (distance < 0.1f)
             {
                 transform.position = targetFollow.position;
-                transform.rotation = safeRotation; // Dùng góc xoay an toàn
+                transform.rotation = safeRotation; 
             }
             else
             {
                 transform.position = Vector3.Lerp(transform.position, targetFollow.position, followSpeed * Runner.DeltaTime);
-                transform.rotation = Quaternion.Lerp(transform.rotation, safeRotation, followSpeed * Runner.DeltaTime); // Dùng góc xoay an toàn
+                transform.rotation = Quaternion.Lerp(transform.rotation, safeRotation, followSpeed * Runner.DeltaTime); 
             }
         }
     }

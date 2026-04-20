@@ -12,7 +12,7 @@ public class PlayerInfo : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject); // Giữ thông tin khi chuyển Scene
+            DontDestroyOnLoad(gameObject); 
         }
         else
         {

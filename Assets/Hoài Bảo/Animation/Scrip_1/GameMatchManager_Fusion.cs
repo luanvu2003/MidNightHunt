@@ -3,36 +3,27 @@ using Fusion;
 using System.Linq;
 using TMPro;
 using UnityEngine.SceneManagement;
-using System.Collections.Generic; // 🚨 Cần thêm dòng này cho List
-
+using System.Collections.Generic; 
 public class GameMatchManager_Fusion : NetworkBehaviour
 {
     public static GameMatchManager_Fusion Instance;
-
     [Header("== UI KẾT THÚC GAME ==")]
     public GameObject endGameCanvas;
     public TextMeshProUGUI resultText;
     public GameObject returnRoomButton; 
     public GameObject quitButton;       
-
     [Header("== CÀI ĐẶT SCENE ==")]
     public int roomSceneBuildIndex = 1;
-
     [Networked, OnChangedRender(nameof(OnMatchEnded))]
     public NetworkBool IsMatchEnded { get; set; }
-
     [Networked] public int TotalSurvivors { get; set; }
     [Networked] public int DeadSurvivors { get; set; }
     [Networked] public int EscapedSurvivors { get; set; }
-
-    // 🚨 BIẾN MỚI: Danh sách những người đã Xong (Thoát hoặc Chết) để chống Spam Trigger
     private List<PlayerRef> _finishedPlayers = new List<PlayerRef>();
-
     private void Awake()
     {
         Instance = this;
     }
-
     public override void Spawned()
     {
         if (endGameCanvas != null) endGameCanvas.SetActive(false);
@@ -42,56 +33,34 @@ public class GameMatchManager_Fusion : NetworkBehaviour
             StartCoroutine(CountPlayersRoutine());
         }
     }
-
     private System.Collections.IEnumerator CountPlayersRoutine()
     {
         yield return new WaitForSeconds(2f);
         RoomPlayer[] allPlayers = FindObjectsOfType<RoomPlayer>();
         TotalSurvivors = allPlayers.Count(p => !p.IsHunter);
     }
-
     public void RegisterPlayerDeath(PlayerRef deadPlayer)
     {
         if (!Runner.IsServer || IsMatchEnded) return;
-
-        // 🚨 CHỐNG SPAM: Nếu đã ghi nhận người này rồi thì cấm gọi lại
         if (_finishedPlayers.Contains(deadPlayer)) return;
         _finishedPlayers.Add(deadPlayer);
-
         DeadSurvivors++;
-
-        // Báo cho riêng người chết
         RPC_NotifyPlayerFinished(deadPlayer, "BẠN ĐÃ TỬ TRẬN!");
-        
         CheckEndGameCondition();
     }
-
     public void RegisterPlayerEscape(NetworkObject playerObject)
     {
         if (!Runner.IsServer || IsMatchEnded) return;
-
         PlayerRef auth = playerObject.InputAuthority;
-
-        // 🚨 CHỐNG SPAM: Ngăn 1 người chạm cửa 2-3 lần do delay mạng
         if (_finishedPlayers.Contains(auth)) return;
         _finishedPlayers.Add(auth);
-
         EscapedSurvivors++;
-
-        // Báo cho riêng người thoát
         RPC_NotifyPlayerFinished(auth, "BẠN ĐÃ THOÁT THÀNH CÔNG!");
-
-        // 🚨 FIX LỖI MẤT UI: Tắt CharacterController để nhân vật đứng im không rớt map...
         var cc = playerObject.GetComponent<CharacterController>();
         if (cc != null) cc.enabled = false;
-
-        // ... Và đợi 0.5 giây sau mới xóa. Để Client chắc chắn nhận được lệnh bật UI!
         StartCoroutine(DelayDespawnRoutine(playerObject));
-
         CheckEndGameCondition();
     }
-
-    // 🚨 HÀM DELAY XÓA NHÂN VẬT
     private System.Collections.IEnumerator DelayDespawnRoutine(NetworkObject obj)
     {
         yield return new WaitForSeconds(0.5f);
@@ -100,7 +69,6 @@ public class GameMatchManager_Fusion : NetworkBehaviour
             Runner.Despawn(obj);
         }
     }
-
     private void CheckEndGameCondition()
     {
         if (DeadSurvivors + EscapedSurvivors >= TotalSurvivors)
@@ -108,19 +76,14 @@ public class GameMatchManager_Fusion : NetworkBehaviour
             IsMatchEnded = true; 
         }
     }
-
-    // Hàm này CHỈ gọi cho Survivor vừa chết/thoát (Hunter KHÔNG nhận được)
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_NotifyPlayerFinished(PlayerRef player, string message)
     {
-        // 🚨 FIX GHI ĐÈ: Nếu game đã kết thúc toàn cục rồi thì không hiện UI cá nhân nữa (để nhường chỗ cho UI End Game)
         if (Runner.LocalPlayer == player && !IsMatchEnded)
         {
             ShowUI(message, false); 
         }
     }
-
-    // Hàm gọi cho TẤT CẢ mọi người khi game thực sự kết thúc
     void OnMatchEnded()
     {
         if (IsMatchEnded)
@@ -136,14 +99,11 @@ public class GameMatchManager_Fusion : NetworkBehaviour
             ShowUI(finalMsg, true); 
         }
     }
-
     private void ShowUI(string message, bool isGlobalEnd)
     {
         if (endGameCanvas != null) endGameCanvas.SetActive(true);
         if (resultText != null) resultText.text = message;
-
         bool isHost = Runner.IsServer;
-
         if (isHost && !isGlobalEnd)
         {
             resultText.text += "\n\n<size=80%><color=#A8A8A8>(Bạn là Chủ Phòng. Vui lòng làm khán giả chờ ván đấu kết thúc để không làm sập phòng của người khác!)</color></size>";
@@ -155,11 +115,9 @@ public class GameMatchManager_Fusion : NetworkBehaviour
             if (returnRoomButton != null) returnRoomButton.SetActive(true);
             if (quitButton != null) quitButton.SetActive(true);
         }
-
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
-
     public void Button_ReturnToRoom()
     {
         if (Runner.IsServer)
@@ -167,14 +125,12 @@ public class GameMatchManager_Fusion : NetworkBehaviour
         else
             StartCoroutine(ClientReturnRoutine());
     }
-
     private System.Collections.IEnumerator ClientReturnRoutine()
     {
         if (Runner != null) Runner.Shutdown();
         yield return null;
         SceneManager.LoadScene(roomSceneBuildIndex);
     }
-
     public void Button_QuitGame()
     {
         if (Runner != null) Runner.Shutdown();
