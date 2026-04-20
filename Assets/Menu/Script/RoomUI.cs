@@ -3,36 +3,28 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 using System.Collections;
-using System.Linq; // Thêm thư viện này để đếm số người
+using System.Linq;
 
 public class RoomUI : MonoBehaviour
 {
     public static RoomUI Instance;
-
     [Header("Cài Đặt Game")]
     [Tooltip("Số người cần thiết để bắt đầu. Đang test thì để 2, Build thật thì để 4")]
-    public int requiredPlayers = 2; // 🚨 Sửa số này thành 2 để bạn test nhé!
-
+    public int requiredPlayers = 2; 
     [Header("UI Elements")]
     public TextMeshProUGUI roomNameText;
     public TextMeshProUGUI roomIDText;
     public GameObject startGameButton;
-
-    // 🚨 THÊM MỚI: Text cảnh báo thiếu người
     [Header("UI Cảnh Báo")]
     public TextMeshProUGUI warningText;
-
     [Header("Player List")]
     public Transform playerListContainer;
     public GameObject playerItemPrefab;
-
     private NetworkRunner _runner;
-
     void Awake()
     {
         Instance = this;
     }
-
     void Start()
     {
         _runner = FindFirstObjectByType<NetworkRunner>();
@@ -47,7 +39,6 @@ public class RoomUI : MonoBehaviour
             if (warningText != null) warningText.gameObject.SetActive(false);
         }
     }
-
     IEnumerator UpdateRoomDetailsRoutine()
     {
         while (_runner == null || _runner.SessionInfo == null || !_runner.SessionInfo.IsValid)
@@ -62,14 +53,11 @@ public class RoomUI : MonoBehaviour
                 Destroy(child.gameObject);
             }
         }
-
         string idPhong = _runner.SessionInfo.Name;
-
         if (roomIDText != null)
         {
             roomIDText.text = "" + idPhong;
         }
-
         if (roomNameText != null)
         {
             if (_runner.SessionInfo.Properties != null && _runner.SessionInfo.Properties.TryGetValue("HostName", out var hostName))
@@ -82,7 +70,6 @@ public class RoomUI : MonoBehaviour
             }
         }
     }
-
     public void CopyRoomID()
     {
         if (_runner != null && _runner.SessionInfo != null && _runner.SessionInfo.IsValid)
@@ -91,37 +78,28 @@ public class RoomUI : MonoBehaviour
             Debug.Log("Đã copy ID: " + _runner.SessionInfo.Name);
         }
     }
-
     public void AddPlayer(string playerName, int charID = -1)
     {
         if (playerListContainer == null) return;
-
         Transform existingPlayer = playerListContainer.Find(playerName);
         if (existingPlayer != null) return;
-
         GameObject newPlayerItem = Instantiate(playerItemPrefab, playerListContainer);
         TextMeshProUGUI nameText = newPlayerItem.GetComponentInChildren<TextMeshProUGUI>();
-
         if (nameText != null)
         {
             nameText.text = playerName;
         }
-
         newPlayerItem.name = playerName;
     }
-
     public void RemovePlayer(string playerName)
     {
         if (playerListContainer == null) return;
         Transform playerItem = playerListContainer.Find(playerName);
-
         if (playerItem != null)
         {
             Destroy(playerItem.gameObject);
         }
     }
-
-    // 🚨 CẬP NHẬT: KHI BẤM NÚT START GAME Ở LOBBY
     public void OnClickStartGame()
     {
         if (_runner.IsServer)
@@ -130,7 +108,6 @@ public class RoomUI : MonoBehaviour
 
             if (currentPlayerCount >= requiredPlayers)
             {
-                // 🚨 ĐÃ SỬA: Dùng RoomPlayer của chính Host để phát lệnh RPC cho cả phòng
                 if (RoomPlayer.Local != null)
                 {
                     RoomPlayer.Local.RPC_ShowLoadingAndTransition();
@@ -149,13 +126,11 @@ public class RoomUI : MonoBehaviour
             }
         }
     }
-
     IEnumerator HideWarningRoutine()
     {
         yield return new WaitForSeconds(3f);
         if (warningText != null) warningText.gameObject.SetActive(false);
     }
-
     public void OnClickLeave()
     {
         _runner.Shutdown();

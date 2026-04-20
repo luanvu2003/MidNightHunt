@@ -17,19 +17,15 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
 
     [Header("== UI TEXT (BẢNG TÊN) ==")]
     [Tooltip("Nhập chính xác tên GameObject text của Hunter vào đây")]
-    public string hunterTextGameObjectName = "HunterNameText"; // <-- SỬA TẠI ĐÂY
+    public string hunterTextGameObjectName = "HunterNameText"; 
     public TextMeshProUGUI[] survivorTexts;
 
     private Dictionary<PlayerRef, NetworkObject> spawnedCharacters = new Dictionary<PlayerRef, NetworkObject>();
-
-    // Server dùng biến này để đếm vị trí spawn cho Survivor
     private int survivorSpawnIndex = 0;
-
     public override void Spawned()
     {
         if (Runner.IsServer)
         {
-            // Reset index khi bắt đầu map
             survivorSpawnIndex = 0;
             foreach (var player in Runner.ActivePlayers)
             {
@@ -40,14 +36,11 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
         ResetAllText();
         StartCoroutine(UpdatePlayerNamesRoutine());
     }
-
-    // HÀM MỚI: Tìm Text Hunter theo tên (Tìm được cả khi GameObject bị ẩn / SetActive = false)
     private TextMeshProUGUI FindHunterTextByName()
     {
         TextMeshProUGUI[] allTexts = Resources.FindObjectsOfTypeAll<TextMeshProUGUI>();
         foreach (var txt in allTexts)
         {
-            // Đảm bảo đúng tên và object đang thực sự có trong scene (tránh dính nhầm prefab chưa spawn trong folder)
             if (txt.gameObject.name == hunterTextGameObjectName && txt.gameObject.scene.isLoaded)
             {
                 return txt;
@@ -55,22 +48,16 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
         }
         return null;
     }
-
     private void ResetAllText()
     {
-        // 1. Reset bảng tên Survivor (nếu Survivor vẫn dùng UI gắn cứng trên Scene)
         foreach (var txt in survivorTexts) if (txt != null) { txt.text = ""; txt.gameObject.SetActive(false); }
-
-        // 2. Reset bảng tên Hunter (Tìm trực tiếp bên trong các nhân vật đã được spawn)
         foreach (var kvp in spawnedCharacters)
         {
             NetworkObject spawnedObj = kvp.Value;
             if (spawnedObj != null)
             {
-                // Tìm tất cả Text bên trong nhân vật này (bao gồm cả các object đang bị ẩn)
                 var texts = spawnedObj.GetComponentsInChildren<TextMeshProUGUI>(true);
                 var hunterTxt = texts.FirstOrDefault(t => t.gameObject.name == hunterTextGameObjectName);
-
                 if (hunterTxt != null)
                 {
                     hunterTxt.text = "";
@@ -79,14 +66,10 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
             }
         }
     }
-
     IEnumerator UpdatePlayerNamesRoutine()
     {
         yield return new WaitForSeconds(1.0f);
         var allPlayers = FindObjectsOfType<RoomPlayer>().ToList();
-
-        // == CẬP NHẬT TÊN SURVIVOR ==
-        // (Vẫn giữ nguyên logic cũ nếu UI Survivor của bạn gắn cố định trên Canvas)
         var survivorsData = allPlayers.Where(p => !p.IsHunter).OrderBy(p => p.Object.InputAuthority.PlayerId).ToList();
         for (int i = 0; i < survivorsData.Count; i++)
         {
@@ -97,19 +80,15 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
             }
         }
     }
-
     private void SpawnCharacter(PlayerRef player)
     {
         if (spawnedCharacters.ContainsKey(player)) return;
-
         RoomPlayer roomData = FindObjectsOfType<RoomPlayer>().FirstOrDefault(p => p.Object.InputAuthority == player);
-
         if (roomData != null)
         {
             NetworkObject prefabToSpawn = null;
             Vector3 spawnPos = Vector3.zero;
             int charID = roomData.CharacterID;
-
             if (roomData.IsHunter)
             {
                 if (charID >= 0 && charID < hunterPrefabs.Length) prefabToSpawn = hunterPrefabs[charID];
@@ -118,7 +97,6 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
             else
             {
                 if (charID >= 0 && charID < survivorPrefabs.Length) prefabToSpawn = survivorPrefabs[charID];
-
                 if (survivorSpawnPoints != null && survivorSpawnPoints.Length > 0)
                 {
                     int index = survivorSpawnIndex % survivorSpawnPoints.Length;
@@ -130,24 +108,19 @@ public class MapSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
 
             if (prefabToSpawn != null)
             {
-                // 🚨 ĐÃ SỬA: Bỏ thao tác với CharacterController ở đây. Để IShowSpeedController tự lo.
                 NetworkObject charObj = Runner.Spawn(prefabToSpawn, spawnPos, Quaternion.identity, player);
                 spawnedCharacters.Add(player, charObj);
             }
         }
     }
-
     public void PlayerJoined(PlayerRef player)
     {
         if (Runner.IsServer) SpawnCharacter(player);
     }
-
     public void PlayerLeft(PlayerRef player)
     {
-        // Xử lý dọn dẹp khi người chơi thoát
         if (Runner.IsServer)
         {
-            // Tìm tất cả NetworkObject thuộc quyền của người chơi vừa thoát để Despawn
             foreach (var obj in Runner.GetAllNetworkObjects())
             {
                 if (obj.InputAuthority == player)

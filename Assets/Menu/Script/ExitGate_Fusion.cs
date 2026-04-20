@@ -6,79 +6,59 @@ using Fusion;
 public class ExitGate_Fusion : NetworkBehaviour
 {
     [Header("Cài Đặt Cửa")]
-    public float timeToOpen = 60f; // Tổng thời gian mở cửa (60s)
-    public float interactDistance = 3.5f; // Đứng xa quá không mở được
-
+    public float timeToOpen = 60f; 
+    public float interactDistance = 3.5f; 
     [Header("UI & Tương Tác (Local)")]
     [Tooltip("Text 'Giữ E để mở' - Phải nằm trong Canvas của riêng Prefab này")]
     public GameObject interactText;
     [Tooltip("Thanh tiến trình - Phải nằm trong Canvas của riêng Prefab này")]
     public Slider progressBar;
-
     [Header("Object Cửa (Kéo thả vào đây)")]
-    public GameObject switchBox; // Cục cầu dao để đổi màu Aura Đỏ
-    public GameObject gateBlocker; // Bức tường chặn cửa, sẽ bị tắt khi cửa mở
-    public GameObject escapeZone;  // Vùng đi vào là Win (Ban đầu nên tắt)
-    public GameObject[] indicatorLights = new GameObject[6]; // 6 cái Đèn (Object ánh sáng)
-
+    public GameObject switchBox; 
+    public GameObject gateBlocker; 
+    public GameObject escapeZone; 
+    public GameObject[] indicatorLights = new GameObject[6]; 
     [Header("Hệ thống Aura Đỏ")]
     public GameObject auraSwitchObject;
-
     [Header("Âm thanh")]
-    public AudioSource gateAudioSource; // Chú ý: Component này phải set Spatial Blend = 1 (3D)
-    public AudioClip globalPowerUpSound; // Âm thanh KHI SỬA XONG 4 MÁY (Toàn bản đồ nghe thấy)
-    public AudioClip openingSound; // Tiếng cọt kẹt lúc đang mở (Local 3D)
-    public AudioClip openedSound;  // Tiếng "Cạch" cửa mở toang (Local 3D)
-
-    // ================== BIẾN ĐỒNG BỘ MẠNG ==================
-    [Networked] public NetworkBool IsPowered { get; set; } // Đã sửa xong 4 máy chưa?
-    [Networked] public NetworkBool IsOpened { get; set; }  // Cửa đã mở toang chưa?
-    [Networked] public float Progress { get; set; }        // Thanh tiến trình (Lưu lại)
+    public AudioSource gateAudioSource; 
+    public AudioClip globalPowerUpSound; 
+    public AudioClip openingSound; 
+    public AudioClip openedSound;  
+    [Networked] public NetworkBool IsPowered { get; set; } 
+    [Networked] public NetworkBool IsOpened { get; set; }  
+    [Networked] public float Progress { get; set; }      
     [Networked, Capacity(4)] public NetworkLinkedList<NetworkId> ActiveOpeners => default;
-
-    // ================== BIẾN CỤC BỘ ==================
     private bool _inRange = false;
     private ISurvivor _localPlayer;
     private ChangeDetector _changeDetector;
     private bool _isOpeningLocally = false;
-
     public override void Spawned()
     {
         _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
-
         if (interactText != null) interactText.SetActive(false);
         if (progressBar != null) progressBar.gameObject.SetActive(false);
         if (escapeZone != null) escapeZone.SetActive(false);
-
         foreach (var light in indicatorLights)
             if (light != null) light.SetActive(false);
-
         if (auraSwitchObject != null) auraSwitchObject.SetActive(false);
     }
-
-    // Hàm này được gọi từ GameManager khi 4 máy đã xong
     public void OnGatesPoweredUp()
     {
         if (Object.HasStateAuthority) IsPowered = true;
-
-        // --- FIX: PHÁT ÂM THANH TOÀN BẢN ĐỒ ---
         if (globalPowerUpSound != null)
         {
-            // Phát âm thanh tại vị trí Camera chính để giả lập âm thanh 2D, ai cũng sẽ nghe rõ 100%
             Vector3 playPos = Camera.main != null ? Camera.main.transform.position : transform.position;
             AudioSource.PlayClipAtPoint(globalPowerUpSound, playPos, GetVFXVolume());
         }
-
         HandleAuraVisibility();
     }
 
     private void HandleAuraVisibility()
     {
         if (auraSwitchObject == null) return;
-
         bool isHunter = false;
         NetworkObject[] allNetObjects = FindObjectsOfType<NetworkObject>();
-
         foreach (var networkObj in allNetObjects)
         {
             if (networkObj.HasInputAuthority)
@@ -90,7 +70,6 @@ public class ExitGate_Fusion : NetworkBehaviour
                 }
             }
         }
-
         if (isHunter)
         {
             auraSwitchObject.SetActive(true);
@@ -101,10 +80,8 @@ public class ExitGate_Fusion : NetworkBehaviour
             Invoke(nameof(HideAuraSwitch), 10f);
         }
     }
-
     public override void Render()
     {
-        // --- FIX: BẮT SỰ KIỆN CỬA MỞ TỪ SERVER ĐỂ GỌI OPENGATEVISUALS ---
         foreach (var change in _changeDetector.DetectChanges(this))
         {
             switch (change)
@@ -114,8 +91,6 @@ public class ExitGate_Fusion : NetworkBehaviour
                     break;
             }
         }
-
-        // 1. Đồng bộ 6 cái đèn theo tiến trình (Cứ 10s sáng 1 đèn riêng cho Prefab này)
         int lightsToTurnOn = Mathf.FloorToInt(Progress / 10f);
         for (int i = 0; i < indicatorLights.Length; i++)
         {
@@ -124,14 +99,10 @@ public class ExitGate_Fusion : NetworkBehaviour
                 indicatorLights[i].SetActive(i < lightsToTurnOn);
             }
         }
-
-        // 2. Cập nhật thanh Slider
         if (progressBar != null && progressBar.gameObject.activeSelf)
         {
             progressBar.value = Progress / timeToOpen;
         }
-
-        // 3. Xử lý âm thanh mở cửa (Từng Prefab tự xử lý, ai đứng gần mới nghe)
         bool isSomeoneOpening = ActiveOpeners.Count > 0;
         if (gateAudioSource != null && openingSound != null)
         {
@@ -146,7 +117,7 @@ public class ExitGate_Fusion : NetworkBehaviour
                 }
                 else
                 {
-                    gateAudioSource.volume = GetVFXVolume(); // Cập nhật theo Setting
+                    gateAudioSource.volume = GetVFXVolume(); 
                 }
             }
             else if ((!isSomeoneOpening || IsOpened) && gateAudioSource.clip == openingSound && gateAudioSource.isPlaying)
@@ -155,12 +126,9 @@ public class ExitGate_Fusion : NetworkBehaviour
             }
         }
     }
-
     private void Update()
     {
         if (Object == null || !Object.IsValid || !IsPowered || IsOpened) return;
-
-        // Failsafe: Đi quá xa tự động ngắt
         if (_localPlayer != null)
         {
             float dist = Vector3.Distance(switchBox.transform.position, _localPlayer.Object.transform.position);
@@ -172,7 +140,6 @@ public class ExitGate_Fusion : NetworkBehaviour
 
         if (_inRange)
         {
-            // BẮT ĐẦU GIỮ PHÍM E
             if (Input.GetKeyDown(KeyCode.E) && !_isOpeningLocally)
             {
                 _isOpeningLocally = true;
@@ -181,7 +148,6 @@ public class ExitGate_Fusion : NetworkBehaviour
                 StartOpeningLocally();
             }
 
-            // BUÔNG PHÍM E
             if (Input.GetKeyUp(KeyCode.E) && _isOpeningLocally)
             {
                 _isOpeningLocally = false;
@@ -198,15 +164,11 @@ public class ExitGate_Fusion : NetworkBehaviour
 
         if (ActiveOpeners.Count > 0)
         {
-            // Tiến trình tăng dần. Nếu có nhiều người cùng mở thì sẽ x2, x3 tốc độ.
             Progress += Runner.DeltaTime * ActiveOpeners.Count;
-
             if (Progress >= timeToOpen)
             {
                 Progress = timeToOpen;
-                IsOpened = true; // Kích hoạt mở cửa toàn bản đồ
-
-                // 🚨 ÉP TẮT ANIMATION CHO NHỮNG NGƯỜI ĐANG MỞ CỬA TRƯỚC KHI KICK HỌ RA
+                IsOpened = true;
                 foreach (var playerId in ActiveOpeners)
                 {
                     var playerObj = Runner.FindObject(playerId);
@@ -217,34 +179,26 @@ public class ExitGate_Fusion : NetworkBehaviour
                     }
                 }
 
-                ActiveOpeners.Clear(); // Kick mọi người ra khỏi trạng thái tương tác
+                ActiveOpeners.Clear(); 
             }
         }
     }
-
     private void StartOpeningLocally()
     {
         if (_localPlayer == null) return;
-
-        _localPlayer.OnStartRepair(); // 🚨 Ép khóa chân di chuyển ngay lập tức trên máy mình
-
+        _localPlayer.OnStartRepair(); 
         RPC_SetOpeningState(_localPlayer.Object.Id, true);
     }
-
     private void StopOpeningLocally()
     {
         if (_localPlayer == null) return;
-
-        _localPlayer.OnStopRepair(); // 🚨 Mở khóa chân khi nhả phím E
-
+        _localPlayer.OnStopRepair();
         RPC_SetOpeningState(_localPlayer.Object.Id, false);
     }
-
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     private void RPC_SetOpeningState(NetworkId playerId, NetworkBool isOpening)
     {
         if (IsOpened) return;
-
         if (isOpening)
         {
             if (!ActiveOpeners.Contains(playerId)) ActiveOpeners.Add(playerId);
@@ -253,8 +207,6 @@ public class ExitGate_Fusion : NetworkBehaviour
         {
             ActiveOpeners.Remove(playerId);
         }
-
-        // 🚨 ĐỒNG BỘ ANIMATION LÊN SERVER ĐỂ MỌI NGƯỜI CÙNG THẤY
         var playerObj = Runner.FindObject(playerId);
         if (playerObj != null)
         {
@@ -265,35 +217,27 @@ public class ExitGate_Fusion : NetworkBehaviour
             }
         }
     }
-
     private void OpenGateVisuals()
     {
-        // 🚨 CHÌA KHÓA GỠ KẸT CHÂN: Ép mở khóa chân nếu người chơi vẫn đang lỳ đòn giữ phím E
         if (_isOpeningLocally)
         {
             StopOpeningLocally();
         }
-
-        // Khi cửa mở toang, dọn dẹp sạch UI
         _isOpeningLocally = false;
         if (interactText) interactText.SetActive(false);
         if (progressBar) progressBar.gameObject.SetActive(false);
         if (gateBlocker != null) gateBlocker.SetActive(false);
         if (escapeZone != null) escapeZone.SetActive(true);
-
         if (gateAudioSource && openedSound)
         {
             gateAudioSource.Stop();
             gateAudioSource.PlayOneShot(openedSound, GetVFXVolume());
         }
-
         HideAuraSwitch();
     }
-
     private void OnTriggerEnter(Collider other)
     {
         if (IsOpened || !IsPowered) return;
-
         if (other.CompareTag("Player"))
         {
             var player = other.GetComponent<ISurvivor>();
@@ -302,13 +246,11 @@ public class ExitGate_Fusion : NetworkBehaviour
                 _inRange = true;
                 _localPlayer = player;
                 _isOpeningLocally = false;
-
                 if (interactText != null) interactText.SetActive(true);
                 if (progressBar != null) progressBar.gameObject.SetActive(false);
             }
         }
     }
-
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Player"))
@@ -320,25 +262,19 @@ public class ExitGate_Fusion : NetworkBehaviour
             }
         }
     }
-
     private void ResetInteractionLocal()
     {
         _inRange = false;
-
         if (_isOpeningLocally) StopOpeningLocally();
-
         _isOpeningLocally = false;
         _localPlayer = null;
-
         if (interactText != null) interactText.SetActive(false);
         if (progressBar != null) progressBar.gameObject.SetActive(false);
     }
-
     private void HideAuraSwitch()
     {
         if (auraSwitchObject != null) auraSwitchObject.SetActive(false);
     }
-
     private float GetVFXVolume()
     {
         return AudioManager.Instance != null ? AudioManager.Instance.vfxVolume : 1f;

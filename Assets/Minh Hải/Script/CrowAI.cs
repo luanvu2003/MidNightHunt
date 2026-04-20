@@ -10,40 +10,31 @@ public class CrowAI : NetworkBehaviour
     public float patrolRadius = 3f;
     public float waitTime = 3f;
     public float rotationSpeed = 8f;
-
    [Header("Cài đặt Hồi sinh")]
-    public float minRespawnTime = 20f; // Thời gian chờ tối thiểu (20s)
+    public float minRespawnTime = 20f; 
     public float maxRespawnTime = 30f;
     [Header("Model & Bay")]
     public GameObject idleModel;
     public GameObject flyModel;
     public float flyUpSpeed = 18f;
     public float detectionRadius = 5f;
-
     [Header("Âm thanh & Bóng Đỏ (Hunter Vision)")]
     public AudioSource cawSound;
     public float maxHearingDistance = 40f;
-
     [Tooltip("Kéo Prefab bóng con quạ màu đỏ vào đây")]
     public GameObject redSilhouettePrefab;
     [Tooltip("Thời gian cái bóng đỏ tồn tại (giây)")]
     public float silhouetteDuration = 5f;
-
     private Vector3 startPosition;
     private Quaternion startRotation;
-
     [Networked] public NetworkBool IsFleeing { get; set; }
-
     private ChangeDetector _changeDetector;
     private Collider[] _overlapResults = new Collider[10];
-
     public override void Spawned()
     {
         _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
-
         startPosition = transform.position;
         startRotation = transform.rotation;
-
         if (cawSound != null)
         {
             cawSound.spatialBlend = 1f;
@@ -52,18 +43,13 @@ public class CrowAI : NetworkBehaviour
             cawSound.maxDistance = maxHearingDistance;
             if (cawSound.isPlaying) cawSound.Stop();
         }
-
         UpdateVisuals();
-
         if (HasStateAuthority) StartCoroutine(PatrolRoutine());
     }
-
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority || IsFleeing) return;
-
         int hitCount = Runner.GetPhysicsScene().OverlapSphere(transform.position, detectionRadius, _overlapResults, -1, QueryTriggerInteraction.UseGlobal);
-
         for (int i = 0; i < hitCount; i++)
         {
             Collider t = _overlapResults[i];
@@ -78,7 +64,6 @@ public class CrowAI : NetworkBehaviour
             }
         }
     }
-
     public override void Render()
     {
         foreach (var change in _changeDetector.DetectChanges(this))
@@ -92,69 +77,51 @@ public class CrowAI : NetworkBehaviour
             }
         }
     }
-
     private void ProcessCrowFlight()
     {
         UpdateVisuals();
-
         if (flyModel != null)
         {
             Animator anim = flyModel.GetComponentInChildren<Animator>();
             if (anim != null) { anim.Play("CrowFly", 0, 0f); anim.speed = 1.5f; }
         }
-
         if (cawSound != null) 
         {
-            // 🚨 ĐỒNG BỘ VOLUME VFX TỪ AUDIO MANAGER
             if (AudioManager.Instance != null) 
             {
                 cawSound.volume = AudioManager.Instance.vfxVolume;
             }
             cawSound.Play();
         }
-
-        // 🚨 GỌI HÀM SINH RA BÓNG ĐỎ
         SpawnRedSilhouetteLocal();
     }
-
     private void SpawnRedSilhouetteLocal()
     {
-        // 1. Tìm script Camera đang chạy trên máy này
         GameCameraController cam = FindFirstObjectByType<GameCameraController>();
-
-        // 2. CHỈ thực hiện tạo bóng đỏ nếu người chơi đang ở chế độ Hunter (FPS)
         if (cam != null && cam.currentMode == GameCameraController.CameraMode.FPS_Hunter)
         {
             if (redSilhouettePrefab != null)
             {
-                // Sinh ra bóng đỏ tại vị trí và hướng lúc quạ bắt đầu bay
                 GameObject silhouette = Instantiate(redSilhouettePrefab, startPosition, startRotation);
-
-                // Xóa bóng sau 5 giây
                 Destroy(silhouette, silhouetteDuration);
             }
         }
-        // Nếu là Survivor (TPS), hàm này sẽ chạy nhưng không làm gì cả, không tốn tài nguyên
     }
-
     private void UpdateVisuals()
     {
         if (idleModel != null) idleModel.SetActive(!IsFleeing);
         if (flyModel != null) flyModel.SetActive(IsFleeing);
     }
-
     public void OnGeneratorExplosion()
     {
         if (!HasStateAuthority || IsFleeing) return;
         StartCoroutine(DelayedFleeRoutine());
     }
-
     IEnumerator DelayedFleeRoutine()
     {
         yield return new WaitForSeconds(Random.Range(0.1f, 0.4f));
         TriggerFleeServer();
     }
-
     public void TriggerFleeServer()
     {
         if (IsFleeing || !HasStateAuthority) return;
@@ -163,18 +130,15 @@ public class CrowAI : NetworkBehaviour
         StopAllCoroutines();
         StartCoroutine(FlyAndRespawnRoutine());
     }
-
     IEnumerator PatrolRoutine()
     {
         while (!IsFleeing)
         {
             yield return new WaitForSeconds(Random.Range(waitTime * 0.5f, waitTime * 1.5f));
             if (IsFleeing) yield break;
-
             Vector2 randomCircle = Random.insideUnitCircle * patrolRadius;
             Vector3 targetPoint = startPosition + new Vector3(randomCircle.x, 0, randomCircle.y);
             Vector3 direction = (targetPoint - transform.position).normalized;
-
             if (direction != Vector3.zero)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(direction);
@@ -184,7 +148,6 @@ public class CrowAI : NetworkBehaviour
                     yield return null;
                 }
             }
-
             float startTime = Time.time;
             while (Vector3.Distance(transform.position, targetPoint) > 0.1f && !IsFleeing)
             {
@@ -194,12 +157,10 @@ public class CrowAI : NetworkBehaviour
             }
         }
     }
-
     IEnumerator FlyAndRespawnRoutine()
     {
         float timer = 0f;
         Vector3 randomDir = (new Vector3(Random.Range(-1f, 1f), 0, Random.Range(-1f, 1f)).normalized * 1.5f + Vector3.up).normalized;
-
         while (timer < 10f)
         {
             float currentSpeed = Mathf.Lerp(flyUpSpeed, flyUpSpeed * 0.4f, timer / 10f);
@@ -208,18 +169,13 @@ public class CrowAI : NetworkBehaviour
             timer += Runner.DeltaTime;
             yield return null;
         }
-
         transform.position = startPosition + Vector3.down * 100f;
-        // 🚨 CHỈ SỬA Ở ĐÂY: Hồi sinh ngẫu nhiên từ 20 đến 30 giây
         yield return new WaitForSeconds(Random.Range(minRespawnTime, maxRespawnTime));
         transform.position = startPosition;
         transform.rotation = startRotation;
-
         IsFleeing = false;
-
         if (HasStateAuthority) StartCoroutine(PatrolRoutine());
     }
-
     private void OnTriggerEnter(Collider other)
     {
         if (!HasStateAuthority) return;
